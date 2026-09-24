@@ -1,25 +1,75 @@
-# CODING AGENTS: READ THIS FIRST
+# DigiEx League
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+Web app for the F8 vs F9 football derby at DigiEx. It covers teams, FO4-style player cards, fixtures and head-to-head history, lineups, match analysis, winner and score predictions, and a transfer market where chairmen send, accept and reject offers.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+Built with **Vite + React + TypeScript**, with **Supabase** providing auth, Postgres (RLS), storage and realtime. The original Claude Design prototype and the chat transcript are in `project/` and `chats/`.
 
-## What you should do — IMPORTANT
+## Run locally
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+```bash
+npm install
+npm run dev
+```
 
-**Read `project/DigiEx League.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+If `VITE_SUPABASE_URL` is not set, the app runs in **local demo mode**. Data lives in the browser's localStorage, and the login dialog lists the demo accounts (password `123456`). The footer has a "Khôi phục dữ liệu mẫu" link that resets the data.
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+## Connect Supabase
 
-## About the design files
+1. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+2. Apply the schema. Either:
+   - paste `supabase/migrations/20260924000000_init.sql` and then `supabase/seed.sql` into the Supabase **SQL Editor**, or
+   - with the Supabase CLI, run `supabase link --project-ref <ref>`, then `supabase db push`, then `psql "$DB_URL" -f supabase/seed.sql`.
+3. Create the demo accounts and demo offers. This needs the **service-role** key; never put it in a `VITE_` variable:
+   ```bash
+   VITE_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:users
+   ```
+4. In **Authentication → Providers → Email**, turn off "Allow new users to sign up" so only accounts you create can log in.
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+Users sign in with a username. A username without `@` is converted to `<username>@VITE_AUTH_EMAIL_DOMAIN`, for example `son.f8@digiex.group`.
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+### Roles
 
-## Bundle contents
+Roles live in `public.profiles.role` / `team_id`. New auth users always start as `member`, and only SQL or the service role can change a role:
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `DigiEx League Football Platform` project files (HTML prototypes, assets, components)
+```sql
+update public.profiles set role = 'chair', team_id = 'f8' where username = 'son.f8';
+```
+
+| Role | Can do |
+|---|---|
+| `admin` (Ban tổ chức) | add teams, schedule matches, enter results, transfer any player, see all offers |
+| `chair` (Chủ tịch) | manage own squad and logo, transfer own players, send offers for other teams' players, accept or reject offers for own players |
+| `coach` (BHL) | manage own squad and logo |
+| `member` | view cards, analysis and market; vote once per match |
+| guest | home, teams, fixtures, lineups |
+
+Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER` functions `make_offer`, `respond_offer`, `cancel_offer`, `transfer_player`, `vote_winner`, `vote_score` and `vote_stats`. The UI only hides actions a user can't take. Player value is a generated column (`player_value(ovr)`). Uploads go to the public `media` bucket under `logos/<team>/…` and `players/<team>/…`, and only that team's staff can write there.
+
+## Scripts
+
+| | |
+|---|---|
+| `npm run dev` / `build` / `preview` | Vite |
+| `npm run typecheck` | `tsc -b` |
+| `npm run gen:seed` | regenerate `supabase/seed.sql` from `src/data/seed.ts` |
+| `npm run seed:users` | create demo auth users, roles and offers in Supabase |
+
+## Layout
+
+```
+src/
+  data/       api.ts (interface) · supabaseApi.ts · localApi.ts · seed.ts · store.tsx (context, routing, toasts)
+  lib/        types.ts · league.ts (tiers, value formula, lineup, records, formatting)
+  components/ Header · bits (PlayerCard, Crest, Lock, …)
+  views/      Home · Teams · Matches (list + detail) · Market · Manage
+  modals/     CardModal · FormModal (login, team, player, transfer, offer, schedule)
+supabase/     migrations/ (schema, RLS, RPCs, storage, realtime) · seed.sql
+```
+
+## Differences from the prototype
+
+- Data is shared across the company through Supabase. Votes are one per user and stored server-side; offers and transfers update live over realtime.
+- "Kết thúc trận" records only the score. The prototype invented goal scorers at random; real scorers can be stored in `matches.scorers`.
+- Creating a team no longer creates a chairman account automatically. Assign one via `profiles` as shown above.
+- The lineup formation (`2-3-1`) and the card shine effect were design-tool tweaks. They are now the constants `FORMATION` and `CARD_SHINE` in `src/lib/league.ts`.
+- URLs are shareable: `#/teams/f8`, `#/match/<id>`, `#/market`.
