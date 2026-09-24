@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#06080d;color:#e9edf5;font-family:'Be Vietnam Pro',sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#c6ff3d;text-decoration:none}a:hover{color:#e4ff9a}
+button,input,select{font-family:inherit}
+::-webkit-scrollbar{height:6px;width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes cardRise{from{opacity:0;transform:translateY(24px) rotateX(25deg)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.3)}70%{transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+@keyframes flipIn{0%{opacity:0;transform:perspective(900px) rotateY(180deg) scale(.5)}60%{opacity:1;transform:perspective(900px) rotateY(-12deg) scale(1.05)}100%{transform:perspective(900px) rotateY(0) scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shine{0%{left:-60%}55%,100%{left:130%}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,30px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:radial-gradient(1200px 600px at 80% -10%,rgba(47,140,255,.10),transparent 60%),radial-gradient(900px 500px at 0% 0%,rgba(255,59,92,.08),transparent 60%),#06080d">
+
+<header style="position:sticky;top:0;z-index:50;background:rgba(6,8,13,.84);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.07)">
+  <div style="max-width:1240px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap">
+    <div onClick="{{ goHome }}" style="order:0;flex:none;display:flex;align-items:center;gap:10px;cursor:pointer">
+      <div style="width:40px;height:44px;background:#c6ff3d;clip-path:polygon(50% 0,100% 14%,100% 64%,50% 100%,0 64%,0 14%);display:grid;place-items:center;color:#06080d;font:italic 900 19px/1 'Barlow Condensed',sans-serif">DX</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="font:italic 900 23px/1 'Barlow Condensed',sans-serif;letter-spacing:.03em;color:#fff">DIGIEX LEAGUE</div>
+        <div style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.22em;color:#8b93a7">F8 · F9 DERBY · MÙA 2026</div>
+      </div>
+    </div>
+    <nav style="display:flex;gap:2px;overflow-x:auto;min-width:0;order:{{ hdr.navOrder }};flex:1 1 {{ hdr.navBasis }};justify-content:{{ hdr.navJustify }};margin:{{ hdr.navMargin }};padding:{{ hdr.navPad }};border-top:{{ hdr.navBorder }};scrollbar-width:none">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+        <button onClick="{{ n.onClick }}" style="flex:none;display:flex;align-items:center;gap:6px;border:0;cursor:pointer;padding:10px 14px;background:{{ n.bg }};color:{{ n.fg }};font:italic 800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);transition:background .2s,color .2s" style-hover="color:#fff">{{ n.label }}<sc-if value="{{ n.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff3b5c;color:#fff;font:700 11px/18px 'Be Vietnam Pro',sans-serif;font-style:normal;letter-spacing:0;text-align:center;animation:pulse 1.6s infinite">{{ n.badge }}</span></sc-if></button>
+      </sc-for>
+    </nav>
+    <div style="order:2;flex:none;display:flex;margin-left:{{ hdr.authMl }}">
+    <sc-if value="{{ isGuest }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ openLogin }}" style="flex:none;border:1px solid rgba(198,255,61,.55);cursor:pointer;padding:9px 16px;border-radius:40px;background:transparent;color:#c6ff3d;font:600 13px/1 'Be Vietnam Pro',sans-serif;transition:background .2s" style-hover="background:rgba(198,255,61,.1)">Đăng nhập</button>
+    </sc-if>
+    <sc-if value="{{ user }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;display:flex;align-items:center;gap:10px;padding:5px 6px 5px 5px;border-radius:40px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(160deg,#c6ff3d,#5c7d0e);display:grid;place-items:center;font:800 13px/1 'Barlow Condensed',sans-serif;color:#06080d">{{ user.ini }}</div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#fff">{{ user.name }}</span><span style="font:500 10px/1 'Be Vietnam Pro',sans-serif;color:#c6ff3d">{{ user.role }}</span></div>
+        <button onClick="{{ logout }}" style="border:0;cursor:pointer;padding:7px 10px;border-radius:30px;background:rgba(255,255,255,.07);color:#aab2c5;font:600 11px/1 'Be Vietnam Pro',sans-serif" style-hover="color:#fff">Thoát</button>
+      </div>
+    </sc-if>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1240px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:24px">
+
+<!-- HOME -->
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:24px;animation:viewIn .5s ease both">
+  <section style="position:relative;overflow:hidden;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:#0a0e17;padding:clamp(20px,4vw,44px) clamp(16px,4vw,44px)">
+    <div style="position:absolute;inset:0;background:radial-gradient(55% 100% at 0% 50%,{{ h2h.a.glow }},transparent 70%),radial-gradient(55% 100% at 100% 50%,{{ h2h.b.glow }},transparent 70%)"></div>
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 18px)"></div>
+    <div style="position:relative;display:flex;flex-direction:column;gap:28px">
+      <div style="display:flex;justify-content:center"><div style="font:700 11px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.3em;color:#c6ff3d;padding:7px 14px;border:1px solid rgba(198,255,61,.4);border-radius:40px">LỊCH SỬ ĐỐI ĐẦU</div></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:clamp(8px,3vw,32px)">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;animation:slideIn .7s ease both">
+          <div style="width:clamp(64px,13vw,120px);aspect-ratio:1/1.12;background:{{ h2h.a.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 clamp(26px,6vw,52px)/1 'Barlow Condensed',sans-serif;color:#fff;animation:floaty 4s ease-in-out infinite">{{ h2h.a.crestTxt }}</div>
+          <div style="font:italic 800 clamp(16px,3vw,26px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ h2h.a.name }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="display:flex;align-items:flex-end;gap:clamp(10px,3vw,28px);font:italic 900 clamp(40px,9vw,92px)/.85 'Barlow Condensed',sans-serif">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="color:{{ h2h.a.color }}">{{ h2h.wa }}</span><span style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.15em;color:#8b93a7">THẮNG</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="color:#9aa3b5;font-size:.6em">{{ h2h.d }}</span><span style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.15em;color:#8b93a7">HÒA</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="color:{{ h2h.b.color }}">{{ h2h.wb }}</span><span style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.15em;color:#8b93a7">THẮNG</span></div>
+          </div>
+          <div style="font:600 12px/1.4 'Be Vietnam Pro',sans-serif;color:#aab2c5;text-align:center">{{ h2h.total }} trận · Bàn thắng {{ h2h.ga }} – {{ h2h.gb }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;animation:viewIn .7s ease both">
+          <div style="width:clamp(64px,13vw,120px);aspect-ratio:1/1.12;background:{{ h2h.b.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 clamp(26px,6vw,52px)/1 'Barlow Condensed',sans-serif;color:#fff;animation:floaty 4s ease-in-out 2s infinite">{{ h2h.b.crestTxt }}</div>
+          <div style="font:italic 800 clamp(16px,3vw,26px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ h2h.b.name }}</div>
+        </div>
+      </div>
+      <div style="display:flex;height:8px;border-radius:8px;overflow:hidden;gap:3px;max-width:720px;width:100%;margin:0 auto">
+        <div style="width:{{ h2h.pa }};background:{{ h2h.a.color }};transform-origin:left;animation:grow 1s .2s ease both"></div>
+        <div style="width:{{ h2h.pd }};background:#4b5366;animation:fadeIn 1s .5s both"></div>
+        <div style="width:{{ h2h.pb }};background:{{ h2h.b.color }};transform-origin:right;animation:grow 1s .2s ease both"></div>
+      </div>
+      <sc-if value="{{ hasNext }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(198,255,61,.25)">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;font:700 11px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.2em;color:#c6ff3d"><span style="width:8px;height:8px;border-radius:50%;background:#c6ff3d;animation:pulse 1.4s infinite"></span>TRẬN TIẾP THEO</div>
+            <div style="font:italic 800 24px/1 'Barlow Condensed',sans-serif;color:#fff">{{ next.H.short }} vs {{ next.A.short }}</div>
+            <div style="font:500 13px/1.3 'Be Vietnam Pro',sans-serif;color:#aab2c5">{{ next.date }} · {{ next.time }} · {{ next.venue }}</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ cd }}" as="c" hint-placeholder-count="4">
+              <div style="width:62px;padding:10px 0;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font:800 28px/1 'Barlow Condensed',sans-serif;color:#fff;font-variant-numeric:tabular-nums">{{ c.v }}</div>
+                <div style="font:600 9px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.15em;color:#8b93a7">{{ c.l }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ next.onClick }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:14px 22px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:transform .2s" style-hover="transform:scale(1.05)">Đội hình &amp; Dự đoán →</button>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:24px">
+    <section style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:22px;background:#c6ff3d;transform:skewX(-14deg)"></div><h2 style="margin:0;font:italic 800 24px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Kết quả gần đây</h2></div>
+        <a onClick="{{ goMatches }}" style="cursor:pointer;font:600 12px/1 'Be Vietnam Pro',sans-serif">Xem tất cả →</a>
+      </div>
+      <sc-for list="{{ recent }}" as="m" hint-placeholder-count="5">
+        <div onClick="{{ m.onClick }}" style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:all .25s;animation:slideIn .5s ease both;animation-delay:{{ m.delay }}" style-hover="background:rgba(198,255,61,.06);border-color:rgba(198,255,61,.35)">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;opacity:{{ m.hOp }}"><span style="font:italic 800 18px/1 'Barlow Condensed',sans-serif">{{ m.H.short }}</span><div style="width:26px;height:29px;background:{{ m.H.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%)"></div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:84px"><div style="font:800 24px/1 'Barlow Condensed',sans-serif;color:#fff">{{ m.score }}</div><div style="font:500 10px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ m.date }}</div></div>
+          <div style="display:flex;align-items:center;gap:8px;opacity:{{ m.aOp }}"><div style="width:26px;height:29px;background:{{ m.A.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%)"></div><span style="font:italic 800 18px/1 'Barlow Condensed',sans-serif">{{ m.A.short }}</span></div>
+        </div>
+      </sc-for>
+    </section>
+    <section style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:22px;background:#c6ff3d;transform:skewX(-14deg)"></div><h2 style="margin:0;font:italic 800 24px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Bảng xếp hạng</h2></div>
+      <div style="overflow-x:auto">
+        <div style="min-width:420px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 32px 32px 32px 32px 40px 44px 110px;gap:6px;padding:0 10px;font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.1em;color:#8b93a7"><span>#</span><span>ĐỘI</span><span>TR</span><span>T</span><span>H</span><span>B</span><span>HS</span><span>Đ</span><span>PHONG ĐỘ</span></div>
+          <sc-for list="{{ standings }}" as="r" hint-placeholder-count="2">
+            <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:28px minmax(0,1fr) 32px 32px 32px 32px 40px 44px 110px;gap:6px;align-items:center;padding:12px 10px;border-radius:10px;background:rgba(255,255,255,.03);cursor:pointer;font:600 14px/1 'Be Vietnam Pro',sans-serif;font-variant-numeric:tabular-nums;animation:slideIn .5s ease both;animation-delay:{{ r.delay }}" style-hover="background:rgba(255,255,255,.07)">
+              <span style="font:800 18px/1 'Barlow Condensed',sans-serif;color:#c6ff3d">{{ r.rank }}</span>
+              <div style="display:flex;align-items:center;gap:8px;min-width:0"><div style="flex:none;width:20px;height:22px;background:{{ r.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%)"></div><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff">{{ r.name }}</span></div>
+              <span>{{ r.p }}</span><span>{{ r.w }}</span><span>{{ r.d }}</span><span>{{ r.l }}</span><span>{{ r.gd }}</span>
+              <span style="font:800 18px/1 'Barlow Condensed',sans-serif;color:#fff">{{ r.pts }}</span>
+              <div style="display:flex;gap:3px"><sc-for list="{{ r.form }}" as="f" hint-placeholder-count="5"><span style="width:18px;height:18px;border-radius:4px;background:{{ f.bg }};display:grid;place-items:center;font:700 10px/1 'Be Vietnam Pro',sans-serif;color:#fff">{{ f.l }}</span></sc-for></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:22px;background:#f5c542;transform:skewX(-14deg)"></div><h2 style="margin:0;font:italic 800 24px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Ngôi sao giải đấu</h2></div>
+      <a onClick="{{ goMarket }}" style="cursor:pointer;font:600 12px/1 'Be Vietnam Pro',sans-serif">Thị trường →</a>
+    </div>
+    <div style="display:flex;gap:18px;overflow-x:auto;padding:14px 4px 18px">
+      <sc-for list="{{ stars }}" as="p" hint-placeholder-count="6">
+        <dc-import name="PlayerCard" p="{{ p }}" hint-size="150px,214px"></dc-import>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<!-- TEAMS -->
+<sc-if value="{{ isTeams }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:22px;animation:viewIn .5s ease both">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ teamTabs }}" as="t" hint-placeholder-count="2">
+      <button onClick="{{ t.onClick }}" style="display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);cursor:pointer;padding:9px 16px;border-radius:40px;background:{{ t.bg }};color:{{ t.fg }};font:600 14px/1 'Be Vietnam Pro',sans-serif;transition:all .2s"><span style="width:10px;height:10px;border-radius:50%;background:{{ t.color }};border:1px solid rgba(255,255,255,.6)"></span>{{ t.name }}</button>
+    </sc-for>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openAddTeam }}" style="border:1px dashed rgba(198,255,61,.5);cursor:pointer;padding:9px 16px;border-radius:40px;background:transparent;color:#c6ff3d;font:600 14px/1 'Be Vietnam Pro',sans-serif" style-hover="background:rgba(198,255,61,.08)">+ Thêm đội</button></sc-if>
+  </div>
+
+  <section style="position:relative;overflow:hidden;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(120deg,{{ tv.color2 }} 0%,#0a0e17 62%);padding:clamp(20px,4vw,36px)">
+    <div style="position:absolute;right:-40px;top:-60px;font:italic 900 clamp(160px,30vw,300px)/1 'Barlow Condensed',sans-serif;color:rgba(255,255,255,.04);pointer-events:none">{{ tv.short }}</div>
+    <div style="position:relative;display:flex;flex-wrap:wrap;gap:28px;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div style="width:clamp(80px,14vw,120px);aspect-ratio:1/1.12;background:{{ tv.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 clamp(32px,6vw,52px)/1 'Barlow Condensed',sans-serif;color:#fff;animation:pop .6s ease both;box-shadow:0 0 0 2px #fff inset">{{ tv.crestTxt }}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font:600 11px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.25em;color:#c6ff3d">THÀNH LẬP {{ tv.founded }}</div>
+          <h1 style="margin:0;font:italic 900 clamp(36px,7vw,64px)/.9 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ tv.name }}</h1>
+          <div style="font:500 14px/1.4 'Be Vietnam Pro',sans-serif;color:#c9d0de">“{{ tv.motto }}”</div>
+          <sc-if value="{{ tv.can }}" hint-placeholder-val="{{ false }}"><label style="align-self:flex-start;cursor:pointer;padding:7px 12px;border-radius:30px;border:1px solid rgba(255,255,255,.2);font:600 11px/1 'Be Vietnam Pro',sans-serif;color:#fff;background:rgba(0,0,0,.25)">Tải logo đội<input type="file" accept="image/*" onChange="{{ tv.onLogo }}" style="display:none"></label></sc-if>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 18px 14px 14px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(245,197,66,.35)">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(160deg,#f5c542,#7a5a06);display:grid;place-items:center;font:800 20px/1 'Barlow Condensed',sans-serif;color:#1f1500;box-shadow:0 0 0 3px rgba(245,197,66,.25)">{{ tv.chair.ini }}</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font:700 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.22em;color:#f5c542">CHỦ TỊCH · TỪ {{ tv.chair.since }}</div>
+          <div style="font:italic 800 22px/1 'Barlow Condensed',sans-serif;color:#fff">{{ tv.chair.name }}</div>
+          <div style="font:500 12px/1.3 'Be Vietnam Pro',sans-serif;color:#aab2c5">{{ tv.chair.quote }}</div>
+          <div style="font:500 12px/1.3 'Be Vietnam Pro',sans-serif;color:#aab2c5">BHL: <span style="color:#fff;font-weight:600">{{ tv.coach }}</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;margin-top:26px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+      <sc-for list="{{ tv.kpis }}" as="k" hint-placeholder-count="5">
+        <div style="padding:14px 16px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:6px;animation:viewIn .5s ease both;animation-delay:{{ k.delay }}">
+          <div style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.15em;color:#8b93a7">{{ k.l }}</div>
+          <div style="font:800 28px/1 'Barlow Condensed',sans-serif;color:{{ k.c }}">{{ k.v }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:22px;background:#c6ff3d;transform:skewX(-14deg)"></div><h2 style="margin:0;font:italic 800 24px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Đội hình · {{ tv.count }} cầu thủ</h2></div>
+    <sc-if value="{{ tv.can }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openAddPlayer }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:11px 18px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)">+ Thêm cầu thủ</button></sc-if>
+  </div>
+  <sc-if value="{{ tv.empty }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:40px;text-align:center;border:1px dashed rgba(255,255,255,.15);border-radius:16px;color:#aab2c5;font:500 14px/1.5 'Be Vietnam Pro',sans-serif">Đội chưa có cầu thủ. Thêm mới hoặc mua từ thị trường chuyển nhượng.</div>
+  </sc-if>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font:700 12px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.22em;color:#8b93a7">{{ g.name }} · {{ g.count }}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:18px;padding:6px 0 10px">
+        <sc-for list="{{ g.cards }}" as="p" hint-placeholder-count="3">
+          <dc-import name="PlayerCard" p="{{ p }}" hint-size="150px,214px"></dc-import>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<!-- MATCH LIST -->
+<sc-if value="{{ isMatches }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:22px;animation:viewIn .5s ease both">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <h1 style="margin:0;font:italic 900 clamp(34px,6vw,52px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Lịch thi đấu</h1>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openSchedule }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)">+ Lên lịch trận</button></sc-if>
+  </div>
+  <div style="font:700 12px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.22em;color:#c6ff3d">SẮP DIỄN RA</div>
+  <sc-for list="{{ upcoming }}" as="m" hint-placeholder-count="1">
+    <div onClick="{{ m.onClick }}" style="position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px;padding:22px;border-radius:16px;background:linear-gradient(90deg,{{ m.H.glow }},rgba(14,19,30,.95) 35%,rgba(14,19,30,.95) 65%,{{ m.A.glow }});border:1px solid rgba(198,255,61,.3);cursor:pointer;transition:transform .25s;animation:viewIn .5s ease both;animation-delay:{{ m.delay }}" style-hover="transform:translateY(-3px)">
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px"><span style="font:italic 800 clamp(18px,3vw,28px)/1 'Barlow Condensed',sans-serif;color:#fff;text-align:right">{{ m.H.name }}</span><div style="flex:none;width:44px;height:49px;background:{{ m.H.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 17px/1 'Barlow Condensed',sans-serif;color:#fff">{{ m.H.crestTxt }}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="font:700 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.15em;padding:5px 9px;border-radius:30px;background:#c6ff3d;color:#06080d">{{ m.time }}</div><div style="font:italic 900 30px/1 'Barlow Condensed',sans-serif;color:#fff">VS</div><div style="font:500 11px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5;white-space:nowrap">{{ m.date }}</div></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="flex:none;width:44px;height:49px;background:{{ m.A.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 17px/1 'Barlow Condensed',sans-serif;color:#fff">{{ m.A.crestTxt }}</div><span style="font:italic 800 clamp(18px,3vw,28px)/1 'Barlow Condensed',sans-serif;color:#fff">{{ m.A.name }}</span></div>
+    </div>
+  </sc-for>
+  <sc-if value="{{ noUpcoming }}" hint-placeholder-val="{{ false }}"><div style="padding:24px;border:1px dashed rgba(255,255,255,.15);border-radius:14px;color:#aab2c5;font:500 14px/1.5 'Be Vietnam Pro',sans-serif;text-align:center">Chưa có trận nào được lên lịch.</div></sc-if>
+
+  <div style="font:700 12px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.22em;color:#8b93a7;margin-top:8px">LỊCH SỬ THI ĐẤU</div>
+  <div style="position:relative;display:flex;flex-direction:column;gap:10px;padding-left:22px">
+    <div style="position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:linear-gradient(#c6ff3d,rgba(198,255,61,0))"></div>
+    <sc-for list="{{ past }}" as="m" hint-placeholder-count="6">
+      <div onClick="{{ m.onClick }}" style="position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);cursor:pointer;transition:all .25s;animation:slideIn .5s ease both;animation-delay:{{ m.delay }}" style-hover="border-color:rgba(198,255,61,.4);transform:translateX(4px)">
+        <div style="position:absolute;left:-21px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:#06080d;border:2px solid #c6ff3d"></div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;opacity:{{ m.hOp }}"><span style="font:italic 800 clamp(16px,2.6vw,22px)/1 'Barlow Condensed',sans-serif;color:#fff;text-align:right">{{ m.H.name }}</span><div style="flex:none;width:30px;height:33px;background:{{ m.H.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%)"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:92px"><div style="font:900 30px/1 'Barlow Condensed',sans-serif;color:#fff;letter-spacing:.04em">{{ m.score }}</div><div style="font:500 10px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7;white-space:nowrap">{{ m.date }}</div></div>
+        <div style="display:flex;align-items:center;gap:10px;opacity:{{ m.aOp }}"><div style="flex:none;width:30px;height:33px;background:{{ m.A.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%)"></div><span style="font:italic 800 clamp(16px,2.6vw,22px)/1 'Barlow Condensed',sans-serif;color:#fff">{{ m.A.name }}</span></div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- MATCH DETAIL -->
+<sc-if value="{{ isMatch }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:20px;animation:viewIn .5s ease both">
+  <a onClick="{{ goMatches }}" style="cursor:pointer;font:600 13px/1 'Be Vietnam Pro',sans-serif;align-self:flex-start">← Lịch thi đấu</a>
+  <section style="position:relative;overflow:hidden;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:#0a0e17;padding:clamp(20px,4vw,36px) clamp(14px,3vw,36px)">
+    <div style="position:absolute;inset:0;background:radial-gradient(50% 120% at 0% 50%,{{ md.H.glow }},transparent 70%),radial-gradient(50% 120% at 100% 50%,{{ md.A.glow }},transparent 70%)"></div>
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:20px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center">
+        <span style="font:700 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.18em;padding:6px 10px;border-radius:30px;background:{{ md.statusBg }};color:{{ md.statusFg }}">{{ md.status }}</span>
+        <span style="font:500 12px/1.3 'Be Vietnam Pro',sans-serif;color:#aab2c5">{{ md.date }} · {{ md.time }} · {{ md.venue }}</span>
+      </div>
+      <div style="width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:clamp(8px,3vw,30px)">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><div style="width:clamp(60px,11vw,100px);aspect-ratio:1/1.12;background:{{ md.H.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 clamp(22px,5vw,42px)/1 'Barlow Condensed',sans-serif;color:#fff;animation:pop .6s ease both">{{ md.H.crestTxt }}</div><div style="font:italic 800 clamp(15px,3vw,24px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ md.H.name }}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="font:italic 900 clamp(48px,11vw,104px)/.85 'Barlow Condensed',sans-serif;color:#fff;letter-spacing:.02em;animation:pop .7s .15s ease both">{{ md.score }}</div>
+          <sc-if value="{{ md.up }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:6px"><sc-for list="{{ cdMatch }}" as="c" hint-placeholder-count="4"><div style="width:48px;padding:7px 0;border-radius:8px;background:rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font:800 20px/1 'Barlow Condensed',sans-serif;color:#c6ff3d;font-variant-numeric:tabular-nums">{{ c.v }}</div><div style="font:600 8px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.12em;color:#8b93a7">{{ c.l }}</div></div></sc-for></div>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><div style="width:clamp(60px,11vw,100px);aspect-ratio:1/1.12;background:{{ md.A.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 clamp(22px,5vw,42px)/1 'Barlow Condensed',sans-serif;color:#fff;animation:pop .6s .1s ease both">{{ md.A.crestTxt }}</div><div style="font:italic 800 clamp(15px,3vw,24px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ md.A.name }}</div></div>
+      </div>
+      <sc-if value="{{ md.done }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%;max-width:560px;display:grid;grid-template-columns:1fr 1fr;gap:20px;font:500 13px/1.7 'Be Vietnam Pro',sans-serif;color:#c9d0de">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;text-align:right"><sc-for list="{{ md.hGoals }}" as="g" hint-placeholder-count="2"><span>{{ g.t }}</span></sc-for></div>
+          <div style="display:flex;flex-direction:column"><sc-for list="{{ md.aGoals }}" as="g" hint-placeholder-count="2"><span>{{ g.t }}</span></sc-for></div>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <div style="display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);align-self:flex-start;max-width:100%;overflow-x:auto">
+    <sc-for list="{{ md.tabs }}" as="t" hint-placeholder-count="3">
+      <button onClick="{{ t.onClick }}" style="flex:none;border:0;cursor:pointer;padding:10px 18px;border-radius:9px;background:{{ t.bg }};color:{{ t.fg }};font:italic 800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;transition:all .2s">{{ t.label }}</button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ md.isLineup }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;animation:viewIn .4s ease both">
+      <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:10px;align-items:center">
+        <div style="font:600 12px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.2em;color:#8b93a7">SƠ ĐỒ SÂN 7 · {{ formation }}</div>
+        <div style="position:relative;width:100%;max-width:460px;aspect-ratio:68/100;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#1c6a39 0 8.33%,#18602f 8.33% 16.66%);border:2px solid rgba(255,255,255,.3);box-shadow:inset 0 0 90px rgba(0,0,0,.5),0 20px 40px rgba(0,0,0,.4)">
+          <div style="position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:rgba(255,255,255,.4)"></div>
+          <div style="position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.4);border-radius:50%"></div>
+          <div style="position:absolute;left:25%;right:25%;top:0;height:15%;border:2px solid rgba(255,255,255,.4);border-top:0"></div>
+          <div style="position:absolute;left:25%;right:25%;bottom:0;height:15%;border:2px solid rgba(255,255,255,.4);border-bottom:0"></div>
+          <div style="position:absolute;left:40%;right:40%;top:0;height:5%;border:2px solid rgba(255,255,255,.4);border-top:0"></div>
+          <div style="position:absolute;left:40%;right:40%;bottom:0;height:5%;border:2px solid rgba(255,255,255,.4);border-bottom:0"></div>
+          <sc-for list="{{ md.tokens }}" as="t" hint-placeholder-count="14">
+            <div onClick="{{ t.onClick }}" style="position:absolute;left:{{ t.x }};top:{{ t.y }};transform:translate(-50%,-50%);cursor:pointer;z-index:2">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;animation:pop .5s ease both;animation-delay:{{ t.delay }};transition:transform .2s" style-hover="transform:scale(1.15)">
+                <div style="width:clamp(32px,8vw,42px);aspect-ratio:1;border-radius:50%;background:{{ t.color }};border:2px solid #fff;display:grid;place-items:center;font:800 clamp(13px,3vw,17px)/1 'Barlow Condensed',sans-serif;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.5)">{{ t.ovr }}</div>
+                <div style="font:600 10px/1 'Be Vietnam Pro',sans-serif;background:rgba(0,0,0,.7);color:#fff;padding:3px 6px;border-radius:4px;white-space:nowrap">{{ t.name }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:1 1 280px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <sc-for list="{{ md.benches }}" as="b" hint-placeholder-count="2">
+          <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px"><div style="width:18px;height:20px;background:{{ b.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%)"></div><div style="font:italic 800 18px/1 'Barlow Condensed',sans-serif;color:#fff;text-transform:uppercase">{{ b.name }} · Ra sân</div></div>
+            <sc-for list="{{ b.starters }}" as="p" hint-placeholder-count="7">
+              <div onClick="{{ p.onClick }}" style="display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;font:500 13px/1.2 'Be Vietnam Pro',sans-serif" style-hover="background:rgba(255,255,255,.06)"><span style="font:700 12px/1 'Barlow Condensed',sans-serif;color:#8b93a7">{{ p.pos }}</span><span style="color:#fff">{{ p.name }}</span><span style="font:800 16px/1 'Barlow Condensed',sans-serif;color:#c6ff3d">{{ p.ovr }}</span></div>
+            </sc-for>
+            <div style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.18em;color:#8b93a7;margin-top:6px">DỰ BỊ</div>
+            <sc-for list="{{ b.bench }}" as="p" hint-placeholder-count="3">
+              <div onClick="{{ p.onClick }}" style="display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;font:500 13px/1.2 'Be Vietnam Pro',sans-serif;color:#aab2c5" style-hover="background:rgba(255,255,255,.06)"><span style="font:700 12px/1 'Barlow Condensed',sans-serif;color:#8b93a7">{{ p.pos }}</span><span>{{ p.name }}</span><span style="font:800 16px/1 'Barlow Condensed',sans-serif">{{ p.ovr }}</span></div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ md.locked }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:48px 24px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:repeating-linear-gradient(135deg,rgba(255,255,255,.025) 0 10px,transparent 10px 20px),#0b0f18;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;animation:viewIn .4s ease both">
+      <div style="display:flex;flex-direction:column;align-items:center"><div style="width:18px;height:14px;border:3px solid #c6ff3d;border-bottom:0;border-radius:10px 10px 0 0"></div><div style="width:28px;height:22px;border-radius:5px;background:#c6ff3d"></div></div>
+      <div style="font:italic 800 26px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Nội dung dành cho thành viên</div>
+      <div style="font:500 14px/1.5 'Be Vietnam Pro',sans-serif;color:#aab2c5;max-width:420px">Đăng nhập để xem phân tích chỉ số, vote đội thắng và dự đoán tỉ số.</div>
+      <button onClick="{{ openLogin }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px 24px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)">Đăng nhập</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ md.showStats }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px;animation:viewIn .4s ease both">
+      <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">So sánh đội hình ra sân</div>
+        <sc-for list="{{ md.rows }}" as="r" hint-placeholder-count="8">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;font:600 13px/1 'Be Vietnam Pro',sans-serif;color:#c9d0de"><span style="font:800 17px/1 'Barlow Condensed',sans-serif;color:#fff">{{ r.a }}</span><span>{{ r.l }}</span><span style="font:800 17px/1 'Barlow Condensed',sans-serif;color:#fff">{{ r.b }}</span></div>
+            <div style="display:flex;gap:3px;height:7px;border-radius:6px;overflow:hidden">
+              <div style="width:{{ r.wa }};background:{{ r.ca }};transform-origin:right;animation:grow .8s ease both"></div>
+              <div style="width:{{ r.wb }};background:{{ r.cb }};transform-origin:left;animation:grow .8s ease both"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Xác suất thắng</div>
+          <div style="display:flex;justify-content:space-between;font:800 30px/1 'Barlow Condensed',sans-serif"><span style="color:{{ md.H.color }}">{{ md.prob.h }}</span><span style="color:#9aa3b5;font-size:22px">Hòa {{ md.prob.d }}</span><span style="color:{{ md.A.color }}">{{ md.prob.a }}</span></div>
+          <div style="display:flex;gap:3px;height:12px;border-radius:8px;overflow:hidden"><div style="width:{{ md.prob.h }};background:{{ md.H.color }}"></div><div style="width:{{ md.prob.d }};background:#4b5366"></div><div style="width:{{ md.prob.a }};background:{{ md.A.color }}"></div></div>
+          <div style="font:500 12px/1.5 'Be Vietnam Pro',sans-serif;color:#8b93a7">Dựa trên chỉ số trung bình của đội hình ra sân.</div>
+        </div>
+        <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Phong độ 5 trận</div>
+          <sc-for list="{{ md.forms }}" as="f" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span style="font:italic 800 18px/1 'Barlow Condensed',sans-serif;color:#fff">{{ f.name }}</span>
+              <div style="display:flex;gap:4px"><sc-for list="{{ f.form }}" as="x" hint-placeholder-count="5"><span style="width:24px;height:24px;border-radius:6px;background:{{ x.bg }};display:grid;place-items:center;font:700 11px/1 'Be Vietnam Pro',sans-serif;color:#fff">{{ x.l }}</span></sc-for></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ md.showVote }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px;animation:viewIn .4s ease both">
+      <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Vote đội thắng</div><span style="font:500 12px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ md.voteTotal }} lượt</span></div>
+        <sc-for list="{{ md.voteOpts }}" as="o" hint-placeholder-count="3">
+          <button onClick="{{ o.onClick }}" style="position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-radius:12px;border:1.5px solid {{ o.border }};background:rgba(255,255,255,.03);color:#fff;cursor:{{ o.cursor }};text-align:left;transition:transform .15s" style-active="transform:scale(.98)">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:{{ o.w }};background:{{ o.fill }};transform-origin:left;animation:grow .8s ease both"></div>
+            <span style="position:relative;font:italic 800 19px/1 'Barlow Condensed',sans-serif;text-transform:uppercase">{{ o.label }}{{ o.mine }}</span>
+            <span style="position:relative;font:800 20px/1 'Barlow Condensed',sans-serif">{{ o.pct }}</span>
+          </button>
+        </sc-for>
+        <div style="font:500 12px/1.5 'Be Vietnam Pro',sans-serif;color:#aab2c5">{{ md.voteNote }}</div>
+      </div>
+      <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Dự đoán tỉ số</div>
+        <sc-if value="{{ md.canScore }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><span style="font:italic 800 16px/1 'Barlow Condensed',sans-serif;color:{{ md.H.color }}">{{ md.H.short }}</span><div style="display:flex;align-items:center;gap:8px"><button onClick="{{ vsDecH }}" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer">−</button><span style="width:44px;text-align:center;font:900 44px/1 'Barlow Condensed',sans-serif;color:#fff">{{ vs.h }}</span><button onClick="{{ vsIncH }}" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer">+</button></div></div>
+            <span style="font:900 30px/1 'Barlow Condensed',sans-serif;color:#4b5366;margin-top:20px">:</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><span style="font:italic 800 16px/1 'Barlow Condensed',sans-serif;color:{{ md.A.color }}">{{ md.A.short }}</span><div style="display:flex;align-items:center;gap:8px"><button onClick="{{ vsDecA }}" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer">−</button><span style="width:44px;text-align:center;font:900 44px/1 'Barlow Condensed',sans-serif;color:#fff">{{ vs.a }}</span><button onClick="{{ vsIncA }}" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer">+</button></div></div>
+          </div>
+          <button onClick="{{ submitScore }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)">Gửi dự đoán</button>
+        </sc-if>
+        <sc-if value="{{ md.hasMyScore }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px 14px;border-radius:10px;background:rgba(198,255,61,.08);border:1px solid rgba(198,255,61,.3);font:600 13px/1.4 'Be Vietnam Pro',sans-serif;color:#e4ff9a">Dự đoán của bạn: {{ md.myScore }}</div>
+        </sc-if>
+        <div style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.18em;color:#8b93a7">TỈ SỐ ĐƯỢC CHỌN NHIỀU NHẤT</div>
+        <sc-for list="{{ md.topScores }}" as="t" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:48px 1fr 40px;gap:10px;align-items:center">
+            <span style="font:800 18px/1 'Barlow Condensed',sans-serif;color:{{ t.c }}">{{ t.score }}</span>
+            <div style="height:8px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden"><div style="height:100%;width:{{ t.w }};background:{{ t.c }};transform-origin:left;animation:grow .8s ease both"></div></div>
+            <span style="font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5;text-align:right">{{ t.n }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ md.canResult }}" hint-placeholder-val="{{ false }}">
+        <div style="background:rgba(14,19,30,.9);border:1px dashed rgba(245,197,66,.4);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#f5c542">Ban tổ chức · Nhập kết quả</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:14px">
+            <button onClick="{{ resDecH }}" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer">−</button>
+            <span style="font:900 40px/1 'Barlow Condensed',sans-serif;color:#fff">{{ res.h }}</span>
+            <button onClick="{{ resIncH }}" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer">+</button>
+            <span style="font:900 26px/1 'Barlow Condensed',sans-serif;color:#4b5366">–</span>
+            <button onClick="{{ resDecA }}" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer">−</button>
+            <span style="font:900 40px/1 'Barlow Condensed',sans-serif;color:#fff">{{ res.a }}</span>
+            <button onClick="{{ resIncA }}" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer">+</button>
+          </div>
+          <button onClick="{{ finishMatch }}" style="border:1px solid #f5c542;cursor:pointer;background:transparent;color:#f5c542;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:12px;border-radius:8px" style-hover="background:rgba(245,197,66,.1)">Kết thúc trận &amp; lưu</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- MARKET -->
+<sc-if value="{{ isMarket }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:20px;animation:viewIn .5s ease both">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <h1 style="margin:0;font:italic 900 clamp(34px,6vw,52px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Thị trường chuyển nhượng</h1>
+    <div style="font:500 14px/1.5 'Be Vietnam Pro',sans-serif;color:#aab2c5">Tổng giá trị thị trường <span style="color:#f5c542;font-weight:700">{{ mk.total }}</span> · {{ mk.count }} cầu thủ · {{ mk.deals }} thương vụ</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px 18px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ mk.teamChips }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onClick }}" style="border:1px solid rgba(255,255,255,.1);cursor:pointer;padding:8px 14px;border-radius:40px;background:{{ c.bg }};color:{{ c.fg }};font:600 13px/1 'Be Vietnam Pro',sans-serif">{{ c.label }}</button></sc-for></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ mk.posChips }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="border:1px solid rgba(255,255,255,.1);cursor:pointer;padding:8px 14px;border-radius:40px;background:{{ c.bg }};color:{{ c.fg }};font:600 13px/1 'Be Vietnam Pro',sans-serif">{{ c.label }}</button></sc-for></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+    <div style="flex:2 1 520px;min-width:0;display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ mk.rows }}" as="r" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:50px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);animation:slideIn .45s ease both;animation-delay:{{ r.delay }};transition:border-color .2s" style-hover="border-color:rgba(255,255,255,.2)">
+          <div onClick="{{ r.onClick }}" style="cursor:pointer;width:50px;height:56px;background:{{ r.bg }};color:{{ r.fg }};clip-path:polygon(50% 0,100% 10%,100% 80%,50% 100%,0 80%,0 10%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px"><span style="font:800 20px/1 'Barlow Condensed',sans-serif">{{ r.ovr }}</span><span style="font:700 10px/1 'Barlow Condensed',sans-serif">{{ r.pos }}</span></div>
+          <div onClick="{{ r.onClick }}" style="cursor:pointer;min-width:0;display:flex;flex-direction:column;gap:5px">
+            <span style="font:600 15px/1.2 'Be Vietnam Pro',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+            <div style="display:flex;align-items:center;gap:6px;font:500 12px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7"><span style="width:8px;height:8px;border-radius:50%;background:{{ r.tc }}"></span>{{ r.team }} · {{ r.age }} tuổi</div>
+          </div>
+          <span style="font:800 18px/1 'Barlow Condensed',sans-serif;color:#f5c542;white-space:nowrap">{{ r.value }}</span>
+          <sc-if value="{{ r.canBuy }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.onBuy }}" style="border:1px solid rgba(198,255,61,.5);cursor:pointer;background:transparent;color:#c6ff3d;font:italic 800 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;border-radius:8px" style-hover="background:#c6ff3d;color:#06080d">Chuyển</button></sc-if>
+          <sc-if value="{{ r.canOffer }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.onOffer }}" style="border:0;cursor:pointer;background:#f5c542;color:#1f1500;font:italic 800 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:10px 14px;border-radius:8px;opacity:{{ r.offerOp }};transition:transform .15s" style-hover="transform:scale(1.05)">{{ r.offerLabel }}</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:20px">
+    <sc-if value="{{ rq.show }}" hint-placeholder-val="{{ false }}">
+    <div style="background:rgba(14,19,30,.9);border:1px solid rgba(245,197,66,.35);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;animation:viewIn .4s ease both">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:20px;background:#c6ff3d;transform:skewX(-14deg)"></div><div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Yêu cầu chuyển nhượng</div></div>
+        <sc-if value="{{ rq.hasPending }}" hint-placeholder-val="{{ false }}"><span style="padding:4px 8px;border-radius:20px;background:rgba(245,197,66,.15);color:#f5c542;font:700 11px/1 'Be Vietnam Pro',sans-serif">{{ rq.pending }} chờ duyệt</span></sc-if>
+      </div>
+      <div style="display:flex;gap:4px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)">
+        <sc-for list="{{ rq.tabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onClick }}" style="flex:1;border:0;cursor:pointer;padding:9px 10px;border-radius:8px;background:{{ t.bg }};color:{{ t.fg }};font:600 12px/1 'Be Vietnam Pro',sans-serif;transition:all .2s">{{ t.label }}</button></sc-for>
+      </div>
+      <sc-for list="{{ rq.items }}" as="q" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid {{ q.border }};animation:slideIn .4s ease both;animation-delay:{{ q.delay }}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div onClick="{{ q.onCard }}" style="flex:none;cursor:pointer;width:40px;height:45px;background:{{ q.bg }};color:{{ q.fg }};clip-path:polygon(50% 0,100% 10%,100% 80%,50% 100%,0 80%,0 10%);display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font:800 17px/1 'Barlow Condensed',sans-serif">{{ q.ovr }}</span><span style="font:700 9px/1 'Barlow Condensed',sans-serif">{{ q.pos }}</span></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+              <span style="font:600 14px/1.2 'Be Vietnam Pro',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.name }}</span>
+              <div style="display:flex;align-items:center;gap:6px;font:600 11px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7"><span style="padding:3px 6px;border-radius:4px;background:{{ q.sc }};color:#fff">{{ q.seller }}</span>→<span style="padding:3px 6px;border-radius:4px;background:{{ q.bc }};color:#fff">{{ q.buyer }}</span></div>
+            </div>
+            <span style="flex:none;padding:4px 7px;border-radius:5px;background:{{ q.stBg }};color:{{ q.stFg }};font:700 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.06em">{{ q.status }}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font:800 22px/1 'Barlow Condensed',sans-serif;color:#f5c542">{{ q.price }}</span><span style="font:600 11px/1 'Be Vietnam Pro',sans-serif;color:{{ q.diffC }}">{{ q.diff }}</span></div>
+            <span style="font:500 11px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7">Định giá {{ q.value }}</span>
+          </div>
+          <sc-if value="{{ q.note }}" hint-placeholder-val="{{ false }}"><div style="font:500 12px/1.5 'Be Vietnam Pro',sans-serif;color:#c9d0de;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25)">“{{ q.note }}”</div></sc-if>
+          <div style="font:500 11px/1.3 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ q.meta }}</div>
+          <sc-if value="{{ q.canAct }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ q.onAccept }}" style="flex:1;border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:11px;border-radius:8px" style-hover="filter:brightness(1.1)">Đồng ý</button>
+              <button onClick="{{ q.onReject }}" style="flex:1;border:1px solid rgba(229,72,77,.6);cursor:pointer;background:transparent;color:#ff6b81;font:italic 800 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:11px;border-radius:8px" style-hover="background:rgba(229,72,77,.12)">Từ chối</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ q.canCancel }}" hint-placeholder-val="{{ false }}"><button onClick="{{ q.onCancel }}" style="align-self:flex-start;border:1px solid rgba(255,255,255,.15);cursor:pointer;background:transparent;color:#aab2c5;font:600 12px/1 'Be Vietnam Pro',sans-serif;padding:8px 12px;border-radius:8px">Hủy yêu cầu</button></sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ rq.empty }}" hint-placeholder-val="{{ false }}"><div style="font:500 13px/1.5 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ rq.emptyText }}</div></sc-if>
+    </div>
+    </sc-if>
+    <div style="background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:20px;background:#f5c542;transform:skewX(-14deg)"></div><div style="font:italic 800 20px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Nhật ký chuyển nhượng</div></div>
+      <sc-for list="{{ mk.log }}" as="l" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);animation:viewIn .4s ease both">
+          <div style="display:flex;justify-content:space-between;gap:8px"><span style="font:600 14px/1.2 'Be Vietnam Pro',sans-serif;color:#fff">{{ l.name }}</span><span style="font:800 16px/1 'Barlow Condensed',sans-serif;color:#f5c542;white-space:nowrap">{{ l.fee }}</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7"><span style="padding:3px 7px;border-radius:4px;background:{{ l.fc }};color:#fff">{{ l.from }}</span>→<span style="padding:3px 7px;border-radius:4px;background:{{ l.tc }};color:#fff">{{ l.to }}</span><span style="margin-left:auto">{{ l.date }}</span></div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ mk.noLog }}" hint-placeholder-val="{{ false }}"><div style="font:500 13px/1.5 'Be Vietnam Pro',sans-serif;color:#8b93a7">Chưa có thương vụ nào.</div></sc-if>
+    </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLocked }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:64px 24px;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:repeating-linear-gradient(135deg,rgba(255,255,255,.025) 0 10px,transparent 10px 20px),#0b0f18;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;animation:viewIn .4s ease both">
+    <div style="display:flex;flex-direction:column;align-items:center"><div style="width:18px;height:14px;border:3px solid #c6ff3d;border-bottom:0;border-radius:10px 10px 0 0"></div><div style="width:28px;height:22px;border-radius:5px;background:#c6ff3d"></div></div>
+    <div style="font:italic 900 34px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Thị trường chuyển nhượng</div>
+    <div style="font:500 14px/1.5 'Be Vietnam Pro',sans-serif;color:#aab2c5;max-width:440px">Chỉ thành viên DigiEx mới xem được định giá và nhật ký chuyển nhượng. Đăng nhập để tiếp tục.</div>
+    <button onClick="{{ openLogin }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px 24px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)">Đăng nhập</button>
+  </div>
+</sc-if>
+
+<!-- MANAGE -->
+<sc-if value="{{ isManage }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:20px;animation:viewIn .5s ease both">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <h1 style="margin:0;font:italic 900 clamp(34px,6vw,52px)/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Quản lý đội</h1>
+    <div style="font:500 14px/1.5 'Be Vietnam Pro',sans-serif;color:#aab2c5">Quyền của bạn: <span style="color:#c6ff3d;font-weight:600">{{ user.role }}</span> · thêm, chỉnh sửa, xóa cầu thủ và cập nhật logo đội.</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ mg.tabs }}" as="t" hint-placeholder-count="2">
+      <button onClick="{{ t.onClick }}" style="display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);cursor:pointer;padding:9px 16px;border-radius:40px;background:{{ t.bg }};color:{{ t.fg }};font:600 14px/1 'Be Vietnam Pro',sans-serif"><span style="width:10px;height:10px;border-radius:50%;background:{{ t.color }}"></span>{{ t.name }}</button>
+    </sc-for>
+  </div>
+  <section style="display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:20px;border-radius:16px;background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07)">
+    <div style="width:84px;aspect-ratio:1/1.12;background:{{ mg.crestBg }};clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);display:grid;place-items:center;font:italic 900 34px/1 'Barlow Condensed',sans-serif;color:#fff;animation:pop .5s ease both">{{ mg.crestTxt }}</div>
+    <div style="flex:1 1 220px;display:flex;flex-direction:column;gap:6px">
+      <div style="font:italic 800 28px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ mg.name }}</div>
+      <div style="font:500 13px/1.5 'Be Vietnam Pro',sans-serif;color:#aab2c5">Chủ tịch: <span style="color:#fff">{{ mg.chair }}</span> · BHL: <span style="color:#fff">{{ mg.coach }}</span></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <label style="cursor:pointer;padding:10px 16px;border-radius:8px;border:1px solid rgba(198,255,61,.5);color:#c6ff3d;font:italic 800 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase">Tải logo<input type="file" accept="image/*" onChange="{{ mg.onLogo }}" style="display:none"></label>
+      <sc-if value="{{ mg.hasLogo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ mg.removeLogo }}" style="cursor:pointer;padding:10px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#aab2c5;font:italic 800 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase">Gỡ logo</button></sc-if>
+    </div>
+  </section>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:5px;height:22px;background:#c6ff3d;transform:skewX(-14deg)"></div><h2 style="margin:0;font:italic 800 24px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">Danh sách cầu thủ · {{ mg.count }}</h2></div>
+    <button onClick="{{ mg.add }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:11px 18px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)">+ Thêm cầu thủ</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <sc-for list="{{ mg.rows }}" as="r" hint-placeholder-count="8">
+      <div style="display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 12px;border-radius:12px;background:rgba(14,19,30,.9);border:1px solid rgba(255,255,255,.07);animation:slideIn .45s ease both;animation-delay:{{ r.delay }}">
+        <div style="width:52px;height:52px;border-radius:12px;background:{{ r.photoBg }};display:grid;place-items:center;font:800 16px/1 'Barlow Condensed',sans-serif;color:#aab2c5;border:1px solid rgba(255,255,255,.08)">{{ r.ini }}</div>
+        <div style="min-width:0;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="flex:none;padding:3px 6px;background:{{ r.bg }};color:{{ r.fg }};font:800 14px/1 'Barlow Condensed',sans-serif;border-radius:4px">{{ r.ovr }}</span><span style="font:600 15px/1.2 'Be Vietnam Pro',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span></div>
+          <div style="font:500 12px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ r.pos }} · #{{ r.num }} · {{ r.age }} tuổi · <span style="color:#f5c542">{{ r.value }}</span></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          <button onClick="{{ r.onEdit }}" style="border:1px solid rgba(198,255,61,.5);cursor:pointer;background:transparent;color:#c6ff3d;font:italic 800 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;border-radius:8px" style-hover="background:#c6ff3d;color:#06080d">Sửa</button>
+          <button onClick="{{ r.onDel }}" style="border:1px solid rgba(229,72,77,.6);cursor:pointer;background:{{ r.delBg }};color:#fff;font:italic 800 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;border-radius:8px">{{ r.delLabel }}</button>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<footer style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);font:500 12px/1.5 'Be Vietnam Pro',sans-serif;color:#8b93a7">
+  <span>DigiEx League · Phòng Văn hóa – Thể thao</span>
+  <a onClick="{{ resetData }}" style="cursor:pointer;color:#8b93a7">Khôi phục dữ liệu mẫu</a>
+</footer>
+</main>
+
+<!-- CARD MODAL -->
+<sc-if value="{{ cm.open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeCard }}" style="position:fixed;inset:0;z-index:100;background:rgba(3,5,9,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow-y:auto;animation:fadeIn .3s ease both">
+    <div onClick="{{ stop }}" style="max-width:920px;margin:0 auto;padding:clamp(20px,5vw,60px) 20px;display:flex;flex-wrap:wrap;gap:36px;align-items:center;justify-content:center;min-height:100%">
+      <div style="position:relative;width:240px;height:342px;flex:none">
+        <div style="position:absolute;left:50%;top:50%;width:560px;height:560px;margin:-280px 0 0 -280px;background:repeating-conic-gradient(from 0deg,{{ cm.card.glow }} 0 6deg,transparent 6deg 18deg);border-radius:50%;-webkit-mask:radial-gradient(circle,#000 20%,transparent 65%);mask:radial-gradient(circle,#000 20%,transparent 65%);animation:spin 18s linear infinite;pointer-events:none"></div>
+        <div style="position:absolute;inset:0;animation:flipIn .9s cubic-bezier(.2,.8,.2,1) both">
+          <div style="position:absolute;left:0;top:0;transform:scale(1.6);transform-origin:top left"><dc-import name="PlayerCard" p="{{ cm.card }}" hint-size="150px,214px"></dc-import></div>
+        </div>
+      </div>
+      <div style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:16px;animation:viewIn .6s .25s ease both">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font:800 11px/1 'Barlow Condensed',sans-serif;letter-spacing:.2em;padding:5px 10px;background:{{ cm.card.bg }};color:{{ cm.card.fg }}">{{ cm.card.tier }}</span><span style="font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">{{ cm.teamName }} · #{{ cm.card.num }} · {{ cm.card.pos }}</span></div>
+        <h2 style="margin:0;font:italic 900 clamp(36px,6vw,54px)/.9 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ cm.name }}</h2>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+          <sc-for list="{{ cm.info }}" as="i" hint-placeholder-count="4"><div style="padding:10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px"><span style="font:600 9px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.14em;color:#8b93a7">{{ i.l }}</span><span style="font:800 18px/1 'Barlow Condensed',sans-serif;color:{{ i.c }}">{{ i.v }}</span></div></sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center">
+          <svg viewBox="0 0 200 200" width="190" height="190" style="flex:none;overflow:visible">
+            <polygon points="100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.15)"></polygon>
+            <polygon points="100,46.7 146.2,73.3 146.2,126.7 100,153.3 53.8,126.7 53.8,73.3" fill="none" stroke="rgba(255,255,255,.1)"></polygon>
+            <polygon points="100,73.3 123.1,86.7 123.1,113.3 100,126.7 76.9,113.3 76.9,86.7" fill="none" stroke="rgba(255,255,255,.1)"></polygon>
+            <polygon points="{{ cm.radar }}" fill="{{ cm.radarFill }}" stroke="{{ cm.radarStroke }}" stroke-width="2" style="animation:pop .8s .4s ease both;transform-origin:100px 100px"></polygon>
+            <text x="100" y="8" text-anchor="middle" fill="#aab2c5" font-size="11" font-family="Barlow Condensed" font-weight="700">{{ cm.l0 }}</text>
+            <text x="186" y="56" text-anchor="middle" fill="#aab2c5" font-size="11" font-family="Barlow Condensed" font-weight="700">{{ cm.l1 }}</text>
+            <text x="186" y="152" text-anchor="middle" fill="#aab2c5" font-size="11" font-family="Barlow Condensed" font-weight="700">{{ cm.l2 }}</text>
+            <text x="100" y="198" text-anchor="middle" fill="#aab2c5" font-size="11" font-family="Barlow Condensed" font-weight="700">{{ cm.l3 }}</text>
+            <text x="14" y="152" text-anchor="middle" fill="#aab2c5" font-size="11" font-family="Barlow Condensed" font-weight="700">{{ cm.l4 }}</text>
+            <text x="14" y="56" text-anchor="middle" fill="#aab2c5" font-size="11" font-family="Barlow Condensed" font-weight="700">{{ cm.l5 }}</text>
+          </svg>
+          <div style="flex:1 1 180px;display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ cm.bars }}" as="b" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:36px 1fr 28px;gap:8px;align-items:center"><span style="font:700 12px/1 'Barlow Condensed',sans-serif;color:#aab2c5">{{ b.k }}</span><div style="height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden"><div style="height:100%;width:{{ b.w }};background:{{ b.c }};transform-origin:left;animation:grow .8s ease both;animation-delay:{{ b.delay }}"></div></div><span style="font:800 16px/1 'Barlow Condensed',sans-serif;color:{{ b.c }};text-align:right">{{ b.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <sc-if value="{{ cm.canTransfer }}" hint-placeholder-val="{{ false }}"><button onClick="{{ cm.onTransfer }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px 20px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)">Chuyển nhượng</button></sc-if>
+          <sc-if value="{{ cm.canEdit }}" hint-placeholder-val="{{ false }}"><button onClick="{{ cm.onEdit }}" style="border:1px solid rgba(198,255,61,.5);cursor:pointer;background:transparent;color:#c6ff3d;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px 20px;border-radius:6px">Chỉnh sửa</button></sc-if>
+          <sc-if value="{{ cm.canOffer }}" hint-placeholder-val="{{ false }}"><button onClick="{{ cm.onOffer }}" style="border:0;cursor:pointer;background:#f5c542;color:#1f1500;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px 20px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)">Đề nghị mua</button></sc-if>
+          <button onClick="{{ closeCard }}" style="border:1px solid rgba(255,255,255,.2);cursor:pointer;background:transparent;color:#fff;font:italic 800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:13px 20px;border-radius:6px">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- FORM MODALS -->
+<sc-if value="{{ hasModal }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:110;background:rgba(3,5,9,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .25s ease both">
+    <div onClick="{{ stop }}" style="width:100%;max-width:460px;max-height:92vh;overflow-y:auto;background:#0e1320;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:16px;animation:pop .35s ease both;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div style="font:italic 900 26px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff">{{ modalTitle }}</div><button onClick="{{ closeModal }}" style="border:0;background:transparent;color:#8b93a7;font-size:22px;cursor:pointer">×</button></div>
+
+      <sc-if value="{{ mAddTeam }}" hint-placeholder-val="{{ false }}">
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Tên đội<input value="{{ form.name }}" onChange="{{ on.name }}" placeholder="VD: F10 Phoenix" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Mã đội (2–4 ký tự)<input value="{{ form.short }}" onChange="{{ on.short }}" placeholder="F10" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Chủ tịch đội<input value="{{ form.chair }}" onChange="{{ on.chair }}" placeholder="Họ và tên" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Khẩu hiệu<input value="{{ form.motto }}" onChange="{{ on.motto }}" placeholder="Chiến đến cùng" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <div style="display:flex;flex-direction:column;gap:8px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Màu áo<div style="display:flex;gap:10px"><sc-for list="{{ swatches }}" as="w" hint-placeholder-count="6"><button onClick="{{ w.onClick }}" style="width:36px;height:40px;border:0;cursor:pointer;background:linear-gradient(160deg,{{ w.c }},{{ w.c2 }});clip-path:polygon(50% 0,100% 12%,100% 62%,50% 100%,0 62%,0 12%);transform:scale({{ w.s }});transition:transform .2s;opacity:{{ w.o }}"></button></sc-for></div></div>
+      </sc-if>
+
+      <sc-if value="{{ mLogin }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ form.reason }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 12px;border-radius:10px;background:rgba(198,255,61,.08);border:1px solid rgba(198,255,61,.3);font:500 13px/1.4 'Be Vietnam Pro',sans-serif;color:#e4ff9a">{{ form.reason }}</div></sc-if>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Tên đăng nhập<input value="{{ form.u }}" onChange="{{ on.u }}" autocomplete="username" placeholder="vd: son.f8" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Mật khẩu<input type="password" value="{{ form.pw }}" onChange="{{ on.pw }}" onKeyDown="{{ enterSubmit }}" autocomplete="current-password" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px;border-top:1px solid rgba(255,255,255,.07)">
+          <div style="font:600 11px/1.4 'Be Vietnam Pro',sans-serif;letter-spacing:.08em;color:#8b93a7">TÀI KHOẢN DEMO · MẬT KHẨU 123456</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ demoAccs }}" as="a" hint-placeholder-count="6"><button onClick="{{ a.onClick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;border:1px solid rgba(255,255,255,.1);cursor:pointer;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);color:#fff;text-align:left" style-hover="border-color:rgba(198,255,61,.5)"><span style="font:600 12px/1 'Be Vietnam Pro',sans-serif">{{ a.u }}</span><span style="font:500 10px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ a.label }}</span></button></sc-for></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ mPlayer }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="flex:none;width:84px;height:84px;border-radius:14px;background:{{ pf.photoBg }};border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;font:800 24px/1 'Barlow Condensed',sans-serif;color:#8b93a7">{{ pf.ini }}</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font:500 12px/1.4 'Be Vietnam Pro',sans-serif;color:#aab2c5">{{ pf.teamLine }}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <label style="cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid rgba(198,255,61,.5);color:#c6ff3d;font:600 12px/1 'Be Vietnam Pro',sans-serif">Tải ảnh cầu thủ<input type="file" accept="image/*" onChange="{{ pf.onPhoto }}" style="display:none"></label>
+              <sc-if value="{{ pf.hasPhoto }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pf.removePhoto }}" style="cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#aab2c5;font:600 12px/1 'Be Vietnam Pro',sans-serif">Gỡ ảnh</button></sc-if>
+            </div>
+          </div>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Họ và tên<input value="{{ form.name }}" onChange="{{ on.name }}" placeholder="Nguyễn Văn A" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        <div style="display:flex;flex-direction:column;gap:8px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Vị trí<div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ posPick }}" as="o" hint-placeholder-count="10"><button onClick="{{ o.onClick }}" style="border:1px solid rgba(255,255,255,.12);cursor:pointer;padding:8px 11px;border-radius:8px;background:{{ o.bg }};color:{{ o.fg }};font:800 14px/1 'Barlow Condensed',sans-serif">{{ o.p }}</button></sc-for></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Chân thuận<div style="display:flex;gap:6px"><sc-for list="{{ footPick }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="border:1px solid rgba(255,255,255,.12);cursor:pointer;padding:8px 14px;border-radius:8px;background:{{ o.bg }};color:{{ o.fg }};font:600 13px/1 'Be Vietnam Pro',sans-serif">{{ o.p }}</button></sc-for></div></div>
+        <label style="display:flex;flex-direction:column;gap:8px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5"><span style="display:flex;align-items:center;justify-content:space-between">Chỉ số tổng (OVR) <span style="font:800 26px/1 'Barlow Condensed',sans-serif;color:#c6ff3d">{{ form.ovr }}</span></span><input type="range" min="40" max="99" value="{{ form.ovr }}" onChange="{{ on.ovr }}" style="accent-color:#c6ff3d"></label>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font:600 11px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.14em;color:#8b93a7">CHỈ SỐ CHI TIẾT</span><button onClick="{{ pf.autoOvr }}" style="border:0;cursor:pointer;background:transparent;color:#c6ff3d;font:600 11px/1 'Be Vietnam Pro',sans-serif">Tính OVR theo chỉ số</button></div>
+          <sc-for list="{{ pf.stats }}" as="st" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:36px 1fr 28px;gap:10px;align-items:center"><span style="font:700 13px/1 'Barlow Condensed',sans-serif;color:#aab2c5">{{ st.k }}</span><input type="range" min="20" max="99" value="{{ st.v }}" onChange="{{ st.onChange }}" style="accent-color:#c6ff3d;width:100%"><span style="font:800 16px/1 'Barlow Condensed',sans-serif;color:#fff;text-align:right">{{ st.v }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Số áo<input type="number" value="{{ form.num }}" onChange="{{ on.num }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Tuổi<input type="number" value="{{ form.age }}" onChange="{{ on.age }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ mTransfer }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04)">
+          <div style="width:46px;height:52px;background:{{ tf.bg }};color:{{ tf.fg }};clip-path:polygon(50% 0,100% 10%,100% 80%,50% 100%,0 80%,0 10%);display:grid;place-items:center;font:800 20px/1 'Barlow Condensed',sans-serif">{{ tf.ovr }}</div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 15px/1.2 'Be Vietnam Pro',sans-serif;color:#fff">{{ tf.name }}</span><span style="font:500 12px/1 'Be Vietnam Pro',sans-serif;color:#8b93a7">Hiện tại: {{ tf.team }} · Định giá {{ tf.value }}</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Chuyển đến<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ tf.dest }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="display:flex;align-items:center;gap:8px;border:1.5px solid {{ o.border }};cursor:pointer;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.03);color:#fff;font:600 14px/1 'Be Vietnam Pro',sans-serif"><span style="width:10px;height:10px;border-radius:50%;background:{{ o.color }}"></span>{{ o.name }}</button></sc-for></div></div>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Phí chuyển nhượng (tỷ)<input type="number" step="0.1" value="{{ form.fee }}" onChange="{{ on.fee }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#f5c542;font-size:18px;font-weight:700"></label>
+      </sc-if>
+
+      <sc-if value="{{ mOffer }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04)">
+          <div style="flex:none;width:46px;height:52px;background:{{ of.bg }};color:{{ of.fg }};clip-path:polygon(50% 0,100% 10%,100% 80%,50% 100%,0 80%,0 10%);display:grid;place-items:center;font:800 20px/1 'Barlow Condensed',sans-serif">{{ of.ovr }}</div>
+          <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:600 15px/1.2 'Be Vietnam Pro',sans-serif;color:#fff">{{ of.name }}</span><span style="font:500 12px/1.3 'Be Vietnam Pro',sans-serif;color:#8b93a7">{{ of.pos }} · {{ of.team }}</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:6px"><span style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.14em;color:#8b93a7">GIÁ HIỆN TẠI</span><span style="font:800 26px/1 'Barlow Condensed',sans-serif;color:#fff">{{ of.value }}</span></div>
+          <div style="padding:12px;border-radius:12px;border:1px solid rgba(245,197,66,.4);background:rgba(245,197,66,.06);display:flex;flex-direction:column;gap:6px"><span style="font:600 10px/1 'Be Vietnam Pro',sans-serif;letter-spacing:.14em;color:#f5c542">GIÁ ĐỀ NGHỊ</span><span style="font:800 26px/1 'Barlow Condensed',sans-serif;color:#f5c542">{{ of.price }}</span></div>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5"><span style="display:flex;justify-content:space-between">Giá mong muốn (tỷ)<span style="color:{{ of.diffC }}">{{ of.diff }}</span></span><input type="number" step="0.1" min="0" value="{{ form.price }}" onChange="{{ on.price }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#f5c542;font-size:18px;font-weight:700"></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ of.quick }}" as="x" hint-placeholder-count="4"><button onClick="{{ x.onClick }}" style="border:1px solid rgba(255,255,255,.12);cursor:pointer;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.03);color:#c9d0de;font:600 12px/1 'Be Vietnam Pro',sans-serif">{{ x.label }}</button></sc-for></div>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Lời nhắn cho chủ tịch<textarea value="{{ form.note }}" onChange="{{ on.note }}" rows="3" placeholder="VD: Cần tăng cường hàng công cho mùa giải..." style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font:400 14px/1.5 'Be Vietnam Pro',sans-serif;resize:vertical"></textarea></label>
+        <div style="font:500 12px/1.5 'Be Vietnam Pro',sans-serif;color:#8b93a7">Yêu cầu từ <span style="color:#fff">{{ of.buyer }}</span> sẽ được gửi tới Chủ tịch <span style="color:#fff">{{ of.chair }}</span> để duyệt.</div>
+      </sc-if>
+
+      <sc-if value="{{ mSchedule }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Đội nhà<select value="{{ form.home }}" onChange="{{ on.home }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#151b2a;color:#fff;font-size:15px"><sc-for list="{{ teamOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.id }}">{{ o.name }}</option></sc-for></select></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Đội khách<select value="{{ form.away }}" onChange="{{ on.away }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#151b2a;color:#fff;font-size:15px"><sc-for list="{{ teamOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.id }}">{{ o.name }}</option></sc-for></select></label>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Thời gian<input type="datetime-local" value="{{ form.date }}" onChange="{{ on.date }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px;color-scheme:dark"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 12px/1 'Be Vietnam Pro',sans-serif;color:#aab2c5">Sân thi đấu<input value="{{ form.venue }}" onChange="{{ on.venue }}" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:15px"></label>
+      </sc-if>
+
+      <sc-if value="{{ formErr }}" hint-placeholder-val="{{ false }}"><div style="font:600 12px/1.4 'Be Vietnam Pro',sans-serif;color:#ff6b81">{{ formErr }}</div></sc-if>
+      <button onClick="{{ submitModal }}" style="border:0;cursor:pointer;background:#c6ff3d;color:#06080d;font:italic 800 17px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:14px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)">{{ modalCta }}</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:50%;bottom:28px;z-index:200;transform:translateX(-50%);padding:14px 22px;border-radius:12px;background:#c6ff3d;color:#06080d;font:700 14px/1.3 'Be Vietnam Pro',sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.5);animation:toastIn .4s cubic-bezier(.2,.8,.2,1) both;white-space:nowrap">{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;formation&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;2-3-1&quot;,&quot;3-2-1&quot;,&quot;2-2-2&quot;],&quot;default&quot;:&quot;2-3-1&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Trận đấu&quot;},&quot;cardShine&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Thẻ cầu thủ&quot;}}">
+const KEY='digiex-league-v1';
+const GROUP={GK:'GK',CB:'DEF',LB:'DEF',RB:'DEF',CDM:'MID',CM:'MID',CAM:'MID',LM:'MID',RM:'MID',LW:'FWD',RW:'FWD',ST:'FWD'};
+const GNAME={GK:'THỦ MÔN',DEF:'HẬU VỆ',MID:'TIỀN VỆ',FWD:'TIỀN ĐẠO'};
+const LBL=['PAC','SHO','PAS','DRI','DEF','PHY'],LBL_GK=['DIV','HAN','KIC','REF','SPD','POS'];
+const POSS=['GK','CB','LB','RB','CDM','CM','CAM','LW','RW','ST'];
+const SW=[['#ff3b5c','#7a0f24'],['#2f8cff','#0b2a66'],['#a855f7','#3b0f6b'],['#14d3b8','#05524a'],['#ff8a1f','#6b3100'],['#f5c542','#7a5a06']];
+const WD=['CN','T2','T3','T4','T5','T6','T7'];
+const rng=s=>()=>(s=(s*9301+49297)%233280)/233280;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pad=n=>String(n).padStart(2,'0');
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+const valOf=o=>Math.round(Math.pow(1.15,o-60)*8)/10;
+const ini=n=>{const w=n.trim().split(/\s+/);return ((w.length>1?w[w.length-2][0]:'')+w[w.length-1][0]).toUpperCase();};
+function genStats(pos,ovr,seed){const r=rng(seed);const off={GK:[2,0,-12,3,-28,-1],DEF:[-6,-28,-8,-10,6,4],MID:[-3,-4,4,3,-14,-5],FWD:[3,4,-6,2,-45,-6]}[GROUP[pos]];return off.map(o=>clamp(Math.round(ovr+o+(r()*8-4)),20,99));}
+function mkP(id,teamId,[name,pos,ovr,num,age],seed){const r=rng(seed*7+3);return {id,teamId,name,pos,ovr,num,age,foot:r()>.75?'Trái':'Phải',stats:genStats(pos,ovr,seed*13+5),value:valOf(ovr)};}
+function genScorers(players,m,seed){const r=rng(seed);const out=[];[['home',m.hs,m.home],['away',m.as,m.away]].forEach(([side,n,tid])=>{const c=players.filter(p=>p.teamId===tid&&p.pos!=='GK');if(!c.length)return;const w=c.map(p=>Math.pow(p.stats[1],3));const tot=w.reduce((a,b)=>a+b,0);for(let i=0;i<n;i++){let x=r()*tot,k=0;while(x>w[k]&&k<c.length-1){x-=w[k];k++;}out.push({pid:c[k].id,side,min:2+Math.floor(r()*68)});}});return out.sort((a,b)=>a.min-b.min);}
+function seed(){
+  const teams=[
+    {id:'f8',name:'F8 Warriors',short:'F8',color:'#ff3b5c',color2:'#7a0f24',motto:'Không lùi bước, máu lửa từ phút đầu tiên',founded:2024,chair:{name:'Nguyễn Thanh Sơn',since:'2024',quote:'Chơi hết mình, thắng bằng tinh thần.'}},
+    {id:'f9',name:'F9 Titans',short:'F9',color:'#2f8cff',color2:'#0b2a66',motto:'Kỷ luật tạo nên chiến thắng',founded:2024,chair:{name:'Lê Quang Vinh',since:'2024',quote:'Mỗi trận là một bài test hệ thống.'}}];
+  const f8=[['Trần Đức Anh','GK',81,1,29],['Lê Hoàng Nam','CB',79,4,31],['Phạm Quốc Bảo','CB',76,5,27],['Vũ Thành Long','LB',74,3,25],['Đỗ Minh Khoa','CDM',80,6,30],['Nguyễn Hữu Phúc','CM',83,8,28],['Bùi Gia Huy','CAM',87,10,26],['Hoàng Anh Tú','RW',78,7,24],['Đặng Văn Quyết','ST',91,9,27],['Ngô Tiến Dũng','LW',72,11,23],['Lâm Chí Thanh','CM',68,14,35]];
+  const f9=[['Phan Văn Hậu','GK',83,1,32],['Trịnh Quang Hải','CB',82,4,29],['Lý Công Minh','CB',75,2,26],['Mai Xuân Trường','RB',73,12,24],['Dương Thế Vinh','CDM',78,6,28],['Cao Đức Thắng','CM',85,8,27],['Hồ Tấn Tài','CAM',80,10,25],['Tô Hoàng Lâm','LW',77,11,23],['Lương Công Phượng','ST',89,9,30],['Kiều Nhật Minh','RW',84,7,26],['Võ Đình Khôi','ST',66,19,22]];
+  const players=[...f8.map((x,i)=>mkP('p'+i,'f8',x,i+1)),...f9.map((x,i)=>mkP('p'+(20+i),'f9',x,i+31))];
+  const V='Sân bóng Hoàng Mai · Sân số 3';
+  const raw=[['2026-01-10T18:00','f8','f9',3,2],['2026-02-07T18:00','f9','f8',1,1],['2026-03-07T18:00','f8','f9',0,2],['2026-04-04T18:00','f9','f8',4,3],['2026-05-09T18:30','f8','f9',2,1],['2026-06-06T18:30','f9','f8',2,2],['2026-07-11T18:30','f8','f9',3,1],['2026-08-08T18:30','f9','f8',1,2],['2026-09-12T18:30','f8','f9',1,3]];
+  const matches=raw.map(([date,home,away,hs,as],i)=>{const r=rng(i*17+9);const m={id:'m'+i,date,home,away,hs,as,status:'done',venue:V,votes:{home:20+Math.floor(r()*40),draw:6+Math.floor(r()*14),away:20+Math.floor(r()*40)},sv:{'2-1':8+Math.floor(r()*10),'1-1':5+Math.floor(r()*8),'1-2':6+Math.floor(r()*9),'2-2':3+Math.floor(r()*6),'3-1':2+Math.floor(r()*6)}};m.scorers=genScorers(players,m,i*31+7);return m;});
+  matches.push({id:'m9',date:'2026-10-03T19:30',home:'f9',away:'f8',hs:0,as:0,status:'up',venue:V,votes:{home:38,draw:15,away:42},sv:{'2-1':12,'1-1':8,'1-2':10,'3-2':6,'2-2':5},scorers:[]});
+  const transfers=[{pid:'p10',name:'Lâm Chí Thanh',from:'f9',to:'f8',fee:1.2,date:'2026-06-20'},{pid:'p30',name:'Võ Đình Khôi',from:'f8',to:'f9',fee:0.8,date:'2026-08-01'}];
+  return {v:1,teams,players,matches,transfers,my:{}};
+}
+const USERS=()=>[{u:'admin',pw:'123456',name:'Ban tổ chức',role:'admin'},{u:'son.f8',pw:'123456',name:'Nguyễn Thanh Sơn',role:'chair',team:'f8'},{u:'hlv.f8',pw:'123456',name:'Phạm Đức Hùng',role:'coach',team:'f8'},{u:'vinh.f9',pw:'123456',name:'Lê Quang Vinh',role:'chair',team:'f9'},{u:'hlv.f9',pw:'123456',name:'Trần Minh Đạo',role:'coach',team:'f9'},{u:'member',pw:'123456',name:'Nhân viên DigiEx',role:'member'}];
+const ROLE={admin:'Ban tổ chức',chair:'Chủ tịch',coach:'Ban huấn luyện',member:'Thành viên'};
+const GORD={GK:0,DEF:1,MID:2,FWD:3};
+function migrate(d){if(d.v===1){d.users=USERS();d.teams.forEach(t=>{if(!t.coach)t.coach={name:t.id==='f8'?'Phạm Đức Hùng':t.id==='f9'?'Trần Minh Đạo':'Chưa bổ nhiệm'};});d.v=2;}if(!d.offers)d.offers=[{id:'o1',pid:'p28',from:'f8',to:'f9',price:40,value:valOf(89),note:'F8 cần một trung phong đẳng cấp cho trận derby tháng 10.',by:'son.f8',status:'pending',date:'2026-09-20'},{id:'o2',pid:'p6',from:'f9',to:'f8',price:30,value:valOf(87),note:'',by:'vinh.f9',status:'pending',date:'2026-09-22'}];return d;}
+const todayStr=()=>{const t=new Date();return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;};
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&(d.v===1||d.v===2))return migrate(d);}catch(e){}return migrate(seed());}
+function readImg(file,size,type){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const img=new Image();img.onerror=rej;img.onload=()=>{const sc=Math.min(1,size/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL(type,.86));};img.src=fr.result;};fr.readAsDataURL(file);});}
+const sessGet=()=>{try{return localStorage.getItem('digiex-session');}catch(e){return null;}};
+
+class Component extends DCLogic {
+  state={user:sessGet(),pendingDel:null,data:load(),view:'home',teamId:'f8',matchId:null,mdTab:'lineup',cardId:null,modal:null,form:{},err:'',mTeam:'all',mPos:'all',toast:null,vs:{h:1,a:1},res:{h:0,a:0},now:Date.now()};
+  componentDidMount(){this.t=setInterval(()=>this.setState({now:Date.now()}),1000);this.onR=()=>this.setState({w:window.innerWidth});window.addEventListener('resize',this.onR);this.onR();}
+  componentWillUnmount(){clearInterval(this.t);clearTimeout(this.tt);window.removeEventListener('resize',this.onR);}
+  save(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}this.setState({data:d});}
+  clone(){return JSON.parse(JSON.stringify(this.state.data));}
+  flash(msg){this.setState({toast:msg});clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toast:null}),2600);}
+  go(view,extra={}){this.setState({view,cardId:null,...extra});try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}}
+  tier(o){
+    if(o>=90)return {bg:'linear-gradient(160deg,#fff8dc 0%,#f0cf73 40%,#9c7424 100%)',fg:'#2a1c00',rim:'#fff1b8',label:'ICON',glow:'rgba(255,215,110,.5)'};
+    if(o>=85)return {bg:'linear-gradient(160deg,#2a4fd6 0%,#0d1a52 55%,#060b26 100%)',fg:'#ffe39a',rim:'#d9b54a',label:'ELITE',glow:'rgba(80,130,255,.5)'};
+    if(o>=78)return {bg:'linear-gradient(160deg,#fbe08a 0%,#d4a534 50%,#7a5510 100%)',fg:'#2b1c00',rim:'#ffeaa0',label:'GOLD',glow:'rgba(240,190,60,.42)'};
+    if(o>=70)return {bg:'linear-gradient(160deg,#f2f5f9 0%,#aab4c2 50%,#5b6573 100%)',fg:'#10151c',rim:'#ffffff',label:'SILVER',glow:'rgba(200,210,225,.32)'};
+    return {bg:'linear-gradient(160deg,#f0b683 0%,#b0652f 50%,#56290f 100%)',fg:'#200d00',rim:'#ffd2a8',label:'BRONZE',glow:'rgba(220,130,70,.32)'};
+  }
+  openModal(modal,form){this.setState({modal,form,err:''});}
+  actOffer(id,accept){const d=this.clone();const o=d.offers.find(x=>x.id===id);if(!o||o.status!=='pending')return;
+    if(!accept){o.status='rejected';this.save(d);return this.flash('Đã từ chối đề nghị');}
+    const p=d.players.find(x=>x.id===o.pid);if(!p||p.teamId!==o.to){o.status='cancelled';this.save(d);return this.flash('Cầu thủ không còn thuộc đội của bạn');}
+    p.teamId=o.from;o.status='accepted';d.transfers.push({pid:p.id,name:p.name,from:o.to,to:o.from,fee:o.price,date:todayStr()});
+    d.offers.forEach(x=>{if(x!==o&&x.pid===o.pid&&x.status==='pending')x.status='rejected';});
+    this.save(d);this.flash('Chuyển nhượng hoàn tất: '+p.name+' → '+(d.teams.find(t=>t.id===o.from)||{}).short);}
+  openCard(id){if(!this.state.user)return this.openModal('login',{reason:'Đăng nhập để xem chi tiết chỉ số cầu thủ.'});this.setState({cardId:id});}
+  openPlayer(pid,teamId){const d=this.state.data;const p=pid&&d.players.find(x=>x.id===pid);this.openModal('player',p?{pid,name:p.name,pos:p.pos,num:p.num,age:p.age,foot:p.foot||'Phải',ovr:p.ovr,stats:p.stats.slice(),photo:p.photo||'',teamId:p.teamId}:{pos:'CM',num:'',age:25,foot:'Phải',ovr:72,stats:genStats('CM',72,Date.now()%997),photo:'',teamId});}
+  async upload(e,kind,id){const file=e.target.files&&e.target.files[0];e.target.value='';if(!file)return;try{const url=await readImg(file,kind==='logo'?256:360,kind==='logo'?'image/png':'image/jpeg');if(kind==='logo'){const d=this.clone();d.teams.find(t=>t.id===id).logo=url;this.save(d);this.flash('Đã cập nhật logo đội');}else this.setState(st=>({form:{...st.form,photo:url}}));}catch(err){this.flash('Không đọc được ảnh');}}
+  submit(){
+    const s=this.state,f=s.form,d=this.clone();
+    const err=e=>this.setState({err:e});
+    if(s.modal==='addTeam'){
+      if(!f.name||!f.short)return err('Nhập tên đội và mã đội.');
+      const sw=SW[f.sw||0],id='t'+Date.now();
+      d.teams.push({id,name:f.name.trim(),short:f.short.trim().toUpperCase().slice(0,4),color:sw[0],color2:sw[1],motto:f.motto||'Chiến đến cùng',founded:2026,coach:{name:'Chưa bổ nhiệm'},chair:{name:f.chair||'Chưa bổ nhiệm',since:'2026',quote:'Hành trình mới bắt đầu.'}});
+      const cu=f.short.trim().toLowerCase()+'.chair';if(!d.users.find(x=>x.u===cu))d.users.push({u:cu,pw:'123456',name:f.chair||'Chủ tịch '+f.short,role:'chair',team:id});
+      this.save(d);this.setState({modal:null,teamId:id,view:'teams'});this.flash(`Đã thành lập ${f.name} · TK chủ tịch: ${cu}`);
+    } else if(s.modal==='player'){
+      if(!f.name||!f.name.trim())return err('Nhập tên cầu thủ.');
+      const ovr=clamp(+f.ovr||70,40,99),stats=(f.stats||[]).map(Number);
+      if(f.pid){const p=d.players.find(x=>x.id===f.pid);Object.assign(p,{name:f.name.trim(),pos:f.pos,num:+f.num||p.num,age:+f.age||p.age,foot:f.foot,ovr,stats,value:valOf(ovr),photo:f.photo||null});this.save(d);this.setState({modal:null});this.flash('Đã cập nhật '+p.name);}
+      else{const p=mkP('p'+Date.now(),f.teamId||s.teamId,[f.name.trim(),f.pos||'CM',ovr,+f.num||99,+f.age||25],Date.now()%9973);p.stats=stats;p.foot=f.foot;p.photo=f.photo||null;d.players.push(p);this.save(d);this.setState({modal:null});this.flash('Đã đăng ký '+p.name);}
+    } else if(s.modal==='login'){
+      const acc=d.users.find(x=>x.u===(f.u||'').trim().toLowerCase()&&x.pw===f.pw);
+      if(!acc)return err('Sai tên đăng nhập hoặc mật khẩu.');
+      try{localStorage.setItem('digiex-session',acc.u);}catch(e){}
+      this.setState({user:acc.u,modal:null,teamId:acc.team||s.teamId});this.flash('Xin chào, '+acc.name);
+    } else if(s.modal==='transfer'){
+      if(!f.to)return err('Chọn đội nhận.');
+      const p=d.players.find(x=>x.id===f.pid);const from=p.teamId;p.teamId=f.to;
+      const today=new Date(s.now);
+      d.transfers.push({pid:p.id,name:p.name,from,to:f.to,fee:+f.fee||p.value,date:`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`});
+      this.save(d);this.setState({modal:null,cardId:null});this.flash('Chuyển nhượng thành công: '+p.name);
+    } else if(s.modal==='offer'){
+      const price=+f.price;if(!(price>0))return err('Nhập giá đề nghị hợp lệ.');
+      const me=d.users.find(x=>x.u===s.user);const p=d.players.find(x=>x.id===f.pid);if(!me||!me.team||!p)return err('Không thể gửi yêu cầu.');
+      d.offers.push({id:'o'+Date.now(),pid:p.id,from:me.team,to:p.teamId,price,value:p.value,note:(f.note||'').trim(),by:me.u,status:'pending',date:todayStr()});
+      this.save(d);this.setState({modal:null,cardId:null,rqTab:'out'});this.flash('Đã gửi đề nghị tới Chủ tịch '+(d.teams.find(t=>t.id===p.teamId)||{}).short);
+    } else if(s.modal==='schedule'){
+      if(!f.home||!f.away||f.home===f.away)return err('Chọn hai đội khác nhau.');
+      if(!f.date)return err('Chọn thời gian.');
+      d.matches.push({id:'m'+Date.now(),date:f.date,home:f.home,away:f.away,hs:0,as:0,status:'up',venue:f.venue||'Sân bóng Hoàng Mai',votes:{home:0,draw:0,away:0},sv:{},scorers:[]});
+      this.save(d);this.setState({modal:null});this.flash('Đã lên lịch trận đấu');
+    }
+  }
+  renderVals(){
+    const s=this.state,d=s.data,T=d.teams;
+    const formation=this.props.formation??'2-3-1';
+    const shine=this.props.cardShine??true;
+    const tm=id=>T.find(t=>t.id===id)||T[0];
+    const squad=tid=>d.players.filter(p=>p.teamId===tid);
+    const u=s.user?(d.users||[]).find(x=>x.u===s.user):null;const isAdmin=!!u&&u.role==='admin';
+    const canTeam=tid=>!!u&&(isAdmin||((u.role==='chair'||u.role==='coach')&&u.team===tid));
+    const canTransfer=tid=>!!u&&(isAdmin||(u.role==='chair'&&u.team===tid));
+    const canAny=!!u&&(isAdmin||u.role==='chair'||u.role==='coach');
+    const offers=d.offers||[];const myT=u&&u.role==='chair'?u.team:null;
+    const inCount=myT?offers.filter(o=>o.to===myT&&o.status==='pending').length:0;
+    const canOffer=p=>!!myT&&p.teamId!==myT;
+    const openOffer=pid=>{const p=d.players.find(x=>x.id===pid);this.openModal('offer',{pid,price:p.value.toFixed(1),note:''});};
+    const cr=t=>({id:t.id,short:t.short,name:t.name,color:t.color,color2:t.color2,glow:hexA(t.color,.3),crestBg:t.logo?`center/80% no-repeat url("${t.logo}"), linear-gradient(160deg,${t.color},${t.color2})`:`linear-gradient(160deg,${t.color},${t.color2})`,crestTxt:t.logo?'':t.short});
+    const card=(p,i=0)=>{const t=this.tier(p.ovr),team=tm(p.teamId),L=p.pos==='GK'?LBL_GK:LBL;return {id:p.id,name:p.name,last:p.name.split(' ').slice(-2).join(' ').toUpperCase(),pos:p.pos,ovr:p.ovr,num:p.num,ini:ini(p.name),bg:t.bg,fg:t.fg,rim:t.rim,tier:t.label,glow:t.glow,team:team.short,tc:team.color,value:p.value.toFixed(1)+' tỷ',stats:L.map((k,j)=>({k,v:p.stats[j]})),delay:(i*0.05).toFixed(2)+'s',shine:shine&&p.ovr>=85,photo:p.photo||'',hasPhoto:!!p.photo,noPhoto:!p.photo,onClick:()=>this.openCard(p.id)};};
+    const ms=d.matches.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    const done=ms.filter(m=>m.status==='done'),ups=ms.filter(m=>m.status!=='done');
+    const rec=tid=>{let w=0,dr=0,l=0,gf=0,ga=0;const form=[];done.forEach(m=>{if(m.home!==tid&&m.away!==tid)return;const my=m.home===tid?m.hs:m.as,op=m.home===tid?m.as:m.hs;gf+=my;ga+=op;const r=my>op?'W':my<op?'L':'D';r==='W'?w++:r==='L'?l++:dr++;form.unshift(r);});return {w,d:dr,l,gf,ga,gd:gf-ga,pts:w*3+dr,p:w+dr+l,form:form.slice(0,5).map(x=>({l:x==='W'?'T':x==='L'?'B':'H',bg:x==='W'?'#1fa65c':x==='L'?'#d63a48':'#5b6373'}))};};
+    const fD=iso=>{const t=new Date(iso);return `${WD[t.getDay()]}, ${pad(t.getDate())}/${pad(t.getMonth()+1)}/${t.getFullYear()}`;};
+    const fT=iso=>{const t=new Date(iso);return `${pad(t.getHours())}:${pad(t.getMinutes())}`;};
+    const openMatch=id=>this.go('match',{matchId:id,mdTab:'lineup',vs:{h:1,a:1},res:{h:0,a:0}});
+    const mv=(m,i=0)=>{const dn=m.status==='done';return {id:m.id,H:cr(tm(m.home)),A:cr(tm(m.away)),done:dn,up:!dn,score:dn?`${m.hs} - ${m.as}`:'VS',date:fD(m.date),time:fT(m.date),venue:m.venue,hOp:dn&&m.hs<m.as?'.45':'1',aOp:dn&&m.as<m.hs?'.45':'1',status:dn?'KẾT THÚC':'SẮP DIỄN RA',statusBg:dn?'rgba(255,255,255,.1)':'#c6ff3d',statusFg:dn?'#c9d0de':'#06080d',delay:(i*0.06).toFixed(2)+'s',onClick:()=>openMatch(m.id)};};
+    const cdOf=iso=>{let x=Math.max(0,new Date(iso).getTime()-s.now)/1000;const dd=Math.floor(x/86400);x-=dd*86400;const hh=Math.floor(x/3600);x-=hh*3600;const mm=Math.floor(x/60);const ss=Math.floor(x-mm*60);return [{v:pad(dd),l:'NGÀY'},{v:pad(hh),l:'GIỜ'},{v:pad(mm),l:'PHÚT'},{v:pad(ss),l:'GIÂY'}];};
+    const nav=[['home','Trang chủ'],['teams','Đội bóng'],['matches','Trận đấu'],['market','Chuyển nhượng'],...(canAny?[['manage','Quản lý']]:[])].map(([k,l])=>{const a=s.view===k||(k==='matches'&&s.view==='match');return {label:l,bg:a?'#c6ff3d':'transparent',fg:a?'#06080d':'#aab2c5',hasBadge:k==='market'&&inCount>0,badge:inCount,onClick:()=>this.go(k)};});
+    // H2H
+    const A0=T[0],B0=T[1]||T[0];let wa=0,dw=0,wb=0,ga=0,gb=0;
+    done.filter(m=>[m.home,m.away].includes(A0.id)&&[m.home,m.away].includes(B0.id)).forEach(m=>{const a=m.home===A0.id?m.hs:m.as,b=m.home===A0.id?m.as:m.hs;ga+=a;gb+=b;a>b?wa++:a<b?wb++:dw++;});
+    const tot=wa+dw+wb||1;
+    const h2h={a:cr(A0),b:cr(B0),wa,d:dw,wb,ga,gb,total:wa+dw+wb,pa:(wa/tot*100)+'%',pd:(dw/tot*100)+'%',pb:(wb/tot*100)+'%'};
+    const next=ups[0];
+    const standings=T.map(t=>({t,r:rec(t.id)})).sort((x,y)=>y.r.pts-x.r.pts||y.r.gd-x.r.gd||y.r.gf-x.r.gf).map((x,i)=>({rank:i+1,name:x.t.name,color:x.t.color,crestBg:cr(x.t).crestBg,...x.r,gd:(x.r.gd>0?'+':'')+x.r.gd,delay:(i*0.08)+'s',onClick:()=>this.go('teams',{teamId:x.t.id})}));
+    const stars=d.players.slice().sort((a,b)=>b.ovr-a.ovr).slice(0,7).map(card);
+    // team view
+    const ct=tm(s.teamId),sq=squad(ct.id),tr=rec(ct.id);const val=sq.reduce((a,p)=>a+p.value,0);const avg=sq.length?Math.round(sq.reduce((a,p)=>a+p.ovr,0)/sq.length):0;
+    const tv={...cr(ct),can:canTeam(ct.id),coach:(ct.coach||{}).name||'Chưa bổ nhiệm',onLogo:e=>this.upload(e,'logo',ct.id),motto:ct.motto,founded:ct.founded,count:sq.length,empty:!sq.length,chair:{...ct.chair,ini:ini(ct.chair.name)},kpis:[{l:'GIÁ TRỊ ĐỘI HÌNH',v:val.toFixed(1)+' tỷ',c:'#f5c542'},{l:'OVR TRUNG BÌNH',v:avg,c:'#c6ff3d'},{l:'THẮNG · HÒA · BẠI',v:`${tr.w}-${tr.d}-${tr.l}`,c:'#fff'},{l:'BÀN THẮNG',v:tr.gf,c:'#fff'},{l:'ĐIỂM',v:tr.pts,c:'#fff'}].map((k,i)=>({...k,delay:(i*0.07)+'s'}))};
+    let ci=0;const groups=['GK','DEF','MID','FWD'].map(g=>{const cs=sq.filter(p=>GROUP[p.pos]===g).sort((a,b)=>b.ovr-a.ovr);return {name:GNAME[g],count:cs.length,cards:cs.map(p=>card(p,ci++))};}).filter(g=>g.count);
+    const teamTabs=T.map(t=>{const a=t.id===ct.id;return {name:t.name,color:t.color,bg:a?hexA(t.color,.22):'rgba(255,255,255,.04)',fg:a?'#fff':'#aab2c5',onClick:()=>this.setState({teamId:t.id})};});
+    // match detail
+    let md=null;const m=d.matches.find(x=>x.id===s.matchId);
+    if(s.view==='match'&&m){
+      const base=mv(m),H=tm(m.home),A=tm(m.away);
+      const lu=tid=>{const sqd=squad(tid).sort((a,b)=>b.ovr-a.ovr),used=new Set();const take=(g,n)=>{const o=[];for(const p of sqd){if(o.length>=n)break;if(!used.has(p.id)&&GROUP[p.pos]===g){o.push(p);used.add(p.id);}}return o;};const c=formation.split('-').map(Number);const rows=[take('GK',1),take('DEF',c[0]),take('MID',c[1]),take('FWD',c[2])];const need=[1,...c];rows.forEach((row,i)=>{while(row.length<need[i]){const p=sqd.find(p=>!used.has(p.id)&&(i===0||p.pos!=='GK'))||sqd.find(p=>!used.has(p.id));if(!p)break;row.push(p);used.add(p.id);}});return {rows,bench:sqd.filter(p=>!used.has(p.id))};};
+      const lH=lu(H.id),lA=lu(A.id);const Y=[93,80,68,56];let k=0;const tokens=[];
+      [[lH,H,false],[lA,A,true]].forEach(([l,t,flip])=>l.rows.forEach((row,ri)=>row.forEach((p,i)=>{const x=(i+1)/(row.length+1)*100;tokens.push({x:x+'%',y:(flip?100-Y[ri]:Y[ri])+'%',ovr:p.ovr,name:p.name.split(' ').pop(),color:t.color,delay:(k++*0.05).toFixed(2)+'s',onClick:()=>this.openCard(p.id)});})));
+      const li=p=>({pos:p.pos,name:p.name,ovr:p.ovr,onClick:()=>this.openCard(p.id)});
+      const sH=lH.rows.flat(),sA=lA.rows.flat(),oH=sH.filter(p=>p.pos!=='GK'),oA=sA.filter(p=>p.pos!=='GK');
+      const av=(arr,f)=>arr.length?Math.round(arr.reduce((a,p)=>a+f(p),0)/arr.length):0;
+      const defs=[['Chỉ số tổng',p=>p.ovr,sH,sA],['Tốc độ',p=>p.stats[0],oH,oA],['Dứt điểm',p=>p.stats[1],oH,oA],['Chuyền bóng',p=>p.stats[2],oH,oA],['Rê bóng',p=>p.stats[3],oH,oA],['Phòng ngự',p=>p.stats[4],oH,oA],['Thể lực',p=>p.stats[5],oH,oA]];
+      const row=(l,a,b)=>{const t=(+a)+(+b)||1;return {l,a,b,wa:(a/t*100).toFixed(1)+'%',wb:(b/t*100).toFixed(1)+'%',ca:+a>=+b?H.color:'#394052',cb:+b>=+a?A.color:'#394052'};};
+      const rows=defs.map(([l,f,x,y])=>row(l,av(x,f),av(y,f)));
+      rows.push(row('Giá trị (tỷ)',sH.reduce((a,p)=>a+p.value,0).toFixed(1),sA.reduce((a,p)=>a+p.value,0).toFixed(1)));
+      const diff=av(sH,p=>p.ovr)-av(sA,p=>p.ovr);const ph=1/(1+Math.exp(-diff/2.5));const dp=22,hp=Math.round((100-dp)*ph),ap=100-dp-hp;
+      const my=d.my[m.id]||{};const v=m.votes,vt=v.home+v.draw+v.away||1;const voted=!!my.winner||base.done;
+      const actual=base.done?(m.hs>m.as?'home':m.hs<m.as?'away':'draw'):null;
+      const voteOpts=[['home',H.short+' thắng',H.color],['draw','Hòa','#9aa3b5'],['away',A.short+' thắng',A.color]].map(([key,l,c])=>{const pct=Math.round(v[key]/vt*100);const sel=my.winner===key||actual===key;return {label:l,mine:my.winner===key?' · bạn chọn':'',pct:voted?pct+'%':'',w:voted?pct+'%':'0%',fill:hexA(c,.22),border:sel?c:'rgba(255,255,255,.1)',cursor:voted?'default':'pointer',onClick:voted?undefined:()=>{const dd=this.clone(),mm=dd.matches.find(x=>x.id===m.id);mm.votes[key]++;dd.my[m.id]={...(dd.my[m.id]||{}),winner:key};this.save(dd);this.flash('Đã ghi nhận vote của bạn!');}};});
+      const ak=`${m.hs}-${m.as}`;const sv=Object.entries(m.sv||{}).sort((a,b)=>b[1]-a[1]).slice(0,5);const mx=sv.length?sv[0][1]:1;
+      const topScores=sv.map(([sc,n])=>({score:sc,n,w:(n/mx*100)+'%',c:(base.done&&sc===ak)||my.score===sc?'#c6ff3d':'#7c86a0'}));
+      const acc=base.done?Math.round(v[actual]/vt*100):0;
+      const pn=id=>{const p=d.players.find(x=>x.id===id);return p?p.name.split(' ').slice(-2).join(' '):'?';};
+      md={...base,tokens,
+        benches:[[H,lH],[A,lA]].map(([t,l])=>({name:t.short,color:t.color,crestBg:cr(t).crestBg,starters:l.rows.flat().map(li),bench:l.bench.map(li)})),
+        rows,prob:{h:hp+'%',d:dp+'%',a:ap+'%'},forms:[H,A].map(t=>({name:t.name,form:rec(t.id).form})),
+        voteOpts,voteTotal:v.home+v.draw+v.away,voteNote:base.done?`Kết quả thực tế: ${actual==='draw'?'Hòa':tm(actual==='home'?m.home:m.away).short+' thắng'} · ${acc}% người vote đoán đúng.`:(my.winner?'Cảm ơn bạn đã vote! Kết quả sẽ chốt khi trận đấu kết thúc.':'Chọn đội bạn tin sẽ thắng. Mỗi người 1 lượt vote.'),
+        canScore:!base.done&&!my.score,hasMyScore:!!my.score,myScore:my.score?`${H.short} ${my.score.replace('-',' – ')} ${A.short}`:'',topScores,
+        hGoals:(m.scorers||[]).filter(g=>g.side==='home').map(g=>({t:`⚽ ${pn(g.pid)} ${g.min}'`})),aGoals:(m.scorers||[]).filter(g=>g.side==='away').map(g=>({t:`⚽ ${pn(g.pid)} ${g.min}'`})),
+        tabs:[['lineup','Đội hình'],['stats','Phân tích'],['vote','Dự đoán']].map(([k2,l])=>({label:l,bg:s.mdTab===k2?'#c6ff3d':'transparent',fg:s.mdTab===k2?'#06080d':'#aab2c5',onClick:()=>this.setState({mdTab:k2})})),
+        isLineup:s.mdTab==='lineup',isStats:s.mdTab==='stats',isVote:s.mdTab==='vote',locked:!u&&s.mdTab!=='lineup',showStats:!!u&&s.mdTab==='stats',showVote:!!u&&s.mdTab==='vote',canResult:!base.done&&isAdmin};
+    }
+    const stepVs=(k2,dl)=>()=>this.setState(st=>({vs:{...st.vs,[k2]:clamp(st.vs[k2]+dl,0,15)}}));
+    const stepRes=(k2,dl)=>()=>this.setState(st=>({res:{...st.res,[k2]:clamp(st.res[k2]+dl,0,20)}}));
+    // market
+    const fl=d.players.filter(p=>(s.mTeam==='all'||p.teamId===s.mTeam)&&(s.mPos==='all'||GROUP[p.pos]===s.mPos)).sort((a,b)=>b.value-a.value);
+    const openTransfer=pid=>{const p=d.players.find(x=>x.id===pid);this.openModal('transfer',{pid,to:(T.find(t=>t.id!==p.teamId)||{}).id,fee:p.value.toFixed(1)});};
+    const chip=(label,a,onClick)=>({label,bg:a?'#c6ff3d':'rgba(255,255,255,.04)',fg:a?'#06080d':'#c9d0de',onClick});
+    const mk={total:d.players.reduce((a,p)=>a+p.value,0).toFixed(1)+' tỷ',count:d.players.length,deals:d.transfers.length,
+      teamChips:[chip('Tất cả đội',s.mTeam==='all',()=>this.setState({mTeam:'all'})),...T.map(t=>chip(t.short,s.mTeam===t.id,()=>this.setState({mTeam:t.id})))],
+      posChips:[['all','Mọi vị trí'],['GK','GK'],['DEF','Hậu vệ'],['MID','Tiền vệ'],['FWD','Tiền đạo']].map(([k2,l])=>chip(l,s.mPos===k2,()=>this.setState({mPos:k2}))),
+      rows:fl.map((p,i)=>{const t=this.tier(p.ovr),team=tm(p.teamId);return {name:p.name,ovr:p.ovr,pos:p.pos,bg:t.bg,fg:t.fg,team:team.name,tc:team.color,age:p.age,value:p.value.toFixed(1)+' tỷ',delay:Math.min(i*0.03,.6).toFixed(2)+'s',onClick:()=>this.openCard(p.id),onBuy:()=>openTransfer(p.id),canBuy:canTransfer(p.teamId),canOffer:canOffer(p),...(()=>{const sent=myT&&offers.some(o=>o.pid===p.id&&o.from===myT&&o.status==='pending');return {offerLabel:sent?'Đã gửi':'Mua',offerOp:sent?'.45':'1',onOffer:sent?()=>this.setState({rqTab:'out'}):()=>openOffer(p.id)};})()};}),
+      log:d.transfers.slice().reverse().map(x=>{const f=tm(x.from),t=tm(x.to);return {name:x.name,fee:(+x.fee).toFixed(1)+' tỷ',from:f.short,fc:f.color,to:t.short,tc:t.color,date:x.date.split('-').reverse().join('/')};}),noLog:!d.transfers.length};
+    // card modal
+    let cm={open:false};const cp=s.cardId&&d.players.find(p=>p.id===s.cardId);
+    if(cp){const c=card(cp);c.delay='0s';const team=tm(cp.teamId);const L=cp.pos==='GK'?LBL_GK:LBL;
+      const pts=cp.stats.map((v2,j)=>{const a=(-90+60*j)*Math.PI/180,r=80*v2/99;return (100+r*Math.cos(a)).toFixed(1)+','+(100+r*Math.sin(a)).toFixed(1);}).join(' ');
+      const col=v2=>v2>=85?'#c6ff3d':v2>=75?'#f5c542':v2>=65?'#ff9f43':'#ff6b81';
+      cm={open:true,card:c,name:cp.name,teamName:team.name,radar:pts,radarFill:hexA(team.color,.35),radarStroke:team.color,
+        l0:L[0],l1:L[1],l2:L[2],l3:L[3],l4:L[4],l5:L[5],
+        info:[{l:'OVR',v:cp.ovr,c:'#c6ff3d'},{l:'TUỔI',v:cp.age,c:'#fff'},{l:'CHÂN',v:cp.foot,c:'#fff'},{l:'GIÁ TRỊ',v:cp.value.toFixed(1)+' tỷ',c:'#f5c542'}],
+        bars:cp.stats.map((v2,j)=>({k:L[j],v:v2,w:v2+'%',c:col(v2),delay:(0.3+j*0.06)+'s'})),onTransfer:()=>openTransfer(cp.id),canTransfer:canTransfer(cp.teamId),canEdit:canTeam(cp.teamId),onEdit:()=>this.openPlayer(cp.id),canOffer:canOffer(cp),onOffer:()=>openOffer(cp.id)};}
+    const mTeams=T.filter(t=>canTeam(t.id));const mt=mTeams.find(t=>t.id===s.teamId)||mTeams[0];
+    const mg=mt?{...cr(mt),chair:mt.chair.name,coach:(mt.coach||{}).name||'—',hasLogo:!!mt.logo,count:squad(mt.id).length,
+      tabs:mTeams.map(t=>({name:t.name,color:t.color,bg:t.id===mt.id?hexA(t.color,.22):'rgba(255,255,255,.04)',fg:t.id===mt.id?'#fff':'#aab2c5',onClick:()=>this.setState({teamId:t.id,pendingDel:null})})),
+      onLogo:e=>this.upload(e,'logo',mt.id),removeLogo:()=>{const dd=this.clone();delete dd.teams.find(t=>t.id===mt.id).logo;this.save(dd);},add:()=>this.openPlayer(null,mt.id),
+      rows:squad(mt.id).sort((a,b)=>GORD[GROUP[a.pos]]-GORD[GROUP[b.pos]]||b.ovr-a.ovr).map((p,i)=>{const t=this.tier(p.ovr);return {name:p.name,pos:p.pos,num:p.num,age:p.age,ovr:p.ovr,bg:t.bg,fg:t.fg,value:p.value.toFixed(1)+' tỷ',photoBg:p.photo?`center/cover url("${p.photo}")`:'rgba(255,255,255,.05)',ini:p.photo?'':ini(p.name),delay:Math.min(i*.03,.5).toFixed(2)+'s',onEdit:()=>this.openPlayer(p.id),delLabel:s.pendingDel===p.id?'Xác nhận xóa':'Xóa',delBg:s.pendingDel===p.id?'#e5484d':'transparent',onDel:()=>{if(this.state.pendingDel!==p.id)return this.setState({pendingDel:p.id});const dd=this.clone();dd.players=dd.players.filter(x=>x.id!==p.id);this.save(dd);this.setState({pendingDel:null});this.flash('Đã xóa '+p.name);}};})}:{tabs:[],rows:[]};
+    const pfL=s.form.pos==='GK'?LBL_GK:LBL;const pfTeam=s.modal==='player'?tm(s.form.teamId||s.teamId):null;
+    const pf={photoBg:s.form.photo?`center/cover url("${s.form.photo}")`:'rgba(255,255,255,.05)',ini:s.form.photo?'':(s.form.name?ini(s.form.name):'+'),hasPhoto:!!s.form.photo,teamLine:pfTeam?(s.form.pid?'Chỉnh sửa hồ sơ · ':'Đăng ký vào ')+pfTeam.name:'',
+      onPhoto:e=>this.upload(e,'photo'),removePhoto:()=>this.setState(st=>({form:{...st.form,photo:''}})),
+      autoOvr:()=>this.setState(st=>{const a=st.form.stats||[];return {form:{...st.form,ovr:a.length?Math.round(a.reduce((x,y)=>x+ +y,0)/a.length):st.form.ovr}};}),
+      stats:(s.form.stats||[]).map((v2,j)=>({k:pfL[j],v:v2,onChange:e=>{const val=+e.target.value;this.setState(st=>{const a=(st.form.stats||[]).slice();a[j]=val;return {form:{...st.form,stats:a}};});}}))};
+    // modals
+    const STS={pending:['CHỜ DUYỆT','rgba(245,197,66,.15)','#f5c542'],accepted:['ĐÃ ĐỒNG Ý','rgba(31,166,92,.18)','#4ade80'],rejected:['TỪ CHỐI','rgba(229,72,77,.15)','#ff6b81'],cancelled:['ĐÃ HỦY','rgba(255,255,255,.07)','#8b93a7']};
+    const rqTab=isAdmin?'all':(s.rqTab||'in');
+    const rqList=(isAdmin?offers:myT?offers.filter(o=>rqTab==='in'?o.to===myT:o.from===myT):[]).slice().sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+    const uName=x=>((d.users||[]).find(y=>y.u===x)||{}).name||x;
+    const rq={show:isAdmin||!!myT,pending:isAdmin?offers.filter(o=>o.status==='pending').length:inCount,
+      tabs:isAdmin?[{label:'Tất cả yêu cầu',bg:'#c6ff3d',fg:'#06080d',onClick:()=>{}}]:[['in','Nhận được ('+offers.filter(o=>o.to===myT).length+')'],['out','Đã gửi ('+offers.filter(o=>o.from===myT).length+')']].map(([k2,l])=>({label:l,bg:rqTab===k2?'#c6ff3d':'transparent',fg:rqTab===k2?'#06080d':'#aab2c5',onClick:()=>this.setState({rqTab:k2})})),
+      items:rqList.map((o,i)=>{const p=d.players.find(x=>x.id===o.pid);const t=this.tier(p?p.ovr:60);const S=STS[o.status]||STS.cancelled;const df=Math.round((o.price/o.value-1)*100);const pend=o.status==='pending';
+        return {name:p?p.name:'(Cầu thủ đã rời giải)',ovr:p?p.ovr:'–',pos:p?p.pos:'',bg:t.bg,fg:t.fg,seller:tm(o.to).short,sc:tm(o.to).color,buyer:tm(o.from).short,bc:tm(o.from).color,price:(+o.price).toFixed(1)+' tỷ',value:(+o.value).toFixed(1)+' tỷ',diff:(df>0?'+':'')+df+'%',diffC:df>=0?'#4ade80':'#ff6b81',note:o.note,meta:`${uName(o.by)} · ${o.date.split('-').reverse().join('/')}`,status:S[0],stBg:S[1],stFg:S[2],border:pend?'rgba(245,197,66,.3)':'rgba(255,255,255,.06)',delay:(i*0.05).toFixed(2)+'s',
+          canAct:pend&&myT===o.to,canCancel:pend&&myT===o.from,onCard:()=>p&&this.openCard(p.id),onAccept:()=>this.actOffer(o.id,true),onReject:()=>this.actOffer(o.id,false),onCancel:()=>{const dd=this.clone();const x=dd.offers.find(y=>y.id===o.id);if(x)x.status='cancelled';this.save(dd);this.flash('Đã hủy yêu cầu');}};})};
+    rq.empty=!rq.items.length;rq.hasPending=rq.pending>0;rq.emptyText=rqTab==='out'?'Bạn chưa gửi đề nghị nào. Bấm "Mua" ở danh sách cầu thủ để bắt đầu.':'Chưa có yêu cầu nào.';
+    const opl=s.modal==='offer'&&d.players.find(x=>x.id===s.form.pid);
+    const of=opl?(()=>{const t=this.tier(opl.ovr),pr=+s.form.price||0,df=Math.round((pr/opl.value-1)*100),setP=v2=>()=>this.setState(st=>({form:{...st.form,price:v2.toFixed(1)}}));return {name:opl.name,ovr:opl.ovr,pos:opl.pos,bg:t.bg,fg:t.fg,team:tm(opl.teamId).name,chair:tm(opl.teamId).chair.name,buyer:myT?tm(myT).name:'',value:opl.value.toFixed(1)+' tỷ',price:pr.toFixed(1)+' tỷ',diff:pr?((df>0?'+':'')+df+'% so với định giá'):'',diffC:df>=0?'#4ade80':'#ff6b81',quick:[['-10%',.9],['Bằng giá',1],['+10%',1.1],['+25%',1.25]].map(([l,k2])=>({label:l,onClick:setP(opl.value*k2)}))};})():{};
+    const F=k2=>e=>{const val=e.target.value;this.setState(st=>({form:{...st.form,[k2]:val}}));};
+    const on={};['name','short','chair','motto','ovr','num','age','fee','home','away','date','venue','u','pw','price','note'].forEach(k2=>on[k2]=F(k2));
+    const titles={addTeam:['Thành lập đội mới','Tạo đội'],player:s.form.pid?['Chỉnh sửa cầu thủ','Lưu thay đổi']:['Thêm cầu thủ','Đăng ký'],login:['Đăng nhập','Đăng nhập'],offer:['Đề nghị mua cầu thủ','Gửi yêu cầu chuyển nhượng'],transfer:['Chuyển nhượng','Xác nhận chuyển nhượng'],schedule:['Lên lịch thi đấu','Tạo trận đấu']};
+    const tp=s.modal==='transfer'&&d.players.find(p=>p.id===s.form.pid);
+    const tf=tp?(()=>{const t=this.tier(tp.ovr);return {name:tp.name,ovr:tp.ovr,bg:t.bg,fg:t.fg,team:tm(tp.teamId).name,value:tp.value.toFixed(1)+' tỷ',dest:T.filter(t2=>t2.id!==tp.teamId).map(t2=>({name:t2.name,color:t2.color,border:s.form.to===t2.id?t2.color:'rgba(255,255,255,.12)',onClick:()=>this.setState(st=>({form:{...st.form,to:t2.id}}))}))};})():{};
+    return {
+      nav,goHome:()=>this.go('home'),goMatches:()=>this.go('matches'),goMarket:()=>this.go('market'),
+      isHome:s.view==='home',isTeams:s.view==='teams',isMatches:s.view==='matches',isMatch:!!md,isMarket:s.view==='market'&&!!u,isLocked:s.view==='market'&&!u,isManage:s.view==='manage'&&canAny,
+      hdr:(s.w||1400)<1180?{navOrder:3,navBasis:'100%',navJustify:'flex-start',navMargin:'0 -20px',navPad:'8px 20px 0',navBorder:'1px solid rgba(255,255,255,.06)',authMl:'auto'}:{navOrder:1,navBasis:'0',navJustify:'flex-end',navMargin:'0',navPad:'0',navBorder:'0',authMl:'0'},
+      user:u?{name:u.name,role:ROLE[u.role]+(u.team?' · '+tm(u.team).short:''),ini:ini(u.name)}:null,isGuest:!u,isAdmin,mg,pf,
+      openLogin:()=>this.openModal('login',{}),logout:()=>{try{localStorage.removeItem('digiex-session');}catch(e){}this.setState({user:null,cardId:null,view:s.view==='manage'?'home':s.view});this.flash('Đã đăng xuất');},
+      enterSubmit:e=>{if(e.key==='Enter')this.submit();},
+      demoAccs:(d.users||[]).map(x=>({u:x.u,label:ROLE[x.role]+(x.team?' '+tm(x.team).short:''),onClick:()=>this.setState(st=>({form:{...st.form,u:x.u,pw:x.pw}}))})),
+      mLogin:s.modal==='login',mPlayer:s.modal==='player',mOffer:s.modal==='offer',of,rq,
+      footPick:['Phải','Trái'].map(p=>({p,bg:s.form.foot===p?'#c6ff3d':'rgba(255,255,255,.04)',fg:s.form.foot===p?'#06080d':'#c9d0de',onClick:()=>this.setState(st=>({form:{...st.form,foot:p}}))})),
+      h2h,hasNext:!!next,next:next?mv(next):{H:{},A:{}},cd:next?cdOf(next.date):[],
+      recent:done.slice().reverse().slice(0,5).map(mv),standings,stars,
+      teamTabs,tv,groups,openAddTeam:()=>this.openModal('addTeam',{sw:2}),openAddPlayer:()=>this.openModal('addPlayer',{pos:'CM',ovr:72,num:'',age:25}),
+      upcoming:ups.map(mv),noUpcoming:!ups.length,past:done.slice().reverse().map(mv),
+      openSchedule:()=>this.openModal('schedule',{home:T[0].id,away:(T[1]||T[0]).id,date:'2026-10-17T19:30',venue:'Sân bóng Hoàng Mai · Sân số 3'}),
+      md:md||{H:{},A:{},prob:{}},cdMatch:md&&md.up&&m?cdOf(m.date):[],formation,
+      vs:s.vs,res:s.res,vsIncH:stepVs('h',1),vsDecH:stepVs('h',-1),vsIncA:stepVs('a',1),vsDecA:stepVs('a',-1),
+      resIncH:stepRes('h',1),resDecH:stepRes('h',-1),resIncA:stepRes('a',1),resDecA:stepRes('a',-1),
+      submitScore:()=>{if(!m)return;const key=`${s.vs.h}-${s.vs.a}`,dd=this.clone(),mm=dd.matches.find(x=>x.id===m.id);mm.sv[key]=(mm.sv[key]||0)+1;dd.my[m.id]={...(dd.my[m.id]||{}),score:key};this.save(dd);this.flash('Đã gửi dự đoán '+key.replace('-',' – '));},
+      finishMatch:()=>{if(!m)return;const dd=this.clone(),mm=dd.matches.find(x=>x.id===m.id);mm.hs=s.res.h;mm.as=s.res.a;mm.status='done';mm.scorers=genScorers(dd.players,mm,Date.now()%9973);this.save(dd);this.flash(`Kết thúc: ${tm(mm.home).short} ${mm.hs} – ${mm.as} ${tm(mm.away).short}`);},
+      mk,cm,closeCard:()=>this.setState({cardId:null}),stop:e=>e.stopPropagation(),
+      hasModal:!!s.modal,modalTitle:(titles[s.modal]||[])[0],modalCta:(titles[s.modal]||[])[1],closeModal:()=>this.setState({modal:null}),submitModal:()=>this.submit(),
+      mAddTeam:s.modal==='addTeam',mTransfer:s.modal==='transfer',mSchedule:s.modal==='schedule',
+      form:s.form,on,formErr:s.err,tf,teamOpts:T.map(t=>({id:t.id,name:t.name})),
+      swatches:SW.map((w,i)=>({c:w[0],c2:w[1],s:(s.form.sw||0)===i?'1.2':'1',o:(s.form.sw||0)===i?'1':'.55',onClick:()=>this.setState(st=>({form:{...st.form,sw:i}}))})),
+      posPick:POSS.map(p=>({p,bg:s.form.pos===p?'#c6ff3d':'rgba(255,255,255,.04)',fg:s.form.pos===p?'#06080d':'#c9d0de',onClick:()=>this.setState(st=>({form:{...st.form,pos:p}}))})),
+      toast:s.toast,
+      resetData:()=>{const dd=migrate(seed());this.save(dd);this.setState({teamId:'f8',view:'home'});this.flash('Đã khôi phục dữ liệu mẫu');}
+    };
+  }
+}
+</script>
+</body>
+</html>

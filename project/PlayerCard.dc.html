@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ p.onClick }}" style="position:relative;width:150px;height:214px;flex:none;cursor:pointer;transition:transform .35s cubic-bezier(.2,.8,.2,1);animation:cardRise .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:{{ p.delay }};filter:drop-shadow(0 12px 14px rgba(0,0,0,.55))" style-hover="transform:translateY(-8px) scale(1.05)">
+  <div style="position:absolute;inset:0;background:{{ p.rim }};clip-path:polygon(12% 0,88% 0,100% 7%,100% 86%,50% 100%,0 86%,0 7%)"></div>
+  <div style="position:absolute;inset:2px;background:{{ p.bg }};clip-path:polygon(12% 0,88% 0,100% 7%,100% 86%,50% 100%,0 86%,0 7%);overflow:hidden;color:{{ p.fg }}">
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.08) 0 2px,transparent 2px 9px)"></div>
+    <sc-if value="{{ p.shine }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:-20%;bottom:-20%;width:45%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.6),transparent);animation:shine 3.4s ease-in-out infinite"></div>
+    </sc-if>
+    <div style="position:absolute;left:14px;top:14px;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:2">
+      <div style="font:800 34px/.9 'Barlow Condensed',sans-serif">{{ p.ovr }}</div>
+      <div style="font:700 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.04em">{{ p.pos }}</div>
+      <div style="margin-top:5px;min-width:24px;height:14px;padding:0 2px;background:{{ p.tc }};border:1px solid rgba(0,0,0,.35);font:800 9px/12px 'Barlow Condensed',sans-serif;color:#fff;text-align:center">{{ p.team }}</div>
+      <div style="font:700 10px/1.2 'Barlow Condensed',sans-serif;opacity:.8">#{{ p.num }}</div>
+    </div>
+    <sc-if value="{{ p.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ p.photo }}" alt="" style="position:absolute;right:4px;top:8px;width:98px;height:106px;object-fit:cover;-webkit-mask:linear-gradient(#000 72%,transparent);mask:linear-gradient(#000 72%,transparent)"></sc-if>
+    <sc-if value="{{ p.noPhoto }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;right:12px;top:18px;width:84px;height:92px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end">
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.2);margin-bottom:4px"></div>
+      <div style="width:80px;height:42px;border-radius:40px 40px 0 0;background:rgba(0,0,0,.2);display:grid;place-items:center;font:800 16px/1 'Barlow Condensed',sans-serif;letter-spacing:.05em;opacity:.9">{{ p.ini }}</div>
+    </div>
+    </sc-if>
+    <div style="position:absolute;left:10px;right:10px;top:114px;text-align:center;font:800 15px/1 'Barlow Condensed',sans-serif;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid currentColor;padding-bottom:5px">{{ p.last }}</div>
+    <div style="position:absolute;left:18px;right:18px;top:138px;display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:3px">
+      <sc-for list="{{ p.stats }}" as="st" hint-placeholder-count="6">
+        <div style="display:flex;justify-content:space-between;font:700 12px/1.1 'Barlow Condensed',sans-serif"><span style="font-weight:800">{{ st.v }}</span><span style="opacity:.75">{{ st.k }}</span></div>
+      </sc-for>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:186px;text-align:center;font:700 10px/1 'Barlow Condensed',sans-serif;letter-spacing:.08em;opacity:.85">{{ p.value }}</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:170,&quot;height&quot;:234},&quot;p&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}"></script>
+</body>
+</html>
