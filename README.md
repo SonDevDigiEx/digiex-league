@@ -16,7 +16,9 @@ If `VITE_SUPABASE_URL` is not set, the app runs in **local demo mode**. Data liv
 ## Connect Supabase
 
 1. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
-2. Apply the schema. Either:
+2. Apply the schema.
+   **Simplest (dashboard only, no service key):** in **SQL Editor** run `supabase/setup.sql`; create the six demo users in **Authentication → Users → Add user** (`admin`, `son.f8`, `hlv.f8`, `vinh.f9`, `hlv.f9`, `member` @digiex.group, tick *Auto Confirm User*); then run `supabase/assign-roles.sql`. You can skip step 3.
+   Or:
    - paste `supabase/migrations/20260924000000_init.sql` and then `supabase/seed.sql` into the Supabase **SQL Editor**, or
    - with the Supabase CLI, run `supabase link --project-ref <ref>`, then `supabase db push`, then `psql "$DB_URL" -f supabase/seed.sql`.
 3. Create the demo accounts and demo offers. This needs the **service-role** key; never put it in a `VITE_` variable:
