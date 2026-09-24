@@ -1,4 +1,19 @@
--- DigiEx League: full setup (schema + demo data). Paste into Supabase SQL Editor and Run once.
+-- DigiEx League: full setup (schema + demo data).
+-- Paste the WHOLE file into Supabase SQL Editor (nothing selected) and click Run.
+-- Safe to re-run: it first removes any DigiEx League objects left by an earlier partial run
+-- (this also deletes their data — only use on a fresh project).
+
+drop trigger if exists on_auth_user_created on auth.users;
+drop policy if exists "media: public read"  on storage.objects;
+drop policy if exists "media: staff upload" on storage.objects;
+drop policy if exists "media: staff update" on storage.objects;
+drop policy if exists "media: staff delete" on storage.objects;
+drop table if exists public.offers, public.transfers, public.votes, public.matches, public.players, public.profiles, public.teams cascade;
+drop function if exists public.handle_new_user(), public.my_role(), public.my_team(), public.is_admin(),
+  public.can_manage_team(text), public.is_chair_of(text), public.player_value(int),
+  public.vote_winner(text, text), public.vote_score(text, text), public.vote_stats(),
+  public.transfer_player(text, text, numeric), public.make_offer(text, numeric, text),
+  public.respond_offer(text, boolean), public.cancel_offer(text) cascade;
 
 -- DigiEx League schema.
 -- Reads are open (guests see teams, players, fixtures); market data, offers and votes need a signed-in user.
