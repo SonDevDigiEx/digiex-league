@@ -41,6 +41,15 @@ export const nextFreeNum = (players: { num: number }[]) => {
   for (let n = 1; n <= 999; n++) if (!used.has(n)) return n;
   return 0;
 };
+/** % change vs about a week ago (latest history point ≥7 days old, else the oldest one); null if no history yet. */
+export function valueTrend(history: { day: string; value: number }[] | undefined, current: number): number | null {
+  if (!history?.length) return null;
+  const cut = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const old = [...history].reverse().find((h) => h.day <= cut) ?? history.find((h) => h.day < today);
+  if (!old || !old.value) return null;
+  return Math.round((current / old.value - 1) * 1000) / 10;
+}
 export const money = (v: number) => (+v).toFixed(1) + ' tỷ';
 export const todayStr = () => {
   const t = new Date();

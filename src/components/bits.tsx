@@ -67,3 +67,27 @@ export function PlayerCard({ p, team, delay = 0, onClick, still }: { p: Player; 
     </button>
   );
 }
+
+/** ▲ +12% / ▼ −8% chip for market value changes. */
+export function Trend({ pct }: { pct: number | null }) {
+  if (pct == null || Math.abs(pct) < 0.5) return null;
+  const up = pct > 0;
+  return <span className={'trend ' + (up ? 'up' : 'down')}>{up ? '▲' : '▼'} {up ? '+' : '−'}{Math.abs(pct).toFixed(Math.abs(pct) < 10 ? 1 : 0)}%</span>;
+}
+
+/** Tiny line chart of a player's value over the last weeks. */
+export function Sparkline({ points, w = 220, h = 46 }: { points: number[]; w?: number; h?: number }) {
+  if (points.length < 2) return null;
+  const min = Math.min(...points), max = Math.max(...points), span = max - min || 1;
+  const xy = points.map((v, i) => [(i / (points.length - 1)) * (w - 4) + 2, h - 4 - ((v - min) / span) * (h - 8)]);
+  const d = xy.map(([x, y], i) => (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1)).join(' ');
+  const up = points[points.length - 1] >= points[0];
+  const c = up ? '#4ade80' : '#ff6b81';
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Lịch sử giá trị">
+      <path d={d + ` L ${xy[xy.length - 1][0]} ${h} L ${xy[0][0]} ${h} Z`} fill={c} opacity=".12" />
+      <path d={d} fill="none" stroke={c} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="3" fill={c} />
+    </svg>
+  );
+}

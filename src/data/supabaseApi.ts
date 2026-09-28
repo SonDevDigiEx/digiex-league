@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Foot, Goal, Match, MyVote, Offer, OfferStatus, Participation, Player, Pos, Profile, Role, Snapshot, StatsStatus, Team, Transfer, WinnerKey } from '../lib/types';
+import type { Foot, Goal, Match, MyVote, Offer, OfferStatus, Participation, Player, Pos, Profile, Role, Snapshot, StatsStatus, Team, Transfer, ValueFactors, WinnerKey } from '../lib/types';
 import type { Api } from './api';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -85,18 +85,24 @@ export function createSupabaseApi(url: string, key: string): Api {
     async load(): Promise<Snapshot> {
       const me = await uid();
       // Create next week's match for fixed fixtures whose latest match is over (idempotent on the server).
-      await sb.rpc('roll_series').then(({ error }) => { if (error) console.warn('[DigiEx League] roll_series', error.message); });
-      const [teams, players, matches, participants, series] = await Promise.all([
+      await Promise.all(['roll_series', 'daily_value_refresh'].map((fn) =>
+        sb.rpc(fn).then(({ error }) => { if (error) console.warn('[DigiEx League]', fn, error.message); })));
+      const since = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
+      const [teams, players, matches, participants, series, history] = await Promise.all([
         sb.from('teams').select('*').order('created_at').then(check),
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
         sb.from('match_players').select('*').order('joined_at').then(check),
         sb.from('match_series').select('*').then(check),
+        sb.from('player_value_history').select('player_id, day, value').gte('day', since).order('day').then(check),
       ]);
+      const valueHistory: Snapshot['valueHistory'] = {};
+      (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
       const snap: Snapshot = {
         teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [],
         participants: participants.map(toParticipation),
         series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
+        valueHistory,
       };
       if (!me) return snap;
       const [transfers, offers, stats, votes, members] = await Promise.all([
@@ -179,6 +185,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
     async handoverChair(userId) { check(await sb.rpc('handover_chair', { p_user: userId })); },
     async setMyNumber(num) { check(await sb.rpc('set_my_number', { p_num: num })); },
+    async valueFactors(playerId) { return check(await sb.rpc('value_factors', { p_player: playerId })) as ValueFactors; },
     async setMyPositions(positions) { check(await sb.rpc('set_my_positions', { p_positions: positions })); },
     async rejectMember(userId) { check(await sb.rpc('reject_member', { p_user: userId })); },
     async approveMember(userId, role, roleTeam, f) {

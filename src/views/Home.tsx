@@ -1,6 +1,6 @@
-import { Crest, PlayerCard, SecTitle } from '../components/bits';
+import { Crest, OvrBadge, PlayerCard, SecTitle, Trend } from '../components/bits';
 import { hrefOf, useAccess, useLeague } from '../data/store';
-import { crestBg, fDate, fTime, hexA, record, sortedMatches } from '../lib/league';
+import { crestBg, fDate, fTime, hexA, money, record, sortedMatches, valueTrend } from '../lib/league';
 import type { Match, Team } from '../lib/types';
 import { Countdown } from './Matches';
 
@@ -36,6 +36,8 @@ export function Home() {
   const next = ups[0];
   const standings = T.map((t) => ({ t, r: record(done, t.id) })).sort((x, y) => y.r.pts - x.r.pts || y.r.gd - x.r.gd || y.r.gf - x.r.gf);
   const stars = d.players.slice().sort((a, b) => b.ovr - a.ovr).slice(0, 7);
+  const risers = d.players.map((p) => ({ p, pct: valueTrend(d.valueHistory[p.id], p.value) }))
+    .filter((x): x is { p: typeof x.p; pct: number } => x.pct != null && x.pct >= 1).sort((a, b) => b.pct - a.pct).slice(0, 4);
   const glow = (t: Team) => hexA(t.color, 0.3);
 
   return (
@@ -111,6 +113,19 @@ export function Home() {
         </section>
       </div>
 
+      {risers.length > 0 && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <SecTitle color="#4ade80">Tăng giá mạnh nhất tuần</SecTitle>
+          <div className="risers">
+            {risers.map(({ p, pct }) => (
+              <div key={p.id} className="riser" role="button" tabIndex={0} onClick={() => openCard(p.id)} onKeyDown={(e) => { if (e.key === 'Enter') openCard(p.id); }}>
+                <OvrBadge p={p} className="rq-badge" />
+                <div><span>{p.name}</span><span className="mk-val" style={{ fontSize: 16 }}>{money(p.value)}<Trend pct={pct} /></span></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="row-sb">
           <SecTitle color="#f5c542">Ngôi sao giải đấu</SecTitle>

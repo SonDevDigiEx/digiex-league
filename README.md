@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` and `supabase/migrations/20260928090000_ovr_positions.sql`. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` and `supabase/migrations/20260928100000_market_value.sql`. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -56,6 +56,15 @@ Everyone can change their own photo by clicking their name in the header (**Hồ
 **Fixed weekly fixtures and cancellations.**
 - *Lên lịch thi đấu* has a **Lặp lại hằng tuần** option (`match_series`). When the latest match of a series is over (result entered, cancelled, or 2 hours past kickoff), the next one is created 7 days later with the same day, time and venue. This runs from a trigger and from `roll_series()`, which the app calls on load; it is idempotent. Admins can stop a series from the match page.
 - Admins and either team's chairman can **cancel** an upcoming match with a reason (Thiếu người / Trời mưa / …). Cancelled matches show as **ĐÃ HỦY** with the reason, don't count in the standings, and close registration and voting.
+
+**Market value.** `value = base(OVR) × age × position × form × attendance × hotness`, and never below 80% of a fee paid in the last 30 days (`value_factors()` / `compute_player_value()`).
+- **Age:** ×0.75 to ×1.15, peak 24–29.
+- **Position:** GK ×0.9 up to ST/LW/RW ×1.1.
+- **Form:** last 5 approved match stats; +4% per goal, +3% per assist, ±5% per rating point from 6.5, −10% per red card; clamped 0.7–1.4.
+- **Attendance:** registered share of the team's last 5 matches; 0.9–1.1.
+- **Hotness:** +5% per pending offer, max +20%.
+
+Triggers recompute the value on every relevant change, and `daily_value_refresh()` (called on load) does a full pass once a day. Each value is logged in `player_value_history`, which drives the ▲/▼ weekly trend, the card sparkline, "Tăng giá mạnh nhất tuần" on the home page, and the "Vì sao giá này?" breakdown on the player card.
 
 **OVR, positions, card tiers.**
 - OVR is computed by the database (`compute_ovr`, trigger on `players`) from the primary position and the six stats, using per-position weights. For example ST weighs shooting 35% and pace 25%; CB weighs defending 45% and physical 28%. The formula is mirrored in `ovrOf()` / `POS_WEIGHTS` in `src/lib/league.ts`. Nobody sets OVR by hand.

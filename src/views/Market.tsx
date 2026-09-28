@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Lock, OvrBadge, SecTitle } from '../components/bits';
+import { Lock, OvrBadge, SecTitle, Trend } from '../components/bits';
 import { api, useAccess, useLeague } from '../data/store';
-import { dmy, GROUP, money } from '../lib/league';
+import { dmy, GROUP, money, valueTrend } from '../lib/league';
 import type { Group, OfferStatus } from '../lib/types';
 
 const FREE = 'free';
@@ -59,7 +59,7 @@ export function Market() {
                   <span>{p.name}{staffLabel(p) && <em className="role-tag">{staffLabel(p)}</em>}</span>
                   <div><i style={{ background: team.color }} />{team.name} · {p.age} tuổi</div>
                 </button>
-                <span className="mk-val">{money(p.value)}</span>
+                <span className="mk-val">{money(p.value)}<Trend pct={valueTrend(d.valueHistory[p.id], p.value)} /></span>
                 {canBuy && <button className="btn-ghost" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển</button>}
                 {(canOffer || canInvite) && <button className={'btn-buy' + (sent ? ' sent' : '')} onClick={() => (sent ? setRqTab('out') : openModal({ kind: 'offer', playerId: p.id }))}>{sent ? 'Đã gửi' : canInvite ? 'Mời' : 'Mua'}</button>}
                 {staffP && <span className="st" style={{ background: 'rgba(255,255,255,.07)', color: '#8b93a7' }} title="Chủ tịch / BHL không thể chuyển nhượng">KHÔNG CHUYỂN NHƯỢNG</span>}

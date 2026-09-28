@@ -573,3 +573,19 @@ button:disabled { cursor: default }
   radial-gradient(1px 1px at 85% 70%, #fff, transparent 60%); animation: sparkle 2.4s ease-in-out infinite }
 .pc-holo { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .35;
   background: linear-gradient(115deg, transparent 20%, #ff7ad9 35%, #ffe58a 45%, #7af0ff 55%, #b18cff 65%, transparent 80%); background-size: 200% 100%; animation: holo 4s linear infinite }
+
+/* market value trends */
+.trend { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 3px 6px; border-radius: 5px; font: 700 11px/1 var(--vn); white-space: nowrap; vertical-align: 2px }
+.trend.up { background: rgba(31, 166, 92, .16); color: #4ade80 }
+.trend.down { background: rgba(229, 72, 77, .15); color: #ff6b81 }
+.why { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line) }
+.why-row { display: flex; justify-content: space-between; gap: 10px; font: 500 12px/1.4 var(--vn); color: var(--soft) }
+.why-row b { font: 800 14px/1.2 var(--bc); color: #fff; white-space: nowrap }
+.why-row b.pos { color: #4ade80 } .why-row b.neg { color: #ff6b81 }
+.why-total { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px }
+.why-total b { color: var(--gold); font-size: 18px }
+.risers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px }
+.riser { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); cursor: pointer; text-align: left; color: inherit; font: inherit }
+.riser:hover { border-color: rgba(74, 222, 128, .4) }
+.riser > div { min-width: 0; display: flex; flex-direction: column; gap: 4px }
+.riser > div > span:first-child { font: 600 14px/1.2 var(--vn); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }

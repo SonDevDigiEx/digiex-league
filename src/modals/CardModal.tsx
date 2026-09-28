@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
-import { PlayerCard } from '../components/bits';
-import { useAccess, useLeague } from '../data/store';
+import { useEffect, useState } from 'react';
+import { PlayerCard, Sparkline, Trend } from '../components/bits';
+import { api, useAccess, useLeague } from '../data/store';
 import { seasonStats } from '../views/MatchPlayers';
-import { hexA, LBL, LBL_GK, money, tier } from '../lib/league';
+import { hexA, LBL, LBL_GK, money, tier, valueTrend } from '../lib/league';
+import type { ValueFactors } from '../lib/types';
 
 const RINGS = ['100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60', '100,46.7 146.2,73.3 146.2,126.7 100,153.3 53.8,126.7 53.8,73.3', '100,73.3 123.1,86.7 123.1,113.3 100,126.7 76.9,113.3 76.9,86.7'];
 const LABEL_XY: [number, number][] = [[100, 8], [186, 56], [186, 152], [100, 198], [14, 152], [14, 56]];
@@ -30,6 +31,8 @@ export function CardModal() {
     return (100 + r * Math.cos(a)).toFixed(1) + ',' + (100 + r * Math.sin(a)).toFixed(1);
   }).join(' ');
   const season = seasonStats(snap!.participants, p.id);
+  const hist = snap!.valueHistory[p.id] || [];
+  const trend = valueTrend(hist, p.value);
   const info = [{ l: 'OVR', v: p.ovr, c: '#c6ff3d' }, { l: 'TUỔI', v: p.age, c: '#fff' }, { l: 'CHÂN', v: p.foot, c: '#fff' }, { l: 'GIÁ TRỊ', v: money(p.value), c: '#f5c542' }];
 
   return (
@@ -69,6 +72,7 @@ export function CardModal() {
               ))}
             </div>
           </div>
+          <ValueBox playerId={p.id} value={p.value} trend={trend} history={hist.map((h) => h.value)} />
           <div className="cm-acts">
             {canTransfer(p.teamId) && !staffP && <button className="cm-btn lime" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển nhượng</button>}
             {canTeam(p.teamId) && <button className="cm-btn line" onClick={() => openModal({ kind: 'player', playerId: p.id, teamId: p.teamId })}>Chỉnh sửa</button>}
@@ -77,6 +81,49 @@ export function CardModal() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Market value: trend, sparkline, and an on-demand breakdown of the formula. */
+function ValueBox({ playerId, value, trend, history }: { playerId: string; value: number; trend: number | null; history: number[] }) {
+  const [f, setF] = useState<ValueFactors | null>(null);
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => { setF(null); setOpen(false); }, [playerId]);
+  const toggle = async () => {
+    setOpen((o) => !o);
+    if (!f) { try { setF(await api.valueFactors(playerId)); } catch (e) { setErr((e as Error).message); } }
+  };
+  const pct = (x: number) => { const d = Math.round((x - 1) * 100); return d === 0 ? '±0%' : (d > 0 ? '+' : '−') + Math.abs(d) + '%'; };
+  const cls = (x: number) => (x > 1.001 ? 'pos' : x < 0.999 ? 'neg' : '');
+  const row = (label: string, x: number, note?: string) => (
+    <div className="why-row"><span>{label}{note ? <span className="note"> · {note}</span> : null}</span><b className={cls(x)}>×{x.toFixed(2)} ({pct(x)})</b></div>
+  );
+  return (
+    <div className="why" style={{ gap: 10 }}>
+      <div className="row-sb" style={{ alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span className="k10">GIÁ TRỊ THỊ TRƯỜNG</span>
+          <span style={{ font: "800 26px/1 'Barlow Condensed',sans-serif", color: '#f5c542' }}>{money(value)}<Trend pct={trend} /></span>
+        </div>
+        <Sparkline points={history} w={160} h={42} />
+      </div>
+      <a className="more" onClick={toggle}>{open ? 'Ẩn cách tính ▲' : 'Vì sao giá này? ▼'}</a>
+      {open && !f && !err && <div className="note">Đang tải…</div>}
+      {err && <div className="err">{err}</div>}
+      {open && f && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="why-row"><span>Giá gốc theo OVR</span><b>{money(f.base)}</b></div>
+          {row('Tuổi', f.age)}
+          {row('Vị trí chính', f.position)}
+          {row('Phong độ', f.form, f.matches ? `${f.matches} trận gần nhất: ${f.goals} bàn, ${f.assists} kiến tạo${f.rating != null ? `, điểm TB ${Number(f.rating).toFixed(1)}` : ''}${f.red ? `, ${f.red} thẻ đỏ` : ''}` : 'chưa có thống kê được duyệt')}
+          {row('Chuyên cần', f.attendance, f.teamMatches ? `đá ${f.played}/${f.teamMatches} trận gần nhất của đội` : 'chưa có dữ liệu')}
+          {row('Độ hot', f.hot, f.offers ? `${f.offers} đề nghị đang chờ` : 'không có đề nghị')}
+          {f.floor != null && <div className="why-row"><span>Sàn giá (80% phí mua gần đây)</span><b>{money(f.floor)}</b></div>}
+          <div className="why-row why-total"><span>Giá hiện tại</span><b>{money(f.value)}</b></div>
+        </div>
+      )}
     </div>
   );
 }

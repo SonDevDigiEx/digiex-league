@@ -151,6 +151,14 @@ export interface Snapshot {
   members: Profile[];
   participants: Participation[];
   series: Series[];
+  /** Daily market value per player (last ~5 weeks), oldest first. */
+  valueHistory: Record<string, { day: string; value: number }[]>;
+}
+
+/** Breakdown of a player's market value (public.value_factors). */
+export interface ValueFactors {
+  value: number; base: number; age: number; position: number; form: number; attendance: number; hot: number; floor: number | null;
+  matches: number; goals: number; assists: number; rating: number | null; red: number; played: number | null; teamMatches: number | null; offers: number;
 }
 
 /** A weekly fixed fixture; the next match is created automatically when the latest one is over. */
