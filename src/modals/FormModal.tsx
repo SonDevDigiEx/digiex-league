@@ -2,8 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Crest, PlayerCard } from '../components/bits';
 import { Spin, useAction } from '../data/useAction';
 import { api, useAccess, useLeague, type Modal } from '../data/store';
-import { dmy, DEFAULT_VENUE, nextFreeNum, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
-import type { Foot, Pos, Role } from '../lib/types';
+import { dmy, DEFAULT_VENUE, nextFreeNum, ovrOf, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
+import type { Foot, Player, Pos, Role } from '../lib/types';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -139,7 +139,8 @@ function MeForm() {
               </div>
             ))}
           </div>
-          <div className="fm-note">Bạn chỉ đổi được ảnh. Vị trí, chỉ số, số áo do Chủ tịch / BHL của đội hoặc Ban tổ chức cập nhật.</div>
+          <PositionEdit key={player.positions.join()} player={player} />
+          <div className="fm-note">Bạn tự đổi được ảnh, số áo và vị trí sở trường. Chỉ số do Chủ tịch / BHL của đội hoặc Ban tổ chức cập nhật; OVR hệ thống tự tính theo vị trí chính và chỉ số.</div>
         </>
       ) : (
         <div className="fm-note">{me.role === 'pending' ? 'Tài khoản đang chờ Ban tổ chức duyệt. ' : ''}Bạn chưa có hồ sơ cầu thủ — khi được duyệt làm cầu thủ, thẻ cầu thủ sẽ dùng ảnh này.</div>
@@ -166,6 +167,27 @@ function NumberEdit({ current, playerId }: { current: number; playerId: string }
         onChange={(e) => setV(e.target.value.replace(/\D/g, '').slice(0, 3))} />
       {changed && !taken && <button type="button" className="ph-btn" disabled={busy} onClick={() => act('num', () => api.setMyNumber(n!), `Đã đổi số áo thành #${n}`)}>{pending ? <><Spin />Đang lưu…</> : 'Đổi số'}</button>}
       {taken && <span className="err" style={{ fontSize: 11 }}>#{n} đã có: {taken.name}</span>}
+    </div>
+  );
+}
+
+/** A player chooses their own 1–3 positions; previews the OVR the server will compute. */
+function PositionEdit({ player }: { player: Player }) {
+  const [v, setV] = useState<Pos[]>(player.positions);
+  const { act, pending, busy } = useAction(1500);
+  const changed = v.join() !== player.positions.join();
+  const next = v[0] ? ovrOf(v[0], player.stats) : null;
+  return (
+    <div className="stat-box">
+      <div className="stat-box-h"><span>VỊ TRÍ SỞ TRƯỜNG</span><span style={{ letterSpacing: 0 }}>tối đa 3 · vị trí đầu là vị trí chính</span></div>
+      <PositionPicker value={v} onChange={setV} />
+      {changed && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {next != null && <span className="note">OVR mới: <b style={{ color: '#c6ff3d' }}>{next}</b> (hiện tại {player.ovr})</span>}
+          <button type="button" className="ph-btn" disabled={busy || !v.length} onClick={() => act('pos', () => api.setMyPositions(v), 'Đã cập nhật vị trí')}>{pending ? <><Spin />Đang lưu…</> : 'Lưu vị trí'}</button>
+          <button type="button" className="ph-btn grey" disabled={busy} onClick={() => setV(player.positions)}>Hủy</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -327,6 +349,24 @@ function TeamForm({ teamId }: { teamId?: string }) {
   );
 }
 
+/** Choose 1–3 positions; order of selection = priority (first = primary, used for OVR and lineups). */
+export function PositionPicker({ value, onChange }: { value: Pos[]; onChange: (v: Pos[]) => void }) {
+  return (
+    <div className="opts">
+      {POSS.map((x) => {
+        const i = value.indexOf(x);
+        const full = i < 0 && value.length >= 3;
+        return (
+          <button type="button" key={x} className={'opt pos-opt' + (i >= 0 ? ' on' : '')} disabled={full} title={full ? 'Đã chọn đủ 3 vị trí' : undefined}
+            onClick={() => onChange(i >= 0 ? value.filter((y) => y !== x) : [...value, x])}>
+            {x}{i >= 0 && <sup>{i === 0 ? 'chính' : i + 1}</sup>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /**
  * Add / edit a player, or — with approveUserId — approve a pending account and create its player profile.
  * teamId null = free agent (Tự do).
@@ -337,8 +377,8 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   const p = playerId ? snap!.players.find((x) => x.id === playerId) : undefined;
   const acct = approveUserId ? snap!.members.find((m) => m.id === approveUserId) : undefined;
   const [f, setF] = useState(() => p
-    ? { name: p.name, pos: p.pos, num: String(p.num), age: String(p.age), foot: p.foot, ovr: p.ovr, stats: p.stats.slice(), photo: p.photo || '' }
-    : { name: acct?.name || '', pos: 'CM' as Pos, num: String(nextFreeNum(snap!.players)), age: '25', foot: 'Phải' as Foot, ovr: 65, stats: genStats('CM', 65, Date.now() % 997), photo: acct?.avatar || '' });
+    ? { name: p.name, positions: p.positions.slice(), num: String(p.num), age: String(p.age), foot: p.foot, ovr: p.ovr, stats: p.stats.slice(), photo: p.photo || '' }
+    : { name: acct?.name || '', positions: ['CM'] as Pos[], num: String(nextFreeNum(snap!.players)), age: '25', foot: 'Phải' as Foot, ovr: 65, stats: genStats('CM', 65, Date.now() % 997), photo: acct?.avatar || '' });
   const [joinTeam, setJoinTeam] = useState<string>(teamId || '');
   // Approval: staff role (independent of being a player) and whether to create a player profile.
   const hasPlayer = !!acct && snap!.players.some((x) => x.userId === acct.id);
@@ -349,7 +389,9 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   const [uploading, setUploading] = useState(false);
   const { err, setErr, busy, submit } = useSubmit();
   const team = tm(p ? p.teamId : approveUserId ? (staffRole ? roleTeam : joinTeam) || null : teamId);
-  const L = f.pos === 'GK' ? LBL_GK : LBL;
+  const primary = f.positions[0];
+  const L = primary === 'GK' ? LBL_GK : LBL;
+  const ovr = primary ? ovrOf(primary, f.stats) : 0;
   const numTaken = f.num !== '' ? snap!.players.find((x) => x.num === +f.num && x.id !== p?.id) : undefined;
   const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -363,10 +405,11 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   return (
     <Shell title={acct ? (acct.role === 'pending' ? 'Duyệt thành viên' : 'Tạo hồ sơ cầu thủ') : p ? 'Chỉnh sửa cầu thủ' : 'Thêm cầu thủ'} cta={acct ? (acct.role === 'pending' ? 'Duyệt' : 'Lưu') + (makePlayer ? ' & tạo cầu thủ' : '') : p ? 'Lưu thay đổi' : 'Đăng ký'} err={err} busy={busy || uploading} onSubmit={() => {
       if (!f.name.trim()) return setErr('Nhập tên cầu thủ.');
+      if (!primary) return setErr('Chọn ít nhất 1 vị trí.');
       if (f.num === '') return setErr('Nhập số áo (0–999).');
       if (numTaken && (!p || +f.num !== p.num)) return setErr(`Số áo ${f.num} đã có người dùng (${numTaken.name}).`);
       const input = {
-        teamId: team.id || null, name: f.name, pos: f.pos, ovr: f.ovr, foot: f.foot, stats: f.stats, photo: f.photo || null,
+        teamId: team.id || null, name: f.name, pos: primary, positions: f.positions, ovr, foot: f.foot, stats: f.stats, photo: f.photo || null,
         num: +f.num, age: +f.age || p?.age || 25,
       };
       if (acct) {
@@ -422,11 +465,11 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
         </div>
       </div>
       <label className="fld">Họ và tên<input className="inp" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Nguyễn Văn A" /></label>
-      <div className="fld g8">Vị trí<div className="opts">{POSS.map((x) => <button type="button" key={x} className={'opt' + (f.pos === x ? ' on' : '')} onClick={() => setF({ ...f, pos: x })}>{x}</button>)}</div></div>
+      <div className="fld g8"><span>Vị trí sở trường <span className="note" style={{ fontSize: 11 }}>· tối đa 3, vị trí đầu tiên là vị trí chính</span></span><PositionPicker value={f.positions} onChange={(positions) => setF({ ...f, positions })} /></div>
       <div className="fld g8">Chân thuận<div className="opts">{(['Phải', 'Trái'] as Foot[]).map((x) => <button type="button" key={x} className={'opt vn' + (f.foot === x ? ' on' : '')} onClick={() => setF({ ...f, foot: x })}>{x}</button>)}</div></div>
-      <label className="fld g8"><span className="ovr-l">Chỉ số tổng (OVR) <b>{f.ovr}</b></span><input type="range" min={40} max={99} value={f.ovr} onChange={(e) => setF({ ...f, ovr: +e.target.value })} /></label>
+      <div className="ovr-auto"><span>OVR tự tính{primary ? ` · theo vị trí ${primary}` : ''}</span><b>{primary ? ovr : '—'}</b></div>
       <div className="stat-box">
-        <div className="stat-box-h"><span>CHỈ SỐ CHI TIẾT</span><button type="button" onClick={() => setF({ ...f, ovr: Math.round(f.stats.reduce((a, b) => a + b, 0) / f.stats.length) })}>Tính OVR theo chỉ số</button></div>
+        <div className="stat-box-h"><span>CHỈ SỐ CHI TIẾT</span><span style={{ letterSpacing: 0 }}>OVR cập nhật theo chỉ số</span></div>
         {f.stats.map((v, j) => (
           <div key={j} className="stat-r">
             <span>{L[j]}</span>

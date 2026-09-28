@@ -26,7 +26,11 @@ export interface Player {
   /** Linked account when the player was created by approving a sign-up. */
   userId: string | null;
   name: string;
+  /** Primary position (= positions[0]). */
   pos: Pos;
+  /** 1–3 preferred positions, primary first. */
+  positions: Pos[];
+  /** Computed by the server from the primary position + stats. */
   ovr: number;
   num: number;
   age: number;
@@ -163,6 +167,7 @@ export interface PlayerInput {
   teamId: string | null;
   name: string;
   pos: Pos;
+  positions: Pos[];
   ovr: number;
   num: number;
   age: number;

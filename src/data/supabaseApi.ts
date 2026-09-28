@@ -10,7 +10,7 @@ const toTeam = (r: Row): Team => ({
   chair: { name: r.chair_name, since: r.chair_since, quote: r.chair_quote }, coach: { name: r.coach_name }, logo: r.logo_url,
 });
 const toPlayer = (r: Row): Player => ({
-  id: r.id, teamId: r.team_id, name: r.name, pos: r.pos as Pos, ovr: r.ovr, num: r.num, age: r.age, foot: r.foot as Foot,
+  id: r.id, teamId: r.team_id, name: r.name, pos: r.pos as Pos, positions: ((r.positions?.length ? r.positions : [r.pos]) as Pos[]), ovr: r.ovr, num: r.num, age: r.age, foot: r.foot as Foot,
   stats: r.stats, value: Number(r.value), photo: r.photo_url, userId: r.user_id ?? null,
 });
 const toMatch = (r: Row): Match => ({
@@ -179,6 +179,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
     async handoverChair(userId) { check(await sb.rpc('handover_chair', { p_user: userId })); },
     async setMyNumber(num) { check(await sb.rpc('set_my_number', { p_num: num })); },
+    async setMyPositions(positions) { check(await sb.rpc('set_my_positions', { p_positions: positions })); },
     async rejectMember(userId) { check(await sb.rpc('reject_member', { p_user: userId })); },
     async approveMember(userId, role, roleTeam, f) {
       check(await sb.rpc('approve_member', {
@@ -186,12 +187,14 @@ export function createSupabaseApi(url: string, key: string): Api {
         p_name: f?.name.trim() ?? null, p_pos: f?.pos ?? null, p_ovr: f?.ovr ?? null, p_num: f?.num ?? null, p_age: f?.age ?? null,
         p_foot: f?.foot ?? null, p_stats: f?.stats ?? null, p_photo: f?.photo ?? null, p_team: f?.teamId ?? null,
       }));
+      // approve_member stores the primary position; add the secondary ones (admin may edit any player).
+      if (f && f.positions.length > 1) check(await sb.from('players').update({ positions: f.positions }).eq('user_id', userId));
     },
 
     // Free agents' photos live under players/free/ (admin-only folder).
     uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId || 'free'}/${rid()}.jpg`, image),
     async savePlayer(f) {
-      const row = { team_id: f.teamId, name: f.name.trim(), pos: f.pos, ovr: f.ovr, num: f.num, age: f.age, foot: f.foot, stats: f.stats, photo_url: f.photo };
+      const row = { team_id: f.teamId, name: f.name.trim(), pos: f.positions[0] ?? f.pos, positions: f.positions.length ? f.positions : [f.pos], ovr: f.ovr, num: f.num, age: f.age, foot: f.foot, stats: f.stats, photo_url: f.photo };
       if (f.id) {
         const { team_id: _t, ...patch } = row;
         const rows = check(await sb.from('players').update(patch).eq('id', f.id).select('id'));

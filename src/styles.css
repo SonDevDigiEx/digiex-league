@@ -547,3 +547,29 @@ button:disabled { cursor: default }
 .tl-why { color: #ff6b81 !important; max-width: 180px; overflow: hidden; text-overflow: ellipsis }
 .cancel-why { padding: 8px 14px; border-radius: 10px; background: rgba(229, 72, 77, .12); border: 1px solid rgba(229, 72, 77, .35); font: 500 13px/1.4 var(--vn); color: #ffb3bf }
 .cancel-why b { color: #fff }
+
+/* position picker + computed OVR */
+.pos-opt { position: relative }
+.pos-opt sup { margin-left: 4px; font: 700 9px/1 var(--vn); letter-spacing: .02em; text-transform: uppercase; opacity: .8 }
+.pos-opt:disabled { opacity: .35; cursor: not-allowed }
+.ovr-auto { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; background: rgba(198, 255, 61, .06); border: 1px solid rgba(198, 255, 61, .25); font: 600 12px/1 var(--vn); color: var(--soft) }
+.ovr-auto b { font: 800 30px/1 var(--bc); color: var(--lime) }
+
+/* VIP cards: ELITE 85+ glow · ICON 90+ animated gold rim + sparkle · LEGEND 95+ holographic */
+@keyframes rimSpin { to { --rim-a: 360deg } }
+@property --rim-a { syntax: '<angle>'; inherits: false; initial-value: 0deg }
+@keyframes vipGlow { 0%, 100% { filter: drop-shadow(0 12px 14px rgba(0, 0, 0, .55)) drop-shadow(0 0 6px var(--vip)) } 50% { filter: drop-shadow(0 12px 14px rgba(0, 0, 0, .55)) drop-shadow(0 0 16px var(--vip)) } }
+@keyframes sparkle { 0%, 100% { opacity: .25; transform: translateY(0) } 50% { opacity: .9; transform: translateY(-3px) } }
+@keyframes holo { to { background-position: 200% 50% } }
+.pc.t-elite { --vip: rgba(90, 140, 255, .65); animation: cardRise .6s cubic-bezier(.2, .8, .2, 1) both, vipGlow 2.6s ease-in-out .6s infinite }
+.pc.t-icon { --vip: rgba(255, 210, 100, .75); animation: cardRise .6s cubic-bezier(.2, .8, .2, 1) both, vipGlow 2.2s ease-in-out .6s infinite }
+.pc.t-legend { --vip: rgba(200, 150, 255, .85); animation: cardRise .6s cubic-bezier(.2, .8, .2, 1) both, vipGlow 1.8s ease-in-out .6s infinite }
+.pc.static.t-elite, .pc.static.t-icon, .pc.static.t-legend { animation: vipGlow 2.2s ease-in-out infinite }
+.pc.t-icon .pc-rim { background: conic-gradient(from var(--rim-a), #fff1b8, #c8962e, #fff8dc, #9c7424, #fff1b8) !important; animation: rimSpin 4s linear infinite }
+.pc.t-legend .pc-rim { background: conic-gradient(from var(--rim-a), #ff7ad9, #ffe58a, #7af0ff, #b18cff, #ff7ad9) !important; animation: rimSpin 3s linear infinite }
+.pc-spark { position: absolute; inset: 0; pointer-events: none; background:
+  radial-gradient(1.5px 1.5px at 22% 30%, #fff, transparent 60%), radial-gradient(1.5px 1.5px at 78% 22%, #fff, transparent 60%),
+  radial-gradient(1px 1px at 64% 58%, #fff, transparent 60%), radial-gradient(1.5px 1.5px at 30% 78%, #fff, transparent 60%),
+  radial-gradient(1px 1px at 85% 70%, #fff, transparent 60%); animation: sparkle 2.4s ease-in-out infinite }
+.pc-holo { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .35;
+  background: linear-gradient(115deg, transparent 20%, #ff7ad9 35%, #ffe58a 45%, #7af0ff 55%, #b18cff 65%, transparent 80%); background-size: 200% 100%; animation: holo 4s linear infinite }

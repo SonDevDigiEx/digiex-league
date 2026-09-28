@@ -42,11 +42,13 @@ export function PlayerCard({ p, team, delay = 0, onClick, still }: { p: Player; 
   const L = p.pos === 'GK' ? LBL_GK : LBL;
   const last = p.name.split(' ').slice(-2).join(' ').toUpperCase();
   return (
-    <button type="button" className={'pc' + (still ? ' static' : '')} style={{ animationDelay: delay.toFixed(2) + 's' }} onClick={onClick} aria-label={`${p.name} · ${p.ovr} ${p.pos}`}>
+    <button type="button" className={'pc t-' + t.label.toLowerCase() + (still ? ' static' : '')} style={{ animationDelay: delay.toFixed(2) + 's' }} onClick={onClick} aria-label={`${p.name} · ${p.ovr} ${p.pos}`}>
       <div className="pc-rim" style={{ background: t.rim }} />
       <div className="pc-in" style={{ background: t.bg, color: t.fg }}>
         <div className="pc-hatch" />
         {CARD_SHINE && p.ovr >= 85 && <div className="pc-shine" />}
+        {p.ovr >= 90 && <div className="pc-spark" />}
+        {p.ovr >= 95 && <div className="pc-holo" />}
         <div className="pc-side">
           <div className="pc-ovr">{p.ovr}</div>
           <div className="pc-pos">{p.pos}</div>

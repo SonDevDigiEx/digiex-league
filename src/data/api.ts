@@ -1,4 +1,4 @@
-import type { Goal, MatchInput, PlayerInput, Profile, Role, Snapshot, StatsInput, TeamInput, WinnerKey } from '../lib/types';
+import type { Goal, MatchInput, PlayerInput, Pos, Profile, Role, Snapshot, StatsInput, TeamInput, WinnerKey } from '../lib/types';
 
 /**
  * Everything the UI reads or writes goes through this interface (implemented by supabaseApi.ts).
@@ -27,6 +27,8 @@ export interface Api {
   handoverChair(userId: string): Promise<void>;
   /** A player changes their own jersey number (0–999, unique in the league). */
   setMyNumber(num: number): Promise<void>;
+  /** A player sets their 1–3 preferred positions (first = primary; OVR is recomputed). */
+  setMyPositions(positions: Pos[]): Promise<void>;
   /** Reject a pending sign-up (deletes the account). */
   rejectMember(userId: string): Promise<void>;
   /**

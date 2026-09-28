@@ -56,6 +56,17 @@ export const fTime = (iso: string) => {
 };
 export const dmy = (ymd: string) => ymd.split('-').reverse().join('/');
 
+/** Stat weights per primary position (PAC SHO PAS DRI DEF PHY; GK: DIV HAN KIC REF SPD POS). Mirrors public.compute_ovr(). */
+export const POS_WEIGHTS: Record<Pos, number[]> = {
+  ST: [.25, .35, .08, .17, 0, .15], LW: [.30, .22, .15, .25, 0, .08], RW: [.30, .22, .15, .25, 0, .08],
+  CAM: [.12, .20, .30, .30, 0, .08], CM: [.10, .10, .35, .20, .12, .13], CDM: [.08, .03, .25, .10, .32, .22],
+  LB: [.28, 0, .17, .13, .27, .15], RB: [.28, 0, .17, .13, .27, .15], CB: [.12, 0, .10, .05, .45, .28],
+  GK: [.23, .22, .08, .27, .05, .15],
+};
+/** OVR from the primary position and the six stats (server computes the same; the UI only previews). */
+export const ovrOf = (pos: Pos, stats: number[]) =>
+  clamp(Math.round(POS_WEIGHTS[pos].reduce((a, w, i) => a + w * (stats[i] ?? 0), 0)), 40, 99);
+
 export function genStats(pos: Pos, ovr: number, seed: number) {
   const r = rng(seed);
   const off = { GK: [2, 0, -12, 3, -28, -1], DEF: [-6, -28, -8, -10, 6, 4], MID: [-3, -4, 4, 3, -14, -5], FWD: [3, 4, -6, 2, -45, -6] }[GROUP[pos]];
@@ -64,6 +75,7 @@ export function genStats(pos: Pos, ovr: number, seed: number) {
 
 export interface Tier { bg: string; fg: string; rim: string; label: string; glow: string }
 export function tier(o: number): Tier {
+  if (o >= 95) return { bg: 'linear-gradient(160deg,#1a0f2e 0%,#3b1a6b 35%,#0f2a4a 70%,#08121f 100%)', fg: '#fff6d6', rim: '#ffe58a', label: 'LEGEND', glow: 'rgba(190,140,255,.55)' };
   if (o >= 90) return { bg: 'linear-gradient(160deg,#fff8dc 0%,#f0cf73 40%,#9c7424 100%)', fg: '#2a1c00', rim: '#fff1b8', label: 'ICON', glow: 'rgba(255,215,110,.5)' };
   if (o >= 85) return { bg: 'linear-gradient(160deg,#2a4fd6 0%,#0d1a52 55%,#060b26 100%)', fg: '#ffe39a', rim: '#d9b54a', label: 'ELITE', glow: 'rgba(80,130,255,.5)' };
   if (o >= 78) return { bg: 'linear-gradient(160deg,#fbe08a 0%,#d4a534 50%,#7a5510 100%)', fg: '#2b1c00', rim: '#ffeaa0', label: 'GOLD', glow: 'rgba(240,190,60,.42)' };

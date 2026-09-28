@@ -42,7 +42,7 @@ export function CardModal() {
         <div className="cm-body">
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="cm-tier" style={{ background: t.bg, color: t.fg }}>{t.label}</span>
-            <span className="cm-sub">{team.name} · #{p.num} · {p.pos}</span>
+            <span className="cm-sub">{team.name} · #{p.num} · {p.positions.join(' / ')}</span>
             {roleTag && <em className="role-tag">{roleTag}</em>}
           </div>
           <h2 className="cm-name">{p.name}</h2>
