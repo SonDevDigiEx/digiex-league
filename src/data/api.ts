@@ -47,6 +47,8 @@ export interface Api {
   xpHistory(playerId: string): Promise<XpEvent[]>;
   /** Chairman: weekly "thưởng nóng" +30 XP to a player of their team. */
   hotBonus(playerId: string): Promise<string>;
+  /** Mark the given notifications (or all) as read. */
+  markNotificationsRead(ids?: number[]): Promise<void>;
   /** Chairman / BHL / admin: save the team's starting lineup for S5 or S7. */
   saveLineup(teamId: string, format: 's5' | 's7', formation: string, slots: Slot[]): Promise<void>;
   /** Free agent: apply to join a team (the team's chairman decides). */

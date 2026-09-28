@@ -319,17 +319,53 @@ function TeamLogoBox({ teamId }: { teamId: string }) {
 
 /** A player's notifications: invitations (they answer) and offers about them (their chairman decides). */
 function InboxForm() {
-  const { snap } = useLeague();
+  const { snap, closeModal, reload } = useLeague();
   const { tm, myPlayer } = useAccess();
   const { act, pending, busy } = useAction();
-  if (!myPlayer) return null;
-  const list = snap!.offers.filter((o) => o.pid === myPlayer.id)
-    .sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const notes = snap!.notifications;
+  // Unread at the moment the panel opened stay highlighted; the server marks them read right away.
+  const [fresh] = useState(() => new Set(notes.filter((n) => !n.read).map((n) => n.id)));
+  const [tab, setTab] = useState<'all' | 'offers'>('all');
+  useEffect(() => { if (fresh.size) api.markNotificationsRead([...fresh]).then(() => reload()).catch((e) => console.error('[DigiEx League] mark read', e)); }, [fresh]); // eslint-disable-line react-hooks/exhaustive-deps
+  const list = myPlayer ? snap!.offers.filter((o) => o.pid === myPlayer.id)
+    .sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.date.localeCompare(a.date) || b.id.localeCompare(a.id)) : [];
   const ST: Record<string, [string, string]> = { pending: ['CHỜ', '#f5c542'], accepted: ['ĐÃ ĐỒNG Ý', '#4ade80'], rejected: ['TỪ CHỐI', '#ff6b81'], cancelled: ['ĐÃ HỦY', '#8b93a7'] };
+  const open = (link: string | null) => { if (!link) return; closeModal(); window.location.hash = link; };
+  const pendingOffers = list.filter((o) => o.status === 'pending').length;
   return (
     <Shell title="Thông báo" err="" busy={busy} onSubmit={() => {}}>
-      {!list.length && <div className="note" style={{ fontSize: 13 }}>Chưa có lời mời hay đề nghị chuyển nhượng nào liên quan đến bạn.</div>}
-      {list.map((o) => {
+      <div className="seg">
+        <button type="button" className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>Tất cả{fresh.size ? ` (${fresh.size} mới)` : ''}</button>
+        <button type="button" className={tab === 'offers' ? 'on' : ''} onClick={() => setTab('offers')}>Chuyển nhượng{pendingOffers ? ` (${pendingOffers})` : ''}</button>
+      </div>
+      {tab === 'all' && (
+        <div className="nt-list">
+          {!notes.length && <div className="note" style={{ fontSize: 13 }}>Chưa có thông báo nào. Khi đội có trận mới, có giải đấu mới hay bạn nhận kinh nghiệm, thông báo sẽ hiện ở đây.</div>}
+          {notes.map((n) => {
+            const xp = n.kind === 'xp' ? n.meta.xp ?? 0 : null;
+            return (
+              <button type="button" key={n.id} className={'nt' + (fresh.has(n.id) ? ' new' : '') + (n.link ? '' : ' static') + ' k-' + n.kind} onClick={() => open(n.link)}>
+                <span className="nt-ic">{n.kind === 'match' ? '⚽' : n.kind === 'tournament' ? '🏆' : n.kind === 'application' ? '📨' : (xp ?? 0) < 0 ? '😴' : '✨'}</span>
+                <span className="nt-body">
+                  <b>{n.kind === 'match' || n.kind === 'tournament' ? n.title.replace(/^\S+\s/, '') : n.title}</b>
+                  {n.body && <span>{n.body}</span>}
+                  {xp != null && (
+                    <span className="nt-xp">
+                      <em className={xp < 0 ? 'neg' : ''}>{xp > 0 ? '+' : ''}{xp} XP</em>
+                      {(n.meta.notes || []).join(' · ')}
+                    </span>
+                  )}
+                  {!!n.meta.ups?.length && <span className="nt-ups">{n.meta.ups.map((u) => <i key={u}>⬆ {u}</i>)}</span>}
+                  <small>{fDate(n.date)} · {fTime(n.date)}</small>
+                </span>
+                {fresh.has(n.id) && <span className="nt-dot" aria-label="Mới" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {tab === 'offers' && !list.length && <div className="note" style={{ fontSize: 13 }}>Chưa có lời mời hay đề nghị chuyển nhượng nào liên quan đến bạn.</div>}
+      {tab === 'offers' && list.map((o) => {
         const buyer = tm(o.from);
         const invite = !o.to;
         const pend = o.status === 'pending';

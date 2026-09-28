@@ -173,6 +173,19 @@ export interface Snapshot {
   applications: Application[];
   /** Saved starting lineups (team × S5/S7). */
   lineups: Lineup[];
+  /** The signed-in user's notifications, newest first. */
+  notifications: Notice[];
+}
+
+export interface Notice {
+  id: number;
+  kind: 'match' | 'tournament' | 'xp' | 'application' | string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  meta: { xp?: number; notes?: string[]; ups?: string[] };
+  date: string;
+  read: boolean;
 }
 
 export interface Application {

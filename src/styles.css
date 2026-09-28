@@ -1128,3 +1128,26 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .xp-pop.neg .xp-pop-in { border-color: rgba(255, 107, 129, .5); box-shadow: 0 0 40px rgba(255, 107, 129, .2) }
 .xp-pop.neg .xp-pop-big { background: linear-gradient(180deg, #fff, var(--red)); -webkit-background-clip: text; background-clip: text; font-size: 48px }
 .xp-pop.neg .xp-pop-in::before { display: none }
+
+/* ───────── Notifications ───────── */
+@keyframes bellRing { 0%, 100% { transform: rotate(0) } 10%, 30% { transform: rotate(14deg) } 20%, 40% { transform: rotate(-14deg) } 50% { transform: rotate(0) } }
+.bell.ring svg { transform-origin: 50% 10%; animation: bellRing 1.6s ease-in-out 1s 3 }
+.nt-list { display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; margin: 0 -4px; padding: 0 4px }
+.nt { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); color: inherit; text-align: left; cursor: pointer; font: inherit }
+.nt:hover { background: rgba(255, 255, 255, .06) }
+.nt.static { cursor: default }
+.nt.new { border-color: rgba(198, 255, 61, .45); background: linear-gradient(90deg, rgba(198, 255, 61, .09), rgba(255, 255, 255, .02)) }
+.nt-ic { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; background: rgba(255, 255, 255, .06) }
+.nt.k-match .nt-ic { background: rgba(198, 255, 61, .14) }
+.nt.k-tournament .nt-ic { background: rgba(245, 197, 66, .16) }
+.nt.k-xp .nt-ic { background: rgba(47, 140, 255, .16) }
+.nt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px }
+.nt-body b { font: 700 14px/1.3 var(--vn); color: #fff }
+.nt-body > span { font: 500 12.5px/1.45 var(--vn); color: var(--soft2) }
+.nt-body small { font: 500 11px/1 var(--vn); color: var(--muted) }
+.nt-xp em { font: italic 900 17px/1 var(--bc); color: var(--lime); margin-right: 6px; font-style: italic }
+.nt-xp em.neg { color: var(--red) }
+.nt-ups { display: flex; flex-wrap: wrap; gap: 4px }
+.nt-ups i { font: 700 11px/1 var(--vn); font-style: normal; color: var(--lime); padding: 4px 8px; border-radius: 12px; background: rgba(198, 255, 61, .12); border: 1px solid rgba(198, 255, 61, .3) }
+.nt-dot { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 8px var(--lime) }
+.nt.new .nt-body { padding-right: 14px }

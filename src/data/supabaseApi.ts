@@ -105,7 +105,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       const valueHistory: Snapshot['valueHistory'] = {};
       (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
       const snap: Snapshot = {
-        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [], applications: [],
+        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [], applications: [], notifications: [],
         lineups: (lineups as Row[]).map((r) => ({ teamId: r.team_id, format: r.format, formation: r.formation, slots: (r.slots || []).map((s: Row) => ({ pid: s.pid ?? null, x: Number(s.x), y: Number(s.y) })) })),
         participants: participants.map(toParticipation),
         series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
@@ -120,14 +120,16 @@ export function createSupabaseApi(url: string, key: string): Api {
         })),
       };
       if (!me) return snap;
-      const [transfers, offers, stats, votes, members, apps] = await Promise.all([
+      const [transfers, offers, stats, votes, members, apps, notes] = await Promise.all([
         sb.from('transfers').select('*').order('id').then(check),
         sb.from('offers').select('*, creator:profiles(name)').then(check),
         sb.rpc('vote_stats').then(check),
         sb.from('votes').select('match_id, winner, score').eq('user_id', me).then(check),
         sb.from('profiles').select('*').order('name').then(check),
         sb.from('team_applications').select('*').order('created_at', { ascending: false }).then(check),
+        sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(60).then(check),
       ]);
+      snap.notifications = (notes as Row[]).map((r) => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, link: r.link, meta: r.meta || {}, date: r.created_at, read: !!r.read_at }));
       snap.applications = (apps as Row[]).map((r) => ({ id: r.id, playerId: r.player_id, teamId: r.team_id, message: r.message, status: r.status, date: r.created_at }));
       snap.transfers = transfers.map(toTransfer);
       snap.offers = offers.map(toOffer);
@@ -285,6 +287,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       const rows = check(await sb.from('player_xp').select('*').eq('player_id', playerId).order('created_at', { ascending: false }).limit(30)) as Row[];
       return rows.map((r) => ({ id: r.id, matchId: r.match_id, kind: r.kind, amount: r.amount, dist: r.dist, note: r.note, date: r.created_at }));
     },
+    async markNotificationsRead(ids) { check(await sb.rpc('mark_notifications_read', { p_ids: ids ?? null })); },
     async hotBonus(playerId) { return check(await sb.rpc('hot_bonus', { p_player: playerId })) as string; },
     async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },
     async deleteUser(userId, deletePlayer) { check(await sb.rpc('delete_user', { p_user: userId, p_delete_player: deletePlayer })); },
