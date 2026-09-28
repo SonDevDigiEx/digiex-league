@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { PlayerCard } from '../components/bits';
-import { api, useAccess, useLeague } from '../data/store';
+import { useAccess, useLeague } from '../data/store';
 import { seasonStats } from '../views/MatchPlayers';
 import { hexA, LBL, LBL_GK, money, tier } from '../lib/league';
 
@@ -9,8 +9,8 @@ const LABEL_XY: [number, number][] = [[100, 8], [186, 56], [186, 152], [100, 198
 const col = (v: number) => (v >= 85 ? '#c6ff3d' : v >= 75 ? '#f5c542' : v >= 65 ? '#ff9f43' : '#ff6b81');
 
 export function CardModal() {
-  const { snap, cardId, closeCard, openModal, run } = useLeague();
-  const { tm, canTransfer, canTeam, myT } = useAccess();
+  const { snap, cardId, closeCard, openModal } = useLeague();
+  const { tm, canTransfer, canTeam, staffT, isStaffPlayer, staffLabel } = useAccess();
   const p = cardId ? snap?.players.find((x) => x.id === cardId) : null;
   useEffect(() => {
     if (!p) return;
@@ -21,6 +21,8 @@ export function CardModal() {
   if (!p) return null;
 
   const team = tm(p.teamId);
+  const staffP = isStaffPlayer(p);
+  const roleTag = staffLabel(p);
   const t = tier(p.ovr);
   const L = p.pos === 'GK' ? LBL_GK : LBL;
   const radar = p.stats.map((v, j) => {
@@ -41,6 +43,7 @@ export function CardModal() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="cm-tier" style={{ background: t.bg, color: t.fg }}>{t.label}</span>
             <span className="cm-sub">{team.name} · #{p.num} · {p.pos}</span>
+            {roleTag && <em className="role-tag">{roleTag}</em>}
           </div>
           <h2 className="cm-name">{p.name}</h2>
           <div className="cm-info">{info.map((i) => <div key={i.l}><span>{i.l}</span><b style={{ color: i.c }}>{i.v}</b></div>)}</div>
@@ -67,10 +70,9 @@ export function CardModal() {
             </div>
           </div>
           <div className="cm-acts">
-            {canTransfer(p.teamId) && <button className="cm-btn lime" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển nhượng</button>}
+            {canTransfer(p.teamId) && !staffP && <button className="cm-btn lime" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển nhượng</button>}
             {canTeam(p.teamId) && <button className="cm-btn line" onClick={() => openModal({ kind: 'player', playerId: p.id, teamId: p.teamId })}>Chỉnh sửa</button>}
-            {!!myT && !p.teamId && <button className="cm-btn gold" onClick={() => run(() => api.signPlayer(p.id, myT), `Đã tuyển ${p.name} về ${tm(myT).short}`)}>Tuyển về {tm(myT).short}</button>}
-            {!!myT && !!p.teamId && p.teamId !== myT && <button className="cm-btn gold" onClick={() => openModal({ kind: 'offer', playerId: p.id })}>Đề nghị mua</button>}
+            {!!staffT && !staffP && p.teamId !== staffT && <button className="cm-btn gold" onClick={() => openModal({ kind: 'offer', playerId: p.id })}>{p.teamId ? 'Đề nghị mua' : `Mời về ${tm(staffT).short}`}</button>}
             <button className="cm-btn close" onClick={closeCard}>Đóng</button>
           </div>
         </div>

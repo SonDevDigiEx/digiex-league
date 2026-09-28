@@ -21,7 +21,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
 2. Run `supabase/cleanup-demo.sql` once. This deletes the demo players, matches and accounts but keeps F8/F9.
-3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`, then `supabase/migrations/20260928030000_open_signup.sql`, then `supabase/migrations/20260928040000_self_photo.sql`, then `supabase/migrations/20260928050000_match_players.sql`. These add account approval, player profiles linked to accounts, and free agents.
+3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`, then `supabase/migrations/20260928030000_open_signup.sql`, then `supabase/migrations/20260928040000_self_photo.sql`, then `supabase/migrations/20260928050000_match_players.sql`, then `supabase/migrations/20260928060000_offers_v2.sql`. These add account approval, player profiles linked to accounts, and free agents.
 
 ### Google sign-in
 
@@ -51,7 +51,14 @@ Everyone can change their own photo by clicking their name in the header (**Hồ
 
 **Match registration and stats.** Before kickoff, players register on the match page (*Đội hình* tab). A team player registers for their own team; a free agent picks one of the two sides, and free agents are listed on a separate line under each team. Once anyone has registered, the pitch lineup is built from the registered list. After the match, each participant fills in their own stats in the *Thống kê* tab: goals, assists, saves, cards, self-rating and a note. The BHL or chairman of the side they played for (or an admin) approves or rejects them. Only approved stats count towards the season totals shown on the player card (`match_players` table; RPCs `join_match`, `leave_match`, `submit_match_stats`, `review_match_stats`).
 
-**Free agents** show in the market under the "Tự do" filter. A chairman clicks **Tuyển** to sign one to their team at no fee, and can **Giải phóng** (release) a player back to free agency. Both moves are logged in the transfer history. Offers apply only to players who already have a team.
+**Transfers.**
+- Only chairmen and BHL (for their own team) and admins see transfer actions.
+- **Chairmen and BHL are not transferable.** They carry a role tag such as "Chủ tịch F8" in the market. When someone becomes chair or BHL of a team, their player profile moves to that team automatically.
+- **Free agents** get a **Mời** (invitation). The **player** accepts or declines it from the bell icon (*Thông báo*) and joins immediately at no fee.
+- **Contracted players** get a **Mua** offer. The **selling chairman** decides; the player is notified but can't respond.
+- Chairmen can release players to free agency.
+- Direct moves without consent (**Chuyển**) are admin-only.
+- Chairmen and BHL can change the team logo from *Hồ sơ của tôi*, the team page, or *Quản lý*.
 
 | Role | Can do |
 |---|---|

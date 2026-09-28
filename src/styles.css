@@ -536,3 +536,7 @@ input[type=range] { accent-color: var(--lime); width: 100% }
 .spin { display: inline-block; width: 1em; height: 1em; margin-right: 8px; vertical-align: -.15em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite }
 button:disabled { cursor: default }
 .btn-lime:disabled, .btn-ok:disabled, .btn-no:disabled, .btn-cancel:disabled { opacity: .6 }
+.role-tag { display: inline-block; margin-left: 8px; padding: 3px 7px; border-radius: 5px; background: rgba(245, 197, 66, .15); color: var(--gold); font: 700 10px/1 var(--vn); font-style: normal; letter-spacing: .06em; text-transform: uppercase; vertical-align: 2px }
+.bell { position: relative; flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .07); color: var(--soft); cursor: pointer }
+.bell:hover { color: #fff }
+.bell .nav-badge { position: absolute; top: -5px; right: -6px }

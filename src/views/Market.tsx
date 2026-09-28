@@ -15,7 +15,7 @@ const STS: Record<OfferStatus, [string, string, string]> = {
 
 export function Market() {
   const { snap, user, openCard, openModal, run } = useLeague();
-  const { tm, canTransfer, isAdmin, myT } = useAccess();
+  const { tm, canTransfer, isAdmin, myT, staffT, isStaffPlayer, staffLabel } = useAccess();
   const [mTeam, setMTeam] = useState('all');
   const [mPos, setMPos] = useState<'all' | Group>('all');
   const [rqTabSel, setRqTab] = useState<'in' | 'out'>('in');
@@ -25,9 +25,9 @@ export function Market() {
   const T = d.teams;
   const offers = d.offers;
   const fl = d.players.filter((p) => (mTeam === 'all' || (mTeam === FREE ? p.teamId === null : p.teamId === mTeam)) && (mPos === 'all' || GROUP[p.pos] === mPos)).sort((a, b) => b.value - a.value);
-  const inCount = myT ? offers.filter((o) => o.to === myT && o.status === 'pending').length : 0;
+  const inCount = staffT ? offers.filter((o) => o.to === staffT && o.status === 'pending').length : 0;
   const rqTab = isAdmin ? 'all' : rqTabSel;
-  const rqList = (isAdmin ? offers : myT ? offers.filter((o) => (rqTab === 'in' ? o.to === myT : o.from === myT)) : [])
+  const rqList = (isAdmin ? offers : staffT ? offers.filter((o) => (rqTab === 'in' ? o.to === staffT : o.from === staffT)) : [])
     .slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   const pending = isAdmin ? offers.filter((o) => o.status === 'pending').length : inCount;
   const chip = (label: string, on: boolean, onClick: () => void) => <button key={label} className={'chip' + (on ? ' on' : '')} onClick={onClick}>{label}</button>;
@@ -47,27 +47,28 @@ export function Market() {
           {!fl.length && <div className="empty">{d.players.length ? 'Không có cầu thủ phù hợp bộ lọc.' : 'Chưa có cầu thủ nào trên thị trường.'}</div>}
           {fl.map((p, i) => {
             const team = tm(p.teamId);
-            const canBuy = canTransfer(p.teamId);
-            const canOffer = !!myT && !!p.teamId && p.teamId !== myT;
-            const canSign = !!myT && !p.teamId;
-            const sent = !!myT && offers.some((o) => o.pid === p.id && o.from === myT && o.status === 'pending');
+            const staffP = isStaffPlayer(p);
+            const canBuy = canTransfer(p.teamId) && !staffP;
+            const canOffer = !!staffT && !!p.teamId && p.teamId !== staffT && !staffP;
+            const canInvite = !!staffT && !p.teamId && !staffP;
+            const sent = !!staffT && offers.some((o) => o.pid === p.id && o.from === staffT && o.status === 'pending');
             return (
-              <div key={p.id} className={'mk-row' + (canBuy && canOffer ? ' b2' : '')} style={{ animationDelay: Math.min(i * 0.03, 0.6).toFixed(2) + 's' }}>
+              <div key={p.id} className={'mk-row' + (canBuy && (canOffer || canInvite) ? ' b2' : '')} style={{ animationDelay: Math.min(i * 0.03, 0.6).toFixed(2) + 's' }}>
                 <OvrBadge p={p} className="mk-badge" onClick={() => openCard(p.id)} />
                 <button className="mk-who" onClick={() => openCard(p.id)}>
-                  <span>{p.name}</span>
+                  <span>{p.name}{staffLabel(p) && <em className="role-tag">{staffLabel(p)}</em>}</span>
                   <div><i style={{ background: team.color }} />{team.name} · {p.age} tuổi</div>
                 </button>
                 <span className="mk-val">{money(p.value)}</span>
                 {canBuy && <button className="btn-ghost" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển</button>}
-                {canSign && <button className="btn-buy" onClick={() => run(() => api.signPlayer(p.id, myT!), `Đã tuyển ${p.name} về ${tm(myT).short}`)}>Tuyển</button>}
-                {canOffer && <button className={'btn-buy' + (sent ? ' sent' : '')} onClick={() => (sent ? setRqTab('out') : openModal({ kind: 'offer', playerId: p.id }))}>{sent ? 'Đã gửi' : 'Mua'}</button>}
+                {(canOffer || canInvite) && <button className={'btn-buy' + (sent ? ' sent' : '')} onClick={() => (sent ? setRqTab('out') : openModal({ kind: 'offer', playerId: p.id }))}>{sent ? 'Đã gửi' : canInvite ? 'Mời' : 'Mua'}</button>}
+                {staffP && <span className="st" style={{ background: 'rgba(255,255,255,.07)', color: '#8b93a7' }} title="Chủ tịch / BHL không thể chuyển nhượng">KHÔNG CHUYỂN NHƯỢNG</span>}
               </div>
             );
           })}
         </div>
         <div className="mk-side">
-          {(isAdmin || !!myT) && (
+          {(isAdmin || !!staffT) && (
             <div className="rq">
               <div className="row-sb">
                 <SecTitle sm>Yêu cầu chuyển nhượng</SecTitle>
@@ -76,7 +77,7 @@ export function Market() {
               <div className="seg">
                 {isAdmin
                   ? <button className="on">Tất cả yêu cầu</button>
-                  : ([['in', 'Nhận được (' + offers.filter((o) => o.to === myT).length + ')'], ['out', 'Đã gửi (' + offers.filter((o) => o.from === myT).length + ')']] as ['in' | 'out', string][])
+                  : ([['in', 'Nhận được (' + offers.filter((o) => o.to === staffT).length + ')'], ['out', 'Đã gửi (' + offers.filter((o) => o.from === staffT).length + ')']] as ['in' | 'out', string][])
                     .map(([k, l]) => <button key={k} className={rqTab === k ? 'on' : ''} onClick={() => setRqTab(k)}>{l}</button>)}
               </div>
               {rqList.map((o, i) => {
@@ -101,17 +102,19 @@ export function Market() {
                     </div>
                     {o.note && <div className="quote">“{o.note}”</div>}
                     <div className="meta">{o.byName} · {dmy(o.date)}</div>
-                    {pend && myT === o.to && (
+                    {pend && !o.to && <div className="note">Chờ cầu thủ trả lời lời mời.</div>}
+                    {pend && !!o.to && o.to === staffT && myT !== o.to && <div className="note">Chờ Chủ tịch {tm(o.to).short} quyết định.</div>}
+                    {pend && !!o.to && myT === o.to && (
                       <div className="acts">
                         <button className="btn-ok" onClick={() => run(() => api.respondOffer(o.id, true), (m) => m as string)}>Đồng ý</button>
                         <button className="btn-no" onClick={() => run(() => api.respondOffer(o.id, false), (m) => m as string)}>Từ chối</button>
                       </div>
                     )}
-                    {pend && myT === o.from && <button className="btn-cancel" onClick={() => run(() => api.cancelOffer(o.id), 'Đã hủy yêu cầu')}>Hủy yêu cầu</button>}
+                    {pend && staffT === o.from && <button className="btn-cancel" onClick={() => run(() => api.cancelOffer(o.id), 'Đã hủy yêu cầu')}>Hủy yêu cầu</button>}
                   </div>
                 );
               })}
-              {!rqList.length && <div className="note" style={{ fontSize: 13 }}>{rqTab === 'out' ? 'Bạn chưa gửi đề nghị nào. Bấm "Mua" ở danh sách cầu thủ để bắt đầu.' : 'Chưa có yêu cầu nào.'}</div>}
+              {!rqList.length && <div className="note" style={{ fontSize: 13 }}>{rqTab === 'out' ? 'Đội bạn chưa gửi đề nghị nào. Bấm "Mua" (cầu thủ có đội) hoặc "Mời" (cầu thủ tự do) để bắt đầu.' : 'Chưa có yêu cầu nào.'}</div>}
             </div>
           )}
           <div className="rq" style={{ borderColor: 'rgba(255,255,255,.07)', animation: 'none' }}>

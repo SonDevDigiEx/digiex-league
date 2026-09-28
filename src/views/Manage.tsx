@@ -9,7 +9,7 @@ const MEMBERS = 'members';
 
 export function Manage({ teamId }: { teamId?: string }) {
   const { snap, user, go, openModal, run } = useLeague();
-  const { canTeam, canAny, isAdmin, canTransfer } = useAccess();
+  const { canTeam, canAny, isAdmin, canRelease, isStaffPlayer } = useAccess();
   const onLogo = useLogoUpload();
   const [pendingDel, setPendingDel] = useState<string | null>(null);
   if (!user || !canAny) return <div className="view"><div className="empty">Bạn không có quyền quản lý đội.</div></div>;
@@ -74,7 +74,7 @@ export function Manage({ teamId }: { teamId?: string }) {
               </div>
               <div className="mg-btns">
                 <button className="btn-ghost" onClick={() => openModal({ kind: 'player', playerId: p.id, teamId: p.teamId })}>Sửa</button>
-                {canTransfer(p.teamId) && (
+                {canRelease(p.teamId) && !isStaffPlayer(p) && (
                   <button className={'btn-danger' + (pendingDel === 'rel:' + p.id ? ' on' : '')} style={{ borderColor: 'rgba(255,255,255,.2)' }} onClick={() => {
                     if (pendingDel !== 'rel:' + p.id) return setPendingDel('rel:' + p.id);
                     setPendingDel(null);

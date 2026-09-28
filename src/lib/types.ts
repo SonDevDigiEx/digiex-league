@@ -78,8 +78,8 @@ export interface Offer {
   pid: string;
   /** buying team */
   from: string;
-  /** selling team (current owner) */
-  to: string;
+  /** selling team (current owner); null = invitation to a free agent (the player answers) */
+  to: string | null;
   price: number;
   value: number;
   note: string;

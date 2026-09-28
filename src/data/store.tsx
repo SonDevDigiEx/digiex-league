@@ -49,6 +49,7 @@ export type Modal =
   | { kind: 'player'; playerId?: string; teamId: string | null }
   | { kind: 'approve'; userId: string }
   | { kind: 'me' }
+  | { kind: 'inbox' }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
   | { kind: 'schedule' };
@@ -174,13 +175,31 @@ export function useAccess() {
     const u = user;
     const isAdmin = !!u && u.role === 'admin';
     const teams = snap?.teams || [];
+    const members = snap?.members || [];
+    const players = snap?.players || [];
     return {
       u, isAdmin,
       /** Pending accounts are view-only. */
       canVote: !!u && u.role !== 'pending',
       /** Edit squad/team. Free agents (tid null) are managed by admins only. */
       canTeam: (tid: string | null) => !!u && (isAdmin || (!!tid && (u.role === 'chair' || u.role === 'coach') && u.team === tid)),
-      canTransfer: (tid: string | null) => !!u && (isAdmin || (!!tid && u.role === 'chair' && u.team === tid)),
+      /** Direct moves without consent are an admin tool. */
+      canTransfer: (_tid: string | null) => isAdmin,
+      /** Release a player to free agency: admin or that team's chairman. */
+      canRelease: (tid: string | null) => !!u && !!tid && (isAdmin || (u.role === 'chair' && u.team === tid)),
+      /** Team whose staff (chair or coach) the user is — they can send offers / invitations for it. */
+      staffT: u && (u.role === 'chair' || u.role === 'coach') ? u.team : null,
+      /** Chairmen and coaches are not transferable. */
+      isStaffPlayer: (p: Player) => !!p.userId && members.some((m) => m.id === p.userId && (m.role === 'chair' || m.role === 'coach')),
+      /** Staff role label for a player whose account is a chair/coach, e.g. "Chủ tịch F8" (null otherwise). */
+      staffLabel: (p: Player) => {
+        const m = p.userId ? members.find((x) => x.id === p.userId) : undefined;
+        if (!m || (m.role !== 'chair' && m.role !== 'coach')) return null;
+        const t = teams.find((x) => x.id === m.team);
+        return (m.role === 'chair' ? 'Chủ tịch' : 'BHL') + (t ? ' ' + t.short : '');
+      },
+      /** The signed-in user's own player profile, if any. */
+      myPlayer: u ? players.find((p) => p.userId === u.id) ?? null : null,
       canAny: !!u && (isAdmin || u.role === 'chair' || u.role === 'coach'),
       myT: u && u.role === 'chair' ? u.team : null,
       tm: (id: string | null): Team => (id && teams.find((t) => t.id === id)) || FREE_AGENT,
