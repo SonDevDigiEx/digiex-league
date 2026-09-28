@@ -8,6 +8,7 @@ import { FameAvatar } from './Fame';
 import { PlayerRanking } from './Ranking';
 import { TeamLineups } from './Lineups';
 import { MyJourney } from '../components/Xp';
+import { RsvpBoard } from './RsvpBoard';
 import { currentPeriod, periodLabel, topMom, topScorers } from '../lib/fame';
 
 export function ResultRow({ m, i, H, A }: { m: Match; i: number; H: Team; A: Team }) {
@@ -103,6 +104,7 @@ export function Home() {
               <button className="btn-cta" onClick={() => go({ view: 'match', matchId: next.id })}>Đội hình &amp; Dự đoán →</button>
             </div>
           )}
+          {next && <RsvpBoard m={next} />}
         </div>
       </section>
 

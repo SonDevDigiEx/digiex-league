@@ -14,9 +14,9 @@ const STATUS: Record<StatsStatus, [string, string, string]> = {
   rejected: ['BỊ TỪ CHỐI', 'rgba(229,72,77,.15)', '#ff6b81'],
 };
 
-/** Pre-match registration: players join for their team; free agents pick a side and are listed separately. */
-export function Rsvp({ m }: { m: Match }) {
-  const { snap, user, openCard } = useLeague();
+/** Join / switch / leave buttons for a match (shared by the match page and the home page). */
+export function RsvpAction({ m }: { m: Match }) {
+  const { snap, user } = useLeague();
   const { tm, canVote } = useAccess();
   // One request at a time + 3s cooldown after each change, so join/switch/leave can't be spammed.
   const { act, pending, busy, wait } = useAction(3000);
@@ -27,31 +27,38 @@ export function Rsvp({ m }: { m: Match }) {
   const me = user ? d.players.find((p) => p.userId === user.id) : undefined;
   const mine = me ? rows.find((r) => r.playerId === me.id) : undefined;
   const open = new Date(m.date).getTime() > Date.now();
-  const byId = new Map(d.players.map((p) => [p.id, p]));
+  if (!open) return <div className="note">Đã hết hạn đăng ký (trận đã bắt đầu).</div>;
+  if (!user) return <div className="note">Đăng nhập để đăng ký tham gia.</div>;
+  if (!canVote) return <div className="note">Tài khoản đang chờ Ban tổ chức duyệt.</div>;
+  if (!me) return <div className="note">Bạn chưa có hồ sơ cầu thủ — liên hệ Ban tổ chức để được duyệt làm cầu thủ.</div>;
+  const leave = <button className="btn-cancel" disabled={busy} onClick={() => act('leave', () => api.leaveMatch(m.id), 'Đã hủy đăng ký')}>{label('leave', 'Hủy tham gia')}</button>;
+  if (me.teamId) {
+    if (me.teamId !== m.home && me.teamId !== m.away) return <div className="note">Đội của bạn ({tm(me.teamId).short}) không thi đấu trận này.</div>;
+    return mine
+      ? <div className="rsvp-me"><span>✓ Bạn đã đăng ký đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></span>{leave}</div>
+      : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã điểm danh ✅ +20 XP sẽ được cộng khi trận kết thúc')}>{label('join', 'Tham gia trận này')}</button>;
+  }
+  return (
+    <div className="rsvp-me">
+      <span>{mine ? <>✓ Cầu thủ tự do · đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></> : 'Cầu thủ tự do · chọn đội muốn đá cùng:'}</span>
+      {[H, A].filter((t) => t.id !== mine?.teamId).map((t) => (
+        <button key={t.id} className="btn-lime" style={{ background: t.color, color: '#fff' }} disabled={busy}
+          onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã điểm danh đá cho ${t.short} ✅ +20 XP sẽ được cộng khi trận kết thúc`)}>{label('join:' + t.id, `${mine ? 'Chuyển sang' : 'Tham gia cho'} ${t.short}`)}</button>
+      ))}
+      {mine && leave}
+    </div>
+  );
+}
 
-  const action = () => {
-    if (!open) return <div className="note">Đã hết hạn đăng ký (trận đã bắt đầu).</div>;
-    if (!user) return <div className="note">Đăng nhập để đăng ký tham gia.</div>;
-    if (!canVote) return <div className="note">Tài khoản đang chờ Ban tổ chức duyệt.</div>;
-    if (!me) return <div className="note">Bạn chưa có hồ sơ cầu thủ — liên hệ Ban tổ chức để được duyệt làm cầu thủ.</div>;
-    const leave = <button className="btn-cancel" disabled={busy} onClick={() => act('leave', () => api.leaveMatch(m.id), 'Đã hủy đăng ký')}>{label('leave', 'Hủy tham gia')}</button>;
-    if (me.teamId) {
-      if (me.teamId !== m.home && me.teamId !== m.away) return <div className="note">Đội của bạn ({tm(me.teamId).short}) không thi đấu trận này.</div>;
-      return mine
-        ? <div className="rsvp-me"><span>✓ Bạn đã đăng ký đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></span>{leave}</div>
-        : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã điểm danh ✅ +20 XP sẽ được cộng khi trận kết thúc')}>{label('join', 'Tham gia trận này')}</button>;
-    }
-    return (
-      <div className="rsvp-me">
-        <span>{mine ? <>✓ Cầu thủ tự do · đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></> : 'Cầu thủ tự do · chọn đội muốn đá cùng:'}</span>
-        {[H, A].filter((t) => t.id !== mine?.teamId).map((t) => (
-          <button key={t.id} className="btn-lime" style={{ background: t.color, color: '#fff' }} disabled={busy}
-            onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã điểm danh đá cho ${t.short} ✅ +20 XP sẽ được cộng khi trận kết thúc`)}>{label('join:' + t.id, `${mine ? 'Chuyển sang' : 'Tham gia cho'} ${t.short}`)}</button>
-        ))}
-        {mine && leave}
-      </div>
-    );
-  };
+/** Pre-match registration: players join for their team; free agents pick a side and are listed separately. */
+export function Rsvp({ m }: { m: Match }) {
+  const { snap, user, openCard } = useLeague();
+  const { tm } = useAccess();
+  const d = snap!;
+  const H = tm(m.home), A = tm(m.away);
+  const rows = participantsOf(d.participants, m.id);
+  const me = user ? d.players.find((p) => p.userId === user.id) : undefined;
+  const byId = new Map(d.players.map((p) => [p.id, p]));
 
   const col = (t: Team) => {
     const side = rows.filter((r) => r.teamId === t.id).map((r) => byId.get(r.playerId)).filter(Boolean) as Player[];
@@ -79,7 +86,7 @@ export function Rsvp({ m }: { m: Match }) {
         <div className="box-title">Đăng ký tham gia</div>
         <span className="note">{rows.length} cầu thủ</span>
       </div>
-      {action()}
+      <RsvpAction m={m} />
       <div className="benches" style={{ flex: 'none' }}>{[H, A].map(col)}</div>
     </div>
   );

@@ -1190,3 +1190,25 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .att-pick button.on.late { background: rgba(245, 197, 66, .15); border-color: rgba(245, 197, 66, .5); color: var(--gold) }
 .att-pick button.on.no_show { background: rgba(229, 72, 77, .18); border-color: rgba(229, 72, 77, .55); color: var(--red) }
 .att-pick button:disabled { opacity: .6 }
+
+/* ───────── Home: check-in board for the next match ───────── */
+.rb { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding: 16px 18px; border-radius: 16px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(198, 255, 61, .25); text-align: left }
+.rb-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap }
+.rb-k { display: flex; align-items: center; gap: 8px; font: 700 11px/1 var(--vn); letter-spacing: .2em; color: var(--lime) }
+.rb-k i { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); animation: pulse 1.6s infinite }
+.rb-total { font: 600 13px/1 var(--vn); color: var(--soft2) }
+.rb-total b { font: italic 900 26px/1 var(--bc); color: var(--lime); margin-right: 4px }
+.rb-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px }
+.rb-side { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .03); border: 1px solid color-mix(in srgb, var(--tc) 35%, transparent) }
+.rb-side-h { display: flex; align-items: center; gap: 6px; font: italic 800 17px/1 var(--bc); color: #fff }
+.rb-side-h .dot { width: 10px; height: 10px; border-radius: 50% }
+.rb-side-h b { margin-left: 6px; font: italic 900 20px/1 var(--bc); color: var(--tc) }
+.rb-side-h small { font: 500 11px/1 var(--vn); color: var(--muted) }
+.rb-bar { flex: 1; min-width: 50px; height: 5px; margin-left: 8px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden }
+.rb-bar div { height: 100%; background: var(--tc); animation: xpFill .8s ease both }
+.rb-chips { display: flex; flex-wrap: wrap; gap: 5px }
+.rb-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 3px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(0, 0, 0, .3); color: #fff; font: 600 12px/1 var(--vn); cursor: pointer; animation: pop .4s ease both }
+.rb-chip .fa { box-shadow: none; font-size: 9px !important }
+.rb-chip.me { border-color: var(--lime); background: rgba(198, 255, 61, .12) }
+.rb-chip.free { border-style: dashed }
+.rb-act .rsvp-me { flex-wrap: wrap }
