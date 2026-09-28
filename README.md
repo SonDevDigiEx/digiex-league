@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` `supabase/migrations/20260928170000_xp.sql` `supabase/migrations/20260928180000_starter_stats.sql` and `supabase/migrations/20260928190000_notifications.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` `supabase/migrations/20260928170000_xp.sql` `supabase/migrations/20260928180000_starter_stats.sql` `supabase/migrations/20260928190000_notifications.sql` and `supabase/migrations/20260928200000_base_stats.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -159,6 +159,8 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 ### Player ranking (home page)
 
 - Only players who are on a team are ranked. The metrics come from finished matches: goals (the larger of the admin's scorer list and the approved self-report, per match), assists and saves (approved self-reports), and consistency (average rating minus its standard deviation, shown once a player has 3 rated matches).
+- *Tiến bộ* ranks progress: stat points gained over `players.base_stats` (starter stats, or the stats at the last reset), with XP as the tie-breaker. The spotlight also shows the OVR gained.
+- The table has a fixed height and scrolls inside itself.
 - Players can be sorted by any metric (chips or column headers) and filtered by team. The top 3 for the chosen metric rotate in an auto-playing spotlight with their card.
 
 ### Hall of fame (Vinh danh)

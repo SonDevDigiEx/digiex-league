@@ -44,6 +44,8 @@ export interface Player {
   /** Lifetime XP (net) and per-stat progress toward the next point. */
   xp?: number;
   statXp?: number[];
+  /** Stats when the player joined (or at the last reset) — for the progress ranking. */
+  baseStats?: number[] | null;
 }
 
 export interface XpEvent { id: number; matchId: string | null; kind: string; amount: number; dist: number[]; note: string | null; date: string }

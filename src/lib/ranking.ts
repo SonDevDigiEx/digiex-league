@@ -1,13 +1,15 @@
 // Player leaderboard: goals, assists, saves and consistency, from finished matches.
+import { ovrOf } from './league';
 import type { Match, Participation, Player } from './types';
 
-export type RankKey = 'goals' | 'assists' | 'saves' | 'stability';
+export type RankKey = 'goals' | 'assists' | 'saves' | 'stability' | 'growth';
 
 export const RANK_COLS: { key: RankKey; label: string; short: string; icon: string; unit: string; hint: string }[] = [
   { key: 'goals', label: 'Bàn thắng', short: 'BÀN', icon: '⚽', unit: 'bàn', hint: 'Mỗi trận lấy số lớn hơn giữa danh sách ghi bàn của BTC và thống kê đã duyệt' },
   { key: 'assists', label: 'Kiến tạo', short: 'KT', icon: '🎯', unit: 'kiến tạo', hint: 'Theo thống kê cá nhân đã được BHL duyệt' },
   { key: 'saves', label: 'Cản phá', short: 'CP', icon: '🧤', unit: 'pha cản phá', hint: 'Theo thống kê cá nhân đã được BHL duyệt' },
   { key: 'stability', label: 'Độ ổn định', short: 'ỔĐ', icon: '📈', unit: 'điểm', hint: 'Điểm TB trừ độ dao động, cần ít nhất 3 trận có điểm' },
+  { key: 'growth', label: 'Tiến bộ', short: 'TB', icon: '🚀', unit: 'điểm chỉ số', hint: 'Tổng điểm chỉ số đã tăng nhờ kinh nghiệm so với chỉ số khởi điểm (bằng điểm thì ai nhiều XP hơn xếp trên)' },
 ];
 
 export interface RankRow {
@@ -19,6 +21,9 @@ export interface RankRow {
   rating: number | null;
   /** Average rating minus its standard deviation (0–10); null with fewer than 3 rated matches. */
   stability: number | null;
+  /** Stat points gained since the starting stats, and the OVR gained. */
+  growth: number;
+  ovrUp: number;
 }
 
 export const MIN_RATED = 3;
@@ -27,7 +32,11 @@ export const MIN_RATED = 3;
 export function playerRanking(players: Player[], matches: Match[], parts: Participation[]): RankRow[] {
   const done = new Map(matches.filter((m) => m.status === 'done').map((m) => [m.id, m]));
   const rows = new Map<string, RankRow & { ratings: number[]; matchIds: Set<string> }>();
-  players.filter((p) => p.teamId).forEach((p) => rows.set(p.id, { player: p, apps: 0, goals: 0, assists: 0, saves: 0, rating: null, stability: null, ratings: [], matchIds: new Set() }));
+  players.filter((p) => p.teamId).forEach((p) => {
+    const base = p.baseStats?.length === 6 ? p.baseStats : p.stats;
+    const growth = p.stats.reduce((a, v, i) => a + Math.max(0, v - base[i]), 0);
+    rows.set(p.id, { player: p, apps: 0, goals: 0, assists: 0, saves: 0, rating: null, stability: null, growth, ovrUp: p.ovr - ovrOf(p.pos, base), ratings: [], matchIds: new Set() });
+  });
 
   // Goals per match: max(admin scorer list, approved self-report) — never counted twice.
   const perMatch = new Map<string, number>();
@@ -61,7 +70,9 @@ export function playerRanking(players: Player[], matches: Match[], parts: Partic
 /** Sort by one metric (desc); players without a value go last. Ties: fewer matches, then name. */
 export function sortRanking(rows: RankRow[], key: RankKey) {
   const v = (r: RankRow) => r[key] ?? -1;
-  return rows.slice().sort((a, b) => v(b) - v(a) || a.apps - b.apps || a.player.name.localeCompare(b.player.name, 'vi'));
+  const tie = (a: RankRow, b: RankRow) => (key === 'growth' ? (b.player.xp ?? 0) - (a.player.xp ?? 0) : a.apps - b.apps);
+  return rows.slice().sort((a, b) => v(b) - v(a) || tie(a, b) || a.player.name.localeCompare(b.player.name, 'vi'));
 }
 
-export const fmtRank = (r: RankRow, key: RankKey) => (key === 'stability' ? (r.stability == null ? '—' : r.stability.toFixed(1)) : String(r[key]));
+export const fmtRank = (r: RankRow, key: RankKey) =>
+  key === 'stability' ? (r.stability == null ? '—' : r.stability.toFixed(1)) : key === 'growth' ? (r.growth ? '+' + r.growth : '0') : String(r[key]);

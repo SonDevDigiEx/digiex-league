@@ -1151,3 +1151,16 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .nt-ups i { font: 700 11px/1 var(--vn); font-style: normal; color: var(--lime); padding: 4px 8px; border-radius: 12px; background: rgba(198, 255, 61, .12); border: 1px solid rgba(198, 255, 61, .3) }
 .nt-dot { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 8px var(--lime) }
 .nt.new .nt-body { padding-right: 14px }
+/* ranking: fixed-height table with its own scroll, 5 metrics */
+.rank-tbl { max-height: 560px }
+.rk-body { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; margin-right: -6px; padding-right: 6px; overscroll-behavior: contain }
+.rk-body::-webkit-scrollbar { width: 6px }
+.rk-row { grid-template-columns: 26px minmax(0, 1fr) repeat(6, 38px) }
+.spot-mini { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)) }
+.spot-mini span { font-size: 8.5px }
+.spot-up { font: italic 900 16px/1 var(--bc); font-style: italic; color: var(--lime); padding: 4px 8px; border-radius: 8px; background: rgba(198, 255, 61, .12); border: 1px solid rgba(198, 255, 61, .35); align-self: center }
+@media (max-width: 480px) {
+  .rank-tbl { max-height: 480px }
+  .rk-row { grid-template-columns: 18px minmax(0, 1fr) repeat(6, 26px); font-size: 12px }
+  .rk-head button { font-size: 9px; letter-spacing: 0 }
+}

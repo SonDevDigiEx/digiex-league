@@ -5,7 +5,8 @@ import { fmtRank, MIN_RATED, playerRanking, RANK_COLS, sortRanking, type RankKey
 import { FameAvatar } from './Fame';
 
 const MEDAL = ['#f5c542', '#d7dde8', '#e0995e'];
-const hasValue = (r: RankRow, k: RankKey) => (k === 'stability' ? r.stability != null : r[k] > 0);
+const hasValue = (r: RankRow, k: RankKey) => (k === 'stability' ? r.stability != null : k === 'growth' ? r.growth > 0 || (r.player.xp ?? 0) > 0 : r[k] > 0);
+const ovrUp = (r: RankRow) => (r.ovrUp > 0 ? `OVR +${r.ovrUp}` : null);
 
 /** Auto-rotating spotlight of the top 3 for the chosen metric. */
 function Spotlight({ top, k }: { top: RankRow[]; k: RankKey }) {
@@ -35,7 +36,7 @@ function Spotlight({ top, k }: { top: RankRow[]; k: RankKey }) {
           <div className="spot-place"><b>TOP {place}</b><span>{col.icon} {col.label.toUpperCase()}</span></div>
           <div className="spot-name">{r.player.name}</div>
           <div className="spot-team"><i style={{ background: team.color }} />{team.name} · {r.player.positions.join(' / ')}</div>
-          <div className="spot-val"><b>{fmtRank(r, k)}</b><span>{col.unit}</span></div>
+          <div className="spot-val"><b>{fmtRank(r, k)}</b><span>{col.unit}</span>{k === 'growth' && ovrUp(r) && <em className="spot-up">{ovrUp(r)}</em>}</div>
           <div className="spot-mini">
             <div><b>{r.apps}</b><span>Trận</span></div>
             {RANK_COLS.filter((c) => c.key !== k).map((c) => <div key={c.key}><b>{fmtRank(r, c.key)}</b><span>{c.label}</span></div>)}
@@ -59,12 +60,11 @@ export function PlayerRanking() {
   const d = snap!;
   const [k, setK] = useState<RankKey>('goals');
   const [team, setTeam] = useState<string>('all');
-  const [all, setAll] = useState(false);
   const rows = playerRanking(d.players, d.matches, d.participants).filter((r) => team === 'all' || r.player.teamId === team);
   if (!d.players.some((p) => p.teamId)) return null;
   const sorted = sortRanking(rows, k);
   const top = sorted.filter((r) => hasValue(r, k)).slice(0, 3);
-  const shown = all ? sorted : sorted.slice(0, 10);
+  const shown = sorted;
   const col = RANK_COLS.find((c) => c.key === k)!;
   return (
     <section className="rank" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -85,6 +85,7 @@ export function PlayerRanking() {
             <span>#</span><span>CẦU THỦ</span><span>TR</span>
             {RANK_COLS.map((c) => <button key={c.key} className={k === c.key ? 'on' : ''} title={c.hint} onClick={() => setK(c.key)}>{c.short}{k === c.key ? ' ▼' : ''}</button>)}
           </div>
+          <div className="rk-body">
           {shown.map((r, i) => {
             const t = tm(r.player.teamId);
             const medal = i < 3 && hasValue(r, k);
@@ -98,7 +99,7 @@ export function PlayerRanking() {
             );
           })}
           {!shown.length && <div className="note" style={{ padding: 12 }}>Chưa có cầu thủ nào trong đội.</div>}
-          {sorted.length > 10 && <button className="rk-more" onClick={() => setAll(!all)}>{all ? 'Thu gọn' : `Xem tất cả (${sorted.length})`}</button>}
+          </div>
           <div className="note" style={{ padding: '4px 4px 0' }}>{col.hint}. Chỉ tính cầu thủ đã có đội và trận đã kết thúc. Độ ổn định cần ít nhất {MIN_RATED} trận có điểm.</div>
         </div>
       </div>

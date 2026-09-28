@@ -13,7 +13,7 @@ const toTeam = (r: Row): Team => ({
 const toPlayer = (r: Row): Player => ({
   id: r.id, teamId: r.team_id, name: r.name, pos: r.pos as Pos, positions: ((r.positions?.length ? r.positions : [r.pos]) as Pos[]), ovr: r.ovr, num: r.num, age: r.age, foot: r.foot as Foot,
   stats: r.stats, value: Number(r.value), photo: r.photo_url, userId: r.user_id ?? null,
-  xp: r.xp ?? 0, statXp: r.stat_xp ?? [0, 0, 0, 0, 0, 0],
+  xp: r.xp ?? 0, statXp: r.stat_xp ?? [0, 0, 0, 0, 0, 0], baseStats: r.base_stats ?? null,
 });
 const toMatch = (r: Row): Match => ({
   id: r.id, date: r.kickoff, home: r.home_team, away: r.away_team, hs: r.home_score, as: r.away_score, status: r.status,
