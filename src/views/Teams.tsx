@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { ImageCropper, CREST_ASPECT } from '../components/ImageCropper';
+import { TeamLineupCard } from './Lineups';
 import { Crest, PlayerCard, SecTitle } from '../components/bits';
 import { api, hrefOf, squadOf, useAccess, useLeague } from '../data/store';
 import { GNAME, GROUP, hexA, ini, readImg, record, sortedMatches } from '../lib/league';
@@ -5,15 +8,17 @@ import { awardIcon } from '../lib/tournament';
 import { ApplicationsBox, ApplyButton } from '../components/Applications';
 import type { Group } from '../lib/types';
 
-/** File input handler: downscale then upload as the team logo. */
-export function useLogoUpload() {
+/** "Upload logo" button: pick → crop in the crest shape → upload. */
+export function LogoUpload({ teamId, className = 'btn-upload', label = 'Tải logo đội' }: { teamId: string; className?: string; label?: string }) {
   const { run } = useLeague();
-  return (teamId: string) => async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    await run(async () => api.setTeamLogo(teamId, await readImg(file, 256, 'image/png')), 'Đã cập nhật logo đội');
-  };
+  const [crop, setCrop] = useState<File | null>(null);
+  return (
+    <>
+      <label className={className}>{label}<input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setCrop(f); }} /></label>
+      {crop && <ImageCropper file={crop} aspect={CREST_ASPECT} outH={320} shield title="Căn chỉnh logo đội" onCancel={() => setCrop(null)}
+        onDone={(blob) => { setCrop(null); run(() => api.setTeamLogo(teamId, blob), 'Đã cập nhật logo đội'); }} />}
+    </>
+  );
 }
 
 /** File input handler: downscale then upload as the team cover photo. */
@@ -30,7 +35,6 @@ function useCoverUpload() {
 export function Teams({ teamId }: { teamId?: string }) {
   const { snap, go, openCard, openModal, user } = useLeague();
   const { isAdmin, canTeam } = useAccess();
-  const onLogo = useLogoUpload();
   const onCover = useCoverUpload();
   const { run } = useLeague();
   const d = snap!;
@@ -79,7 +83,8 @@ export function Teams({ teamId }: { teamId?: string }) {
               {can && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button className="btn-upload" onClick={() => openModal({ kind: 'editTeam', teamId: ct.id })}>Sửa thông tin</button>
-                  <label className="btn-upload">Tải logo đội<input type="file" accept="image/*" onChange={onLogo(ct.id)} /></label>
+                  <LogoUpload teamId={ct.id} />
+                  <button className="btn-upload" onClick={() => openModal({ kind: 'lineup', teamId: ct.id })}>⚙ Xếp đội hình</button>
                   <label className="btn-upload">{ct.cover ? 'Đổi ảnh bìa' : 'Tải ảnh bìa'}<input type="file" accept="image/*" onChange={onCover(ct.id)} /></label>
                   {ct.cover && <button className="btn-upload" onClick={() => run(() => api.setTeamCover(ct.id, null), 'Đã xóa ảnh bìa')}>Xóa ảnh bìa</button>}
                 </div>
@@ -121,6 +126,8 @@ export function Teams({ teamId }: { teamId?: string }) {
           })}</div>}
         </section>
       )}
+
+      <TeamLineupCard key={ct.id} team={ct} lineups={d.lineups.filter((l) => l.teamId === ct.id)} />
 
       <div className="row-sb wrap">
         <SecTitle>Đội hình · {sq.length} cầu thủ</SecTitle>

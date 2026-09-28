@@ -1,3 +1,4 @@
+import type { Slot } from '../lib/formation';
 import type { Award, Goal, MatchInput, PlayerInput, Pos, Profile, Role, Snapshot, StatsInput, TeamInput, Tournament, TournamentInput, ValueFactors, WinnerKey } from '../lib/types';
 
 /**
@@ -42,6 +43,8 @@ export interface Api {
   setMom(matchId: string, playerId: string | null): Promise<void>;
   /** Own display name (also on the player / team card); once every 24 h. */
   setMyName(name: string): Promise<void>;
+  /** Chairman / BHL / admin: save the team's starting lineup for S5 or S7. */
+  saveLineup(teamId: string, format: 's5' | 's7', formation: string, slots: Slot[]): Promise<void>;
   /** Free agent: apply to join a team (the team's chairman decides). */
   applyTeam(teamId: string, message: string): Promise<void>;
   cancelApplication(id: string): Promise<void>;

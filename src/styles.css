@@ -967,3 +967,64 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .crop-zoom button { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .15); background: rgba(255, 255, 255, .05); color: #fff; font-size: 18px; line-height: 1; cursor: pointer }
 .crop-zoom .crop-reset { width: auto; padding: 0 10px; border-radius: 16px; font: 600 11px/1 var(--vn) }
 .crop-acts { display: flex; gap: 8px; justify-content: flex-end; width: 100% }
+
+/* ───────── Lineups ───────── */
+.pitch .arc-b { left: 38%; right: 38%; bottom: 15%; height: 6%; border-radius: 50% 50% 0 0 / 100% 100% 0 0; border-bottom: 0 }
+.pitch.lb-pitch, .pitch.tl-pitch { background: repeating-linear-gradient(0deg, #1c6a39 0 10%, #18602f 10% 20%) }
+.pitch.lb-pitch::before, .pitch.tl-pitch::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: rgba(255, 255, 255, .4) }
+.pitch.lb-pitch::after, .pitch.tl-pitch::after { content: ''; position: absolute; left: 50%; top: 0; width: 30%; aspect-ratio: 2; transform: translateX(-50%); border: 2px solid rgba(255, 255, 255, .4); border-top: 0; border-radius: 0 0 999px 999px }
+.ltok { position: absolute; z-index: 2; transform: translate(-50%, -50%); padding: 0; border: 0; background: none; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none }
+.ltok-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; animation: pop .5s ease both; transition: transform .15s }
+.ltok:hover .ltok-in { transform: scale(1.08) }
+.ltok-av { width: clamp(34px, 9vw, 46px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: var(--tc) center/cover no-repeat; border: 2px solid #fff; color: #fff; font: italic 900 clamp(12px, 3vw, 15px)/1 var(--bc); box-shadow: 0 4px 12px rgba(0, 0, 0, .5) }
+.ltok-ovr { position: absolute; top: -4px; right: -8px; min-width: 20px; padding: 2px 4px; border-radius: 8px; background: #06080d; border: 1px solid var(--tc); color: #fff; font: 800 11px/1 var(--bc) }
+.ltok-name { max-width: 76px; overflow: hidden; text-overflow: ellipsis; font: 600 10px/1 var(--vn); background: rgba(0, 0, 0, .72); color: #fff; padding: 3px 6px; border-radius: 4px; white-space: nowrap }
+.ltok.empty .ltok-av { background: rgba(0, 0, 0, .25); border: 2px dashed rgba(255, 255, 255, .6); color: rgba(255, 255, 255, .75); box-shadow: none }
+.ltok.empty .ltok-name { background: rgba(0, 0, 0, .4); color: rgba(255, 255, 255, .7) }
+.ltok.sel .ltok-av { outline: 3px solid var(--lime); outline-offset: 2px; box-shadow: 0 0 22px rgba(198, 255, 61, .7) }
+.ltok.drag { z-index: 5; cursor: grabbing }
+.ltok.drag .ltok-in { transform: scale(1.18); animation: none }
+
+.fm-in.lb { width: min(100%, 880px); max-width: 880px }
+.lb-pitch { width: 100% }
+.lb-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between }
+.lb-top .seg { flex: 0 1 220px }
+.lb-tpl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.lb-tpl .opt { font-size: 15px }
+.lb-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px }
+@media (min-width: 760px) { .lb-body { grid-template-columns: minmax(0, 1fr) 300px; align-items: start } }
+.lb-pitch-col { display: flex; flex-direction: column; gap: 8px; align-items: center }
+.lb-pitch { max-width: 400px; touch-action: none }
+.lb-layer { position: absolute; inset: 0 }
+.lb-side { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.lb-side-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.lb-side-h b { font: italic 800 18px/1 var(--bc); color: #fff; text-transform: uppercase }
+.lb-side-h span { font: 600 12px/1 var(--vn); color: var(--muted) }
+.lb-list { display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; padding-right: 2px }
+.lb-p { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; border: 1px solid transparent; background: rgba(255, 255, 255, .03); color: #fff; cursor: pointer; text-align: left }
+.lb-p:hover { background: rgba(255, 255, 255, .07) }
+.lb-p.on { opacity: .55 }
+.lb-p.fit { border-color: rgba(198, 255, 61, .35) }
+.lb-ovr { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 800 14px/1 var(--bc); color: #fff; border: 2px solid rgba(255, 255, 255, .8) }
+.lb-n { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px }
+.lb-n b { font: 700 13px/1.1 var(--vn); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.lb-n small { font: 500 11px/1.2 var(--vn); color: var(--muted) }
+.lb-p em { font: 700 10px/1 var(--vn); font-style: normal; color: var(--lime); letter-spacing: .08em }
+.lb-acts { display: flex; gap: 6px; flex-wrap: wrap }
+.lb-acts .btn-cancel { align-self: auto }
+
+.tl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px }
+.tl-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: linear-gradient(160deg, color-mix(in srgb, var(--tc) 16%, transparent), var(--panel) 45%); border: 1px solid color-mix(in srgb, var(--tc) 30%, transparent); animation: viewIn .4s ease both }
+.tl-head { display: flex; align-items: center; gap: 10px }
+.tl-head .crest { width: 30px; height: 34px }
+.tl-head > div:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px }
+.tl-head b { font: italic 800 20px/1 var(--bc); text-transform: uppercase; color: #fff }
+.tl-head span { font: 600 12px/1 var(--vn); color: var(--soft) }
+.seg.sm { flex: none }
+.seg.sm button { padding: 6px 8px; font-size: 11px }
+.tl-pitch { max-width: 360px; align-self: center }
+.tl-empty { position: absolute; inset: 0; display: grid; place-items: center; font: 600 13px/1 var(--vn); color: rgba(255, 255, 255, .7) }
+
+.crop-shield { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
+.crop-shield path { fill: rgba(6, 8, 13, .6) }
+.crop-shield path.edge { fill: none; stroke: var(--lime); stroke-width: .8; vector-effect: non-scaling-stroke; stroke-dasharray: 4 3 }

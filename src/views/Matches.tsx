@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Crest, Lock } from '../components/bits';
 import { api, findMatch, hrefOf, squadOf, useAccess, useLeague, useNow } from '../data/store';
 import { clamp, fDate, fTime, FORMATION, hexA, lineup, record, sortedMatches } from '../lib/league';
-import type { Goal, Match, Player, WinnerKey } from '../lib/types';
+import type { Goal, Match, Player, Team, WinnerKey } from '../lib/types';
 import { MatchStats, participantsOf, Rsvp } from './MatchPlayers';
+import { Pitch, Token } from '../components/Pitch';
+import { FORMAT_LABEL, liveSlots, type Format } from '../lib/formation';
 import { FameAvatar } from './Fame';
 import { Spin, useAction } from '../data/useAction';
 
@@ -75,7 +77,7 @@ const WDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ
 
 export function MatchDetail({ matchId }: { matchId: string }) {
   const { snap, go, openCard, openModal, user, run } = useLeague();
-  const { tm, isAdmin, canVote } = useAccess();
+  const { tm, isAdmin, canVote, canTeam } = useAccess();
   const [tab, setTab] = useState<Tab>('lineup');
   const [vs, setVs] = useState({ h: 1, a: 1 });
   const d = snap!;
@@ -95,13 +97,31 @@ export function MatchDetail({ matchId }: { matchId: string }) {
     return ids.size ? d.players.filter((p) => ids.has(p.id)) : squadOf(d.players, tid);
   };
   const fromRsvp = reg.length > 0;
-  const lH = lineup(roster(H.id)), lA = lineup(roster(A.id));
+  // A team's saved lineup (chairman / BHL) wins; otherwise the auto lineup from the roster.
+  const tour = m.tournamentId ? d.tournaments.find((t) => t.id === m.tournamentId) : undefined;
+  const fmt: Format = tour?.format ?? 's7';
   const Y = [93, 80, 68, 56];
-  let k = 0;
-  const tokens: { p: Player; x: string; y: string; color: string; delay: string }[] = [];
-  ([[lH, H.color, false], [lA, A.color, true]] as const).forEach(([l, color, flip]) => l.rows.forEach((row, ri) => row.forEach((p, i) => {
-    tokens.push({ p, x: ((i + 1) / (row.length + 1)) * 100 + '%', y: (flip ? 100 - Y[ri] : Y[ri]) + '%', color, delay: (k++ * 0.05).toFixed(2) + 's' });
-  })));
+  const side = (t: Team, flip: boolean) => {
+    const saved = d.lineups.find((l) => l.teamId === t.id && l.format === fmt);
+    const squad = squadOf(d.players, t.id);
+    if (saved) {
+      const byId = new Map(squad.map((p) => [p.id, p]));
+      const slots = liveSlots(saved, squad);
+      const starters = slots.map((s) => (s.pid ? byId.get(s.pid) : undefined)).filter(Boolean) as Player[];
+      const ids = new Set(starters.map((p) => p.id));
+      const pool = roster(t.id);
+      return {
+        rows: [starters], bench: pool.filter((p) => !ids.has(p.id)), label: saved.formation, saved: true,
+        toks: slots.map((s) => ({ p: s.pid ? byId.get(s.pid) ?? null : null, x: flip ? 100 - s.x : s.x, y: flip ? 50 - s.y / 2 : 50 + s.y / 2 })),
+      };
+    }
+    const l = lineup(roster(t.id));
+    return {
+      ...l, label: FORMATION, saved: false,
+      toks: l.rows.flatMap((row, ri) => row.map((p, i) => ({ p: p as Player | null, x: ((i + 1) / (row.length + 1)) * 100, y: flip ? 100 - Y[ri] : Y[ri] }))),
+    };
+  };
+  const lH = side(H, false), lA = side(A, true);
 
   // Analysis
   const sH = lH.rows.flat(), sA = lA.rows.flat(), oH = sH.filter((p) => p.pos !== 'GK'), oA = sA.filter((p) => p.pos !== 'GK');
@@ -177,18 +197,17 @@ export function MatchDetail({ matchId }: { matchId: string }) {
       {tab === 'lineup' && (
         <div className="lineup">
           <div className="pitch-col">
-            <div className="pitch-k">SƠ ĐỒ SÂN 7 · {FORMATION}{fromRsvp ? ' · THEO DANH SÁCH ĐĂNG KÝ' : ''}</div>
-            <div className="pitch">
-              <i className="mid" /><i className="circ" /><i className="box-t" /><i className="box-b" /><i className="six-t" /><i className="six-b" />
-              {tokens.map((t) => (
-                <button key={t.p.id} className="tok" style={{ left: t.x, top: t.y }} onClick={() => openCard(t.p.id)}>
-                  <div className="tok-in" style={{ animationDelay: t.delay }}>
-                    <div className="tok-ovr" style={{ background: t.color }}>{t.p.ovr}</div>
-                    <div className="tok-name">{t.p.name.split(' ').pop()}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <div className="pitch-k">{FORMAT_LABEL[fmt].toUpperCase()} · {A.short} {lA.label} · {H.short} {lH.label}{!lH.saved || !lA.saved ? (fromRsvp ? ' · THEO DANH SÁCH ĐĂNG KÝ' : ' · TỰ XẾP') : ''}</div>
+            <Pitch>
+              {([[lA, A], [lH, H]] as const).flatMap(([l, t], si) => l.toks.map((tk, i) => (
+                <Token key={t.id + i} p={tk.p} team={t} x={tk.x} y={tk.y} delay={(si * 7 + i) * 0.04} onClick={tk.p ? () => openCard(tk.p!.id) : undefined} />
+              )))}
+            </Pitch>
+            {(canTeam(H.id) || canTeam(A.id)) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {[H, A].filter((t) => canTeam(t.id)).map((t) => <button key={t.id} className="btn-upload" onClick={() => openModal({ kind: 'lineup', teamId: t.id, format: fmt })}>⚙ Xếp đội hình {t.short}</button>)}
+              </div>
+            )}
           </div>
           <div className="benches">
             {([[H, lH], [A, lA]] as const).map(([t, l]) => (

@@ -4,14 +4,13 @@ import { Crest, SecTitle } from '../components/bits';
 import { api, squadOf, useAccess, useLeague } from '../data/store';
 import { GORD, GROUP, hexA, ini, money, ROLE_LABEL, tier } from '../lib/league';
 import type { Role } from '../lib/types';
-import { useLogoUpload } from './Teams';
+import { LogoUpload } from './Teams';
 
 const MEMBERS = 'members';
 
 export function Manage({ teamId }: { teamId?: string }) {
   const { snap, user, go, openModal, run } = useLeague();
   const { canTeam, canAny, isAdmin, canRelease, isStaffPlayer } = useAccess();
-  const onLogo = useLogoUpload();
   const [pendingDel, setPendingDel] = useState<string | null>(null);
   if (!user || !canAny) return <div className="view"><div className="empty">Bạn không có quyền quản lý đội.</div></div>;
   const d = snap!;
@@ -55,7 +54,7 @@ export function Manage({ teamId }: { teamId?: string }) {
         <div className="mg-acts">
           <button className="up" onClick={() => openModal({ kind: 'editTeam', teamId: mt.id })}>Sửa thông tin</button>
           {user.role === 'chair' && user.team === mt.id && <button className="up grey" onClick={() => openModal({ kind: 'handover', teamId: mt.id })}>Bàn giao Chủ tịch</button>}
-          <label className="up">Tải logo<input type="file" accept="image/*" onChange={onLogo(mt.id)} /></label>
+          <LogoUpload teamId={mt.id} className="up" label="Tải logo" />
           {mt.logo && <button className="up grey" onClick={() => run(() => api.setTeamLogo(mt.id, null), 'Đã gỡ logo')}>Gỡ logo</button>}
         </div>
       </section>

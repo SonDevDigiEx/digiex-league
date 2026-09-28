@@ -2,11 +2,12 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Crest, PlayerCard } from '../components/bits';
 import { Spin, useAction } from '../data/useAction';
 import { api, useAccess, useLeague, type Modal } from '../data/store';
-import { dmy, DEFAULT_VENUE, nextFreeNum, ovrOf, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
+import { dmy, DEFAULT_VENUE, nextFreeNum, ovrOf, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, SWATCHES, tier } from '../lib/league';
 import type { Foot, Player, Pos, Role, TournamentInput } from '../lib/types';
 import { rulesTemplate, STRUCTURE_LABEL, TEMPLATES } from '../lib/tournament';
 import { MyApplications } from '../components/Applications';
-import { ImageCropper } from '../components/ImageCropper';
+import { CREST_ASPECT, ImageCropper } from '../components/ImageCropper';
+import { LineupBuilder } from './LineupBuilder';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -281,6 +282,7 @@ function TeamLogoBox({ teamId }: { teamId: string }) {
   const { tm } = useAccess();
   const { act, pending, busy } = useAction();
   const [preview, setPreview] = useState<{ blob: Blob; url: string } | null>(null);
+  const [crop, setCrop] = useState<File | null>(null);
   const [err, setErr] = useState('');
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
   const team = tm(teamId);
@@ -290,11 +292,12 @@ function TeamLogoBox({ teamId }: { teamId: string }) {
     e.target.value = '';
     if (!file) return;
     setErr('');
-    try { const blob = await readImg(file, 256, 'image/png'); setPreview({ blob, url: URL.createObjectURL(blob) }); }
-    catch { setErr('Không đọc được ảnh. Hãy chọn file JPG hoặc PNG.'); }
+    setCrop(file);
   };
   return (
     <div className="stat-box" style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+      {crop && <ImageCropper file={crop} aspect={CREST_ASPECT} outH={320} shield title="Căn chỉnh logo đội" onCancel={() => setCrop(null)}
+        onDone={(blob) => { setCrop(null); setPreview({ blob, url: URL.createObjectURL(blob) }); }} />}
       <Crest team={shown} style={{ width: 64, height: 72, fontSize: 26 }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 180 }}>
         <div style={{ font: "italic 800 18px/1 'Barlow Condensed',sans-serif", color: '#fff', textTransform: 'uppercase' }}>Logo {team.name}</div>
@@ -799,6 +802,7 @@ export function FormModal() {
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;
     case 'schedule': return <ScheduleForm />;
+    case 'lineup': return snap?.teams.some((t) => t.id === m.teamId) ? <LineupBuilder key={m.teamId} teamId={m.teamId} initial={m.format} /> : null;
     case 'apply': return snap?.teams.some((t) => t.id === m.teamId) ? <ApplyForm teamId={m.teamId} /> : null;
     case 'tournament': return <TournamentForm key={m.id || 'new'} id={m.id} />;
     case 'handover': return <HandoverForm teamId={m.teamId} />;

@@ -89,7 +89,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       await Promise.all(['roll_series', 'daily_value_refresh'].map((fn) =>
         sb.rpc(fn).then(({ error }) => { if (error) console.warn('[DigiEx League]', fn, error.message); })));
       const since = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
-      const [teams, players, matches, participants, series, history, tours, tteams, awards] = await Promise.all([
+      const [teams, players, matches, participants, series, history, tours, tteams, awards, lineups] = await Promise.all([
         sb.from('teams').select('*').order('created_at').then(check),
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
@@ -99,11 +99,13 @@ export function createSupabaseApi(url: string, key: string): Api {
         sb.from('tournaments').select('*').order('created_at', { ascending: false }).then(check),
         sb.from('tournament_teams').select('*').order('seed').then(check),
         sb.from('tournament_awards').select('*').order('created_at').then(check),
+        sb.from('team_lineups').select('*').then(check),
       ]);
       const valueHistory: Snapshot['valueHistory'] = {};
       (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
       const snap: Snapshot = {
         teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [], applications: [],
+        lineups: (lineups as Row[]).map((r) => ({ teamId: r.team_id, format: r.format, formation: r.formation, slots: (r.slots || []).map((s: Row) => ({ pid: s.pid ?? null, x: Number(s.x), y: Number(s.y) })) })),
         participants: participants.map(toParticipation),
         series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
         valueHistory,
@@ -192,7 +194,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       check(await sb.rpc('update_team', { p_team: teamId, p_name: f.name, p_short: f.short, p_motto: f.motto, p_quote: f.chairQuote ?? '', p_color: f.color, p_color2: f.color2 }));
     },
     async setTeamLogo(teamId, image) {
-      const logo_url = image ? await upload(`logos/${teamId}/${rid()}.png`, image) : null;
+      const logo_url = image ? await upload(`logos/${teamId}/${rid()}.${extOf(image)}`, image) : null;
       const rows = check(await sb.from('teams').update({ logo_url }).eq('id', teamId).select('id'));
       if (!rows.length) throw new Error('Bạn không có quyền với đội này.');
     },
@@ -277,6 +279,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async applyTeam(teamId, message) { check(await sb.rpc('apply_team', { p_team: teamId, p_message: message })); },
     async cancelApplication(id) { check(await sb.rpc('cancel_application', { p_id: id })); },
     async respondApplication(id, accept) { return check(await sb.rpc('respond_application', { p_id: id, p_accept: accept })) as string; },
+    async saveLineup(teamId, format, formation, slots) { check(await sb.rpc('save_lineup', { p_team: teamId, p_format: format, p_formation: formation, p_slots: slots })); },
     async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },
     async deleteUser(userId, deletePlayer) { check(await sb.rpc('delete_user', { p_user: userId, p_delete_player: deletePlayer })); },
     async setMom(matchId, playerId) { check(await sb.rpc('set_mom', { p_match: matchId, p_player: playerId })); },

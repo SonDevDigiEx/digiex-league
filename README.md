@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` and `supabase/migrations/20260928150000_team_applications.sql`. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` and `supabase/migrations/20260928160000_lineups.sql`. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -115,6 +115,14 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 - Free agents with a player card see *Ứng tuyển vào đội* on a team page. They can add a note, have up to 3 pending applications at once, and withdraw them from the team page or *Hồ sơ của tôi*.
 - The team's chairman (or an admin) accepts or rejects in *Chuyển nhượng → Đơn ứng tuyển* or on the team page. The market tab badge counts pending applications.
 - On acceptance the player joins the team and the move is logged. Their other pending applications and invitations lapse (trigger `lapse_applications` fires on any move into a team).
+
+### Lineups (đội hình)
+
+- Chairmen, BHL and admins open *⚙ Xếp đội hình* from the home page, the team page or the match page. The builder handles S7 and S5 separately, with templates for each: S7 `2-3-1 / 3-2-1 / 2-1-2-1 / 3-1-2 / 2-2-2`, S5 `2-1-1 / 1-2-1 / 2-2 / 1-1-2 / 3-1`.
+- Players can be dragged anywhere on the pitch. Picking a template re-arranges the players already on the pitch into that shape by position fit. Tapping a slot shows the squad sorted by fit, and choosing a player there swaps them in. Slots can stay empty; they show an empty-player icon. *Tự xếp theo chỉ số* fills the lineup from positions and OVR.
+- `save_lineup` (RPC) stores one lineup per team and format in `team_lineups`. It checks permissions and slot count, only allows the team's own players, and rejects duplicates.
+- The home page shows every team's starting lineup. On the match page each team stands in its own half using its saved lineup; the format is the tournament's, or S7 by default. Teams without a saved lineup fall back to the automatic one.
+- Team logos also go through the cropper, with a shield-shaped frame.
 
 ### Player ranking (home page)
 

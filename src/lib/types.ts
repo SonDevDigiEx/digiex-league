@@ -1,3 +1,4 @@
+import type { Lineup } from './formation';
 /** 'pending' = signed in but not yet approved by an admin (sees only what guests see). */
 export type Role = 'admin' | 'chair' | 'coach' | 'member' | 'pending';
 export type Pos = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LW' | 'RW' | 'ST';
@@ -165,6 +166,8 @@ export interface Snapshot {
   awards: Award[];
   /** Free agents' applications to join a team (signed-in viewers only). */
   applications: Application[];
+  /** Saved starting lineups (team × S5/S7). */
+  lineups: Lineup[];
 }
 
 export interface Application {
