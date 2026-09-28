@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Lock, OvrBadge, SecTitle, Trend } from '../components/bits';
+import { ApplicationsBox } from '../components/Applications';
 import { api, useAccess, useLeague } from '../data/store';
 import { dmy, fold, GROUP, ini, money, valueTrend } from '../lib/league';
 import type { Group, OfferStatus, Player } from '../lib/types';
@@ -78,6 +79,7 @@ export function Market() {
           })}
         </div>
         <div className="mk-side">
+          <ApplicationsBox />
           {(isAdmin || !!staffT) && (
             <div className="rq">
               <div className="row-sb">

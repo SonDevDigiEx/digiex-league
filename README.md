@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` and `supabase/migrations/20260928140000_rename_delete_user.sql`. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` and `supabase/migrations/20260928150000_team_applications.sql`. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -108,6 +108,17 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 
 - Users rename themselves in *Hồ sơ của tôi* (RPC `set_my_name`, 2–40 characters, at most once every 24 hours). The new name is also written to their player card and to the chairman/BHL line on the team card.
 - In *Quản lý → Thành viên*, admins can delete any account except their own (RPC `delete_user`). The player card is kept, unlinked from the account, unless *Xóa luôn thẻ cầu thủ* is ticked. If the deleted user was a chairman or BHL, the team card goes back to *Chưa bổ nhiệm*.
+
+### Team applications
+
+- Free agents with a player card see *Ứng tuyển vào đội* on a team page. They can add a note, have up to 3 pending applications at once, and withdraw them from the team page or *Hồ sơ của tôi*.
+- The team's chairman (or an admin) accepts or rejects in *Chuyển nhượng → Đơn ứng tuyển* or on the team page. The market tab badge counts pending applications.
+- On acceptance the player joins the team and the move is logged. Their other pending applications and invitations lapse (trigger `lapse_applications` fires on any move into a team).
+
+### Player ranking (home page)
+
+- Only players who are on a team are ranked. The metrics come from finished matches: goals (the larger of the admin's scorer list and the approved self-report, per match), assists and saves (approved self-reports), and consistency (average rating minus its standard deviation, shown once a player has 3 rated matches).
+- Players can be sorted by any metric (chips or column headers) and filtered by team. The top 3 for the chosen metric rotate in an auto-playing spotlight with their card.
 
 ### Hall of fame (Vinh danh)
 

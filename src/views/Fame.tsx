@@ -24,9 +24,12 @@ function CountUp({ to, ms = 1100 }: { to: number; ms?: number }) {
 
 /** Round player photo, or initials on the team colours. */
 export function FameAvatar({ p, team, size }: { p: Player; team: Team; size: number }) {
+  const { snap } = useLeague();
+  // Player photo, else the account's Google avatar.
+  const src = p.photo || (p.userId ? snap?.members.find((m) => m.id === p.userId)?.avatar : null) || null;
   return (
-    <div className="fa" style={{ width: size, height: size, fontSize: size * 0.34, background: p.photo ? `center/cover no-repeat url("${p.photo}")` : `linear-gradient(135deg, ${team.color}, ${team.color2})` }}>
-      {p.photo ? '' : ini(p.name)}
+    <div className="fa" style={{ width: size, height: size, fontSize: size * 0.34, background: src ? `center/cover no-repeat url("${src}")` : `linear-gradient(135deg, ${team.color}, ${team.color2})` }}>
+      {src ? '' : ini(p.name)}
     </div>
   );
 }

@@ -102,7 +102,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       const valueHistory: Snapshot['valueHistory'] = {};
       (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
       const snap: Snapshot = {
-        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [],
+        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [], applications: [],
         participants: participants.map(toParticipation),
         series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
         valueHistory,
@@ -116,13 +116,15 @@ export function createSupabaseApi(url: string, key: string): Api {
         })),
       };
       if (!me) return snap;
-      const [transfers, offers, stats, votes, members] = await Promise.all([
+      const [transfers, offers, stats, votes, members, apps] = await Promise.all([
         sb.from('transfers').select('*').order('id').then(check),
         sb.from('offers').select('*, creator:profiles(name)').then(check),
         sb.rpc('vote_stats').then(check),
         sb.from('votes').select('match_id, winner, score').eq('user_id', me).then(check),
         sb.from('profiles').select('*').order('name').then(check),
+        sb.from('team_applications').select('*').order('created_at', { ascending: false }).then(check),
       ]);
+      snap.applications = (apps as Row[]).map((r) => ({ id: r.id, playerId: r.player_id, teamId: r.team_id, message: r.message, status: r.status, date: r.created_at }));
       snap.transfers = transfers.map(toTransfer);
       snap.offers = offers.map(toOffer);
       snap.members = members.map(toProfile);
@@ -271,6 +273,9 @@ export function createSupabaseApi(url: string, key: string): Api {
       const n = f.teamIds?.length ?? (await sb.from('tournament_teams').select('team_id', { count: 'exact', head: true }).eq('tournament_id', id)).count ?? 0;
       if ((f.teamIds || f.structure || f.groupCount) && n >= 2) check(await sb.rpc('draw_tournament', { p_id: id }));
     },
+    async applyTeam(teamId, message) { check(await sb.rpc('apply_team', { p_team: teamId, p_message: message })); },
+    async cancelApplication(id) { check(await sb.rpc('cancel_application', { p_id: id })); },
+    async respondApplication(id, accept) { return check(await sb.rpc('respond_application', { p_id: id, p_accept: accept })) as string; },
     async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },
     async deleteUser(userId, deletePlayer) { check(await sb.rpc('delete_user', { p_user: userId, p_delete_player: deletePlayer })); },
     async setMom(matchId, playerId) { check(await sb.rpc('set_mom', { p_match: matchId, p_player: playerId })); },

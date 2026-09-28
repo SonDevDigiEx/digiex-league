@@ -59,7 +59,8 @@ export type Modal =
   | { kind: 'tournament'; id?: string }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
-  | { kind: 'schedule' };
+  | { kind: 'schedule' }
+  | { kind: 'apply'; teamId: string };
 
 export interface Toast { msg: string; err?: boolean; key: number }
 

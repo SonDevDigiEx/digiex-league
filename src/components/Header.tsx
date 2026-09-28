@@ -6,7 +6,7 @@ export function Header() {
   const { canAny, myT, tm, isAdmin, myPlayer } = useAccess();
   // Offers / invitations about the signed-in player.
   const mine = myPlayer && snap ? snap.offers.filter((o) => o.pid === myPlayer.id && o.status === 'pending').length : 0;
-  const inCount = myT && snap ? snap.offers.filter((o) => o.to === myT && o.status === 'pending').length : 0;
+  const inCount = myT && snap ? snap.offers.filter((o) => o.to === myT && o.status === 'pending').length + snap.applications.filter((a) => a.teamId === myT && a.status === 'pending').length : 0;
   const waiting = isAdmin && snap ? snap.members.filter((m) => m.role === 'pending').length : 0;
   const items: [Route['view'], string][] = [['home', 'Trang chủ'], ['teams', 'Đội bóng'], ['matches', 'Trận đấu'], ['fame', 'Vinh danh'], ['market', 'Chuyển nhượng'], ...(canAny ? [['manage', 'Quản lý'] as [Route['view'], string]] : [])];
 

@@ -2,6 +2,7 @@ import { Crest, PlayerCard, SecTitle } from '../components/bits';
 import { api, hrefOf, squadOf, useAccess, useLeague } from '../data/store';
 import { GNAME, GROUP, hexA, ini, readImg, record, sortedMatches } from '../lib/league';
 import { awardIcon } from '../lib/tournament';
+import { ApplicationsBox, ApplyButton } from '../components/Applications';
 import type { Group } from '../lib/types';
 
 /** File input handler: downscale then upload as the team logo. */
@@ -74,6 +75,7 @@ export function Teams({ teamId }: { teamId?: string }) {
               <div className="team-founded">THÀNH LẬP {ct.founded}</div>
               <h1 className="team-name">{ct.name}</h1>
               <div className="team-motto">“{ct.motto}”</div>
+              <ApplyButton teamId={ct.id} />
               {can && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button className="btn-upload" onClick={() => openModal({ kind: 'editTeam', teamId: ct.id })}>Sửa thông tin</button>
@@ -99,6 +101,7 @@ export function Teams({ teamId }: { teamId?: string }) {
         </div>
       </section>
 
+      <ApplicationsBox teamId={ct.id} />
       {teamAwards.length > 0 && (
         <section className="panel">
           <SecTitle sm color="#f5c542">Lịch sử giải thưởng · {teamAwards.length}</SecTitle>

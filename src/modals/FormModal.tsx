@@ -5,6 +5,7 @@ import { api, useAccess, useLeague, type Modal } from '../data/store';
 import { dmy, DEFAULT_VENUE, nextFreeNum, ovrOf, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Player, Pos, Role, TournamentInput } from '../lib/types';
 import { rulesTemplate, STRUCTURE_LABEL, TEMPLATES } from '../lib/tournament';
+import { MyApplications } from '../components/Applications';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -125,6 +126,7 @@ function MeForm() {
         </div>
       </div>
 
+      <MyApplications />
       {player ? (
         <>
           <div className="cm-info">
@@ -704,6 +706,29 @@ function TournamentForm({ id }: { id?: string }) {
   );
 }
 
+/** Free agent: apply to join a team, with an optional note for the chairman. */
+function ApplyForm({ teamId }: { teamId: string }) {
+  const { snap } = useLeague();
+  const { tm, myPlayer } = useAccess();
+  const team = tm(teamId);
+  const [msg, setMsg] = useState('');
+  const { err, busy, submit } = useSubmit();
+  const members = snap!.players.filter((p) => p.teamId === teamId).length;
+  return (
+    <Shell title="Ứng tuyển vào đội" cta="Gửi đơn ứng tuyển" err={err} busy={busy} onSubmit={() => submit(() => api.applyTeam(teamId, msg.trim()), `Đã gửi đơn tới ${team.name} — chờ Chủ tịch duyệt`)}>
+      <div className="apply-head">
+        <Crest team={team} />
+        <div><b>{team.name}</b><span>{members} cầu thủ · Chủ tịch {team.chair.name}</span></div>
+      </div>
+      {myPlayer && <div className="note">Bạn ứng tuyển với hồ sơ <b style={{ color: '#fff' }}>{myPlayer.name}</b> · {myPlayer.positions.join(' / ')} · OVR {myPlayer.ovr}.</div>}
+      <label className="fld">Lời nhắn cho Chủ tịch (không bắt buộc)
+        <textarea className="inp" rows={3} maxLength={200} value={msg} placeholder="VD: Em đá cánh phải, tối thứ 4 nào cũng đi được." onChange={(e) => setMsg(e.target.value)} />
+      </label>
+      <div className="fm-note">Chủ tịch đội sẽ nhận hoặc từ chối. Được nhận thì bạn vào đội ngay; các đơn khác đang chờ sẽ <span>tự hủy</span>.</div>
+    </Shell>
+  );
+}
+
 function ScheduleForm() {
   const { snap } = useLeague();
   const T = snap!.teams;
@@ -763,6 +788,7 @@ export function FormModal() {
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;
     case 'schedule': return <ScheduleForm />;
+    case 'apply': return snap?.teams.some((t) => t.id === m.teamId) ? <ApplyForm teamId={m.teamId} /> : null;
     case 'tournament': return <TournamentForm key={m.id || 'new'} id={m.id} />;
     case 'handover': return <HandoverForm teamId={m.teamId} />;
     case 'cancelMatch': return snap?.matches.some((x) => x.id === m.matchId) ? <CancelMatchForm matchId={m.matchId} /> : null;

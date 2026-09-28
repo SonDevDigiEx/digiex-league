@@ -163,6 +163,18 @@ export interface Snapshot {
   valueHistory: Record<string, { day: string; value: number }[]>;
   tournaments: Tournament[];
   awards: Award[];
+  /** Free agents' applications to join a team (signed-in viewers only). */
+  applications: Application[];
+}
+
+export interface Application {
+  id: string;
+  playerId: string;
+  teamId: string;
+  message: string | null;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  /** ISO date-time */
+  date: string;
 }
 
 export interface TournamentSettings {

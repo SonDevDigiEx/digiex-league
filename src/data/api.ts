@@ -42,6 +42,11 @@ export interface Api {
   setMom(matchId: string, playerId: string | null): Promise<void>;
   /** Own display name (also on the player / team card); once every 24 h. */
   setMyName(name: string): Promise<void>;
+  /** Free agent: apply to join a team (the team's chairman decides). */
+  applyTeam(teamId: string, message: string): Promise<void>;
+  cancelApplication(id: string): Promise<void>;
+  /** Chairman of the team (or admin): accept / reject; returns a message. */
+  respondApplication(id: string, accept: boolean): Promise<string>;
   /** Admin: delete an account; optionally its player card too. */
   deleteUser(userId: string, deletePlayer: boolean): Promise<void>;
   addAward(award: Omit<Award, 'id'>): Promise<void>;

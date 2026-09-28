@@ -5,6 +5,7 @@ import type { Match, Team } from '../lib/types';
 import { Countdown } from './Matches';
 import { TournamentBanner } from './Tournament';
 import { FameAvatar } from './Fame';
+import { PlayerRanking } from './Ranking';
 import { currentPeriod, periodLabel, topMom, topScorers } from '../lib/fame';
 
 export function ResultRow({ m, i, H, A }: { m: Match; i: number; H: Team; A: Team }) {
@@ -131,6 +132,7 @@ export function Home() {
         </section>
       </div>
 
+      <PlayerRanking />
       {fame.length > 0 && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="row-sb">
