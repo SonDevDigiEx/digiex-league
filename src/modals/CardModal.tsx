@@ -106,9 +106,18 @@ function ValueBox({ playerId, value, trend, history }: { playerId: string; value
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState('');
   useEffect(() => { setF(null); setOpen(false); }, [playerId]);
+  const { reload } = useLeague();
   const toggle = async () => {
     setOpen((o) => !o);
-    if (!f) { try { setF(await api.valueFactors(playerId)); } catch (e) { setErr((e as Error).message); } }
+    if (f) return;
+    try {
+      const live = await api.valueFactors(playerId);
+      setF(live);
+      // The stored value drifted from the formula: let the server resync it, then refresh the page data.
+      if (Math.abs(Number(live.value) - value) >= 0.05) {
+        api.syncPlayerValue(playerId).then(() => reload()).catch((e) => console.error('[DigiEx League] sync value', e));
+      }
+    } catch (e) { setErr((e as Error).message); }
   };
   const pct = (x: number) => { const d = Math.round((x - 1) * 100); return d === 0 ? '±0%' : (d > 0 ? '+' : '−') + Math.abs(d) + '%'; };
   const cls = (x: number) => (x > 1.001 ? 'pos' : x < 0.999 ? 'neg' : '');

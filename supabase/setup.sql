@@ -34,7 +34,7 @@ drop function if exists public.handle_new_user(), public.my_role(), public.my_te
   public.xp_cost(int), public.pos_weights(text), public.xp_split(text, int), public.pos_group(text), public.apply_xp(text, int[]),
   public.grant_xp(text, text, text, int[], text, uuid), public.refresh_match_xp(text), public.tg_match_xp(), public.hot_bonus(text), public.starter_stats(text), public.players_starter(),
   public.vn_when(timestamptz), public.mark_notifications_read(bigint[]), public.notify_new_match(), public.notify_new_tournament(), public.notify_application(), public.set_attendance(text, text, text),
-  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join() cascade;
+  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text) cascade;
 drop table if exists public.match_busy, public.notifications, public.player_xp, public.team_lineups, public.team_applications, public.player_value_history, public.app_state, public.tournament_awards, public.tournament_teams, public.tournaments cascade;
 drop table if exists public.match_series cascade;
 drop trigger if exists on_auth_user_updated on auth.users;
@@ -2878,6 +2878,39 @@ begin
     alter publication supabase_realtime add table public.match_busy;
   end if;
 end $$;
+-- Keep the stored market value (players.value) equal to the live calculation (value_factors):
+--   * report and fix any player whose stored value drifted,
+--   * refresh everyone at most once an hour (was once a day) on page load,
+--   * sync_player_value: anyone viewing a card can make the server recompute that one player.
+
+-- 1) What drifted (shown in the SQL editor output), then resync all.
+select p.name, p.value as stored, public.compute_player_value(p.id) as live
+from public.players p
+where p.value is distinct from public.compute_player_value(p.id)
+order by abs(coalesce(p.value, 0) - public.compute_player_value(p.id)) desc;
+
+select public.refresh_all_values();
+
+-- 2) Hourly instead of daily (same RPC name, the app already calls it on load).
+create or replace function public.daily_value_refresh() returns void
+language plpgsql security definer set search_path = public as $$
+declare stamp text := to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD HH24');
+begin
+  if exists (select 1 from public.app_state where key = 'values_refreshed_on' and value = stamp) then return; end if;
+  insert into public.app_state (key, value) values ('values_refreshed_on', stamp)
+  on conflict (key) do update set value = excluded.value;
+  perform public.refresh_all_values();
+end $$;
+
+-- 3) Recompute one player on demand (harmless: it only applies the official formula).
+create or replace function public.sync_player_value(p_player text) returns numeric
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.refresh_player_value(p_player);
+  return (select value from public.players where id = p_player);
+end $$;
+revoke execute on function public.sync_player_value(text) from public;
+grant execute on function public.sync_player_value(text) to anon, authenticated;
 -- Starting teams. Players, fixtures and people are entered through the app.
 insert into public.teams (id, name, short, color, color2, motto, founded, chair_quote) values
   ('f8', 'F8 Warriors', 'F8', '#ff3b5c', '#7a0f24', 'Không lùi bước, máu lửa từ phút đầu tiên', 2024, 'Chơi hết mình, thắng bằng tinh thần.'),

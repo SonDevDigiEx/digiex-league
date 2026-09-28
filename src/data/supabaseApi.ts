@@ -207,6 +207,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
     async handoverChair(userId) { check(await sb.rpc('handover_chair', { p_user: userId })); },
     async setMyNumber(num) { check(await sb.rpc('set_my_number', { p_num: num })); },
+    async syncPlayerValue(playerId) { return Number(check(await sb.rpc('sync_player_value', { p_player: playerId }))); },
     async valueFactors(playerId) { return check(await sb.rpc('value_factors', { p_player: playerId })) as ValueFactors; },
     async setMyPositions(positions) { check(await sb.rpc('set_my_positions', { p_positions: positions })); },
     async rejectMember(userId) { check(await sb.rpc('reject_member', { p_user: userId })); },

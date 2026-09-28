@@ -67,6 +67,8 @@ export interface Api {
   deleteAward(id: string): Promise<void>;
   /** Why a player is worth what they're worth. */
   valueFactors(playerId: string): Promise<ValueFactors>;
+  /** Recompute one player's stored market value on the server (if it drifted). */
+  syncPlayerValue(playerId: string): Promise<number>;
   /** Reject a pending sign-up (deletes the account). */
   rejectMember(userId: string): Promise<void>;
   /**
