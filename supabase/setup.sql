@@ -29,7 +29,7 @@ drop function if exists public.handle_new_user(), public.my_role(), public.my_te
   public.compute_ovr(text, int[]), public.players_derive(), public.set_my_positions(text[]),
   public.vn_today(), public.value_factors(text), public.compute_player_value(text), public.refresh_player_value(text), public.refresh_all_values(),
   public.daily_value_refresh(), public.tg_value_player(), public.tg_value_related(), public.tg_value_match(),
-  public.draw_tournament(text), public.register_tournament(text, boolean) cascade;
+  public.draw_tournament(text), public.register_tournament(text, boolean), public.set_mom(text, text) cascade;
 drop table if exists public.player_value_history, public.app_state, public.tournament_awards, public.tournament_teams, public.tournaments cascade;
 drop table if exists public.match_series cascade;
 drop trigger if exists on_auth_user_updated on auth.users;
@@ -1823,6 +1823,32 @@ end $$;
 
 revoke execute on function public.register_tournament(text, boolean) from public, anon;
 grant execute on function public.register_tournament(text, boolean) to authenticated;
+-- Man of the Match: picked after the final whistle by the admin or the chairman of either team.
+alter table public.matches add column if not exists mom_player text references public.players on delete set null;
+
+create or replace function public.set_mom(p_match text, p_player text) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  m public.matches;
+begin
+  select * into m from public.matches where id = p_match for update;
+  if not found then raise exception 'Không tìm thấy trận đấu.'; end if;
+  if not (public.is_admin() or public.is_chair_of(m.home_team) or public.is_chair_of(m.away_team)) then
+    raise exception 'Chỉ Ban tổ chức hoặc Chủ tịch của hai đội được chọn MOM.';
+  end if;
+  if m.status <> 'done' then raise exception 'Chỉ chọn MOM khi trận đã kết thúc.'; end if;
+  if p_player is not null and not exists (
+    select 1 from public.match_players where match_id = p_match and player_id = p_player
+    union all
+    select 1 from public.players where id = p_player and team_id in (m.home_team, m.away_team)
+  ) then
+    raise exception 'Cầu thủ này không thi đấu trận này.';
+  end if;
+  update public.matches set mom_player = p_player where id = p_match;
+end $$;
+
+revoke execute on function public.set_mom(text, text) from public, anon;
+grant execute on function public.set_mom(text, text) to authenticated;
 -- Starting teams. Players, fixtures and people are entered through the app.
 insert into public.teams (id, name, short, color, color2, motto, founded, chair_quote) values
   ('f8', 'F8 Warriors', 'F8', '#ff3b5c', '#7a0f24', 'Không lùi bước, máu lửa từ phút đầu tiên', 2024, 'Chơi hết mình, thắng bằng tinh thần.'),

@@ -17,7 +17,7 @@ export const api: Api = createSupabaseApi(sbUrl || 'https://not-configured.inval
 
 export type Route =
   | { view: 'home' } | { view: 'teams'; teamId?: string } | { view: 'matches' } | { view: 'match'; matchId: string }
-  | { view: 'market' } | { view: 'manage'; teamId?: string } | { view: 'tournament'; id: string };
+  | { view: 'market' } | { view: 'manage'; teamId?: string } | { view: 'tournament'; id: string } | { view: 'fame' };
 
 function parseHash(): Route {
   const [a, b] = window.location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
@@ -26,6 +26,7 @@ function parseHash(): Route {
     case 'matches': return { view: 'matches' };
     case 'match': return b ? { view: 'match', matchId: b } : { view: 'matches' };
     case 'market': return { view: 'market' };
+    case 'vinh-danh': return { view: 'fame' };
     case 'tournament': return b ? { view: 'tournament', id: b } : { view: 'home' };
     case 'manage': return { view: 'manage', teamId: b };
     default: return { view: 'home' };
@@ -38,6 +39,7 @@ export function hrefOf(r: Route) {
     case 'match': return `#/match/${r.matchId}`;
     case 'manage': return r.teamId ? `#/manage/${r.teamId}` : '#/manage';
     case 'tournament': return `#/tournament/${r.id}`;
+    case 'fame': return '#/vinh-danh';
     default: return `#/${r.view}`;
   }
 }

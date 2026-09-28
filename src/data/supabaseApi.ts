@@ -15,7 +15,7 @@ const toPlayer = (r: Row): Player => ({
 });
 const toMatch = (r: Row): Match => ({
   id: r.id, date: r.kickoff, home: r.home_team, away: r.away_team, hs: r.home_score, as: r.away_score, status: r.status,
-  venue: r.venue, scorers: (r.scorers || []) as Goal[], votes: { home: 0, draw: 0, away: 0 }, sv: {},
+  venue: r.venue, scorers: (r.scorers || []) as Goal[], mom: r.mom_player ?? null, votes: { home: 0, draw: 0, away: 0 }, sv: {},
   cancelReason: r.cancel_reason ?? null, seriesId: r.series_id ?? null, tournamentId: r.tournament_id ?? null, stage: r.stage ?? null,
 });
 const toTransfer = (r: Row): Transfer => ({ pid: r.player_id, name: r.player_name, from: r.from_team, to: r.to_team, fee: Number(r.fee), date: r.created_on });
@@ -271,6 +271,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       const n = f.teamIds?.length ?? (await sb.from('tournament_teams').select('team_id', { count: 'exact', head: true }).eq('tournament_id', id)).count ?? 0;
       if ((f.teamIds || f.structure || f.groupCount) && n >= 2) check(await sb.rpc('draw_tournament', { p_id: id }));
     },
+    async setMom(matchId, playerId) { check(await sb.rpc('set_mom', { p_match: matchId, p_player: playerId })); },
     async registerTournament(id, join) { check(await sb.rpc('register_tournament', { p_id: id, p_join: join })); },
     async deleteTournament(id) {
       const rows = check(await sb.from('tournaments').delete().eq('id', id).select('id'));

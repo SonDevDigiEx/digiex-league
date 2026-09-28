@@ -4,6 +4,8 @@ import { crestBg, fDate, fTime, hexA, money, record, sortedMatches, valueTrend }
 import type { Match, Team } from '../lib/types';
 import { Countdown } from './Matches';
 import { TournamentBanner } from './Tournament';
+import { FameAvatar } from './Fame';
+import { currentPeriod, periodLabel, topMom, topScorers } from '../lib/fame';
 
 export function ResultRow({ m, i, H, A }: { m: Match; i: number; H: Team; A: Team }) {
   const { go } = useLeague();
@@ -43,6 +45,10 @@ export function Home() {
   // Featured tournament: ongoing first, then the nearest upcoming, else the latest finished.
   const rank = { ongoing: 0, upcoming: 1, finished: 2 } as const;
   const featured = d.tournaments.slice().sort((a, b) => rank[a.status] - rank[b.status] || (b.startsOn || '').localeCompare(a.startsOn || ''))[0];
+  const month = currentPeriod('month');
+  const fame = ([['⚽', 'Vua phá lưới', topScorers(d.matches, d.participants, month)[0], 'bàn'], ['⭐', 'MOM nhiều nhất', topMom(d.matches, month)[0], 'lần']] as const)
+    .map(([icon, label, l, unit]) => ({ icon, label, unit, l, p: l && d.players.find((x) => x.id === l.playerId) }))
+    .filter((x) => x.p);
   const others = d.tournaments.filter((x) => x.id !== featured?.id).slice(0, 4);
 
   return (
@@ -125,6 +131,23 @@ export function Home() {
         </section>
       </div>
 
+      {fame.length > 0 && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="row-sb">
+            <SecTitle color="#f5c542">Vinh danh {periodLabel(month).toLowerCase()}</SecTitle>
+            <a className="more" href={hrefOf({ view: 'fame' })} onClick={(e) => { e.preventDefault(); go({ view: 'fame' }); }}>Đại sảnh danh vọng →</a>
+          </div>
+          <div className="fame-teaser">
+            {fame.map((f) => (
+              <button key={f.label} className="ft" onClick={() => go({ view: 'fame' })}>
+                <span className="ft-ring"><FameAvatar p={f.p!} team={tm(f.p!.teamId)} size={72} /></span>
+                <span className="ft-txt"><small>{f.icon} {f.label.toUpperCase()}</small><b>{f.p!.name}</b><em>{tm(f.p!.teamId).name}</em></span>
+                <span className="ft-val"><b>{f.l!.value}</b><small>{f.unit}</small></span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       {risers.length > 0 && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <SecTitle color="#4ade80">Tăng giá mạnh nhất tuần</SecTitle>

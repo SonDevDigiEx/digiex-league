@@ -67,6 +67,8 @@ export interface Match {
   stage: string | null;
   venue: string;
   scorers: Goal[];
+  /** Man of the Match (player id), picked by staff after the match. */
+  mom: string | null;
   /** Aggregated winner votes */
   votes: Record<WinnerKey, number>;
   /** Aggregated score predictions, e.g. {"2-1": 8} */

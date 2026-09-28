@@ -38,6 +38,8 @@ export interface Api {
   drawTournament(id: string): Promise<void>;
   /** Chair: register / withdraw the own team (upcoming tournaments only). */
   registerTournament(id: string, join: boolean): Promise<void>;
+  /** Admin or either team's chairman: Man of the Match (null clears). */
+  setMom(matchId: string, playerId: string | null): Promise<void>;
   addAward(award: Omit<Award, 'id'>): Promise<void>;
   deleteAward(id: string): Promise<void>;
   /** Why a player is worth what they're worth. */

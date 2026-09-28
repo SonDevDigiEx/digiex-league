@@ -4,6 +4,8 @@ import { api, findMatch, hrefOf, squadOf, useAccess, useLeague, useNow } from '.
 import { clamp, fDate, fTime, FORMATION, hexA, lineup, record, sortedMatches } from '../lib/league';
 import type { Goal, Match, Player, WinnerKey } from '../lib/types';
 import { MatchStats, participantsOf, Rsvp } from './MatchPlayers';
+import { FameAvatar } from './Fame';
+import { Spin, useAction } from '../data/useAction';
 
 export function Countdown({ iso, small }: { iso: string; small?: boolean }) {
   const now = useNow();
@@ -160,6 +162,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
             </div>
           )}
           {isDone && (m.scorers || []).length > 0 && <div className="goals"><div>{goals('home')}</div><div>{goals('away')}</div></div>}
+          {isDone && <MomBox m={m} />}
         </div>
       </section>
 
@@ -342,6 +345,51 @@ function ResultPanel({ m }: { m: Match }) {
         if (!confirmDel) return setConfirmDel(true);
         run(() => api.deleteMatch(m.id), 'Đã xóa trận đấu').then((ok) => ok && go({ view: 'matches' }));
       }}>{confirmDel ? 'Xác nhận xóa trận (mất cả vote)' : 'Xóa trận đấu'}</button>
+    </div>
+  );
+}
+
+/** Man of the Match: shown after the match; the admin or either team's chairman picks it. */
+function MomBox({ m }: { m: Match }) {
+  const { snap, openCard } = useLeague();
+  const { tm, isAdmin, myT } = useAccess();
+  const { act, busy } = useAction(1500);
+  const [pick, setPick] = useState(false);
+  const d = snap!;
+  const can = isAdmin || (!!myT && (myT === m.home || myT === m.away));
+  const mom = m.mom ? d.players.find((p) => p.id === m.mom) : undefined;
+  if (!mom && !can) return null;
+  // Candidates: registered players, else both squads. Sorted by goals in this match, then approved rating.
+  const reg = participantsOf(d.participants, m.id);
+  const ids = reg.length ? new Set(reg.map((r) => r.playerId)) : null;
+  const goalsOf = (pid: string) => Math.max(m.scorers.filter((g) => g.pid === pid).length, reg.find((r) => r.playerId === pid && r.status === 'approved')?.goals ?? 0);
+  const ratingOf = (pid: string) => reg.find((r) => r.playerId === pid && r.status === 'approved')?.rating ?? 0;
+  const cands = d.players.filter((p) => (ids ? ids.has(p.id) : p.teamId === m.home || p.teamId === m.away))
+    .sort((a, b) => goalsOf(b.id) - goalsOf(a.id) || ratingOf(b.id) - ratingOf(a.id) || b.ovr - a.ovr);
+  const choose = (pid: string | null) => act('mom', () => api.setMom(m.id, pid), pid ? 'Đã chọn MOM: ' + d.players.find((p) => p.id === pid)?.name : 'Đã bỏ chọn MOM').then(() => setPick(false));
+  return (
+    <div className="mom">
+      {mom ? (
+        <button className="mom-card" onClick={() => openCard(mom.id)}>
+          <span className="mom-ring"><FameAvatar p={mom} team={tm(mom.teamId)} size={64} /></span>
+          <span className="mom-txt"><small>⭐ CẦU THỦ XUẤT SẮC TRẬN</small><b>{mom.name}</b><em>{tm(mom.teamId).name}</em></span>
+        </button>
+      ) : <div className="note">Chưa chọn cầu thủ xuất sắc trận (MOM).</div>}
+      {can && !pick && <button className="btn-upload" onClick={() => setPick(true)}>{mom ? 'Đổi MOM' : '⭐ Chọn MOM'}</button>}
+      {can && pick && (
+        <div className="mom-pick">
+          {cands.slice(0, 16).map((p) => (
+            <button key={p.id} className={'mom-opt' + (p.id === m.mom ? ' on' : '')} disabled={busy} onClick={() => choose(p.id)}>
+              <FameAvatar p={p} team={tm(p.teamId)} size={28} /><span>{p.name}</span>{goalsOf(p.id) > 0 && <em>⚽{goalsOf(p.id)}</em>}
+            </button>
+          ))}
+          {!cands.length && <div className="note">Chưa có cầu thủ nào tham gia trận này.</div>}
+          <div style={{ display: 'flex', gap: 6 }}>
+            {m.mom && <button className="btn-upload" disabled={busy} onClick={() => choose(null)}>Bỏ chọn</button>}
+            <button className="btn-upload" onClick={() => setPick(false)}>{busy ? <Spin /> : 'Đóng'}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

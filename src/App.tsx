@@ -8,6 +8,7 @@ import { Market } from './views/Market';
 import { MatchDetail, Matches } from './views/Matches';
 import { Teams } from './views/Teams';
 import { Tournament } from './views/Tournament';
+import { Fame } from './views/Fame';
 
 function Body() {
   const { snap, loadError, route, reload } = useLeague();
@@ -27,6 +28,7 @@ function Body() {
     case 'match': return <MatchDetail key={route.matchId} matchId={route.matchId} />;
     case 'market': return <Market />;
     case 'tournament': return <Tournament key={route.id} id={route.id} />;
+    case 'fame': return <Fame />;
     case 'manage': return <Manage teamId={route.teamId} />;
     default: return <Home />;
   }
