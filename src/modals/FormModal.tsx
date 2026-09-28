@@ -94,7 +94,7 @@ function MeForm() {
     e.target.value = '';
     if (!file) return;
     setErr('');
-    try { const blob = await readImg(file, 360, 'image/jpeg'); setPreview({ blob, url: URL.createObjectURL(blob) }); }
+    try { const blob = await readImg(file, 480, 'photo'); setPreview({ blob, url: URL.createObjectURL(blob) }); }
     catch { setErr('Không đọc được ảnh. Hãy chọn file JPG hoặc PNG.'); }
   };
   const save = async (blob: Blob | null) => {
@@ -434,7 +434,7 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
     e.target.value = '';
     if (!file) return;
     setUploading(true);
-    try { const url = await api.uploadPlayerPhoto(team.id, await readImg(file, 360, 'image/jpeg')); setF((s) => ({ ...s, photo: url })); }
+    try { const url = await api.uploadPlayerPhoto(team.id, await readImg(file, 480, 'photo')); setF((s) => ({ ...s, photo: url })); }
     catch (x) { flash((x as Error).message || 'Không đọc được ảnh', true); }
     finally { setUploading(false); }
   };

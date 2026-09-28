@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Foot, Goal, Match, MyVote, Offer, OfferStatus, Participation, Player, Pos, Profile, Role, Snapshot, StatsStatus, Team, Transfer, ValueFactors, WinnerKey } from '../lib/types';
 import type { Api } from './api';
+import { extOf } from '../lib/league';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
@@ -176,7 +177,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async setMyPhoto(image) {
       const me = await uid();
       if (!me) throw new Error('Bạn cần đăng nhập.');
-      const url = image ? await upload(`avatars/${me}/${rid()}.jpg`, image) : null;
+      const url = image ? await upload(`avatars/${me}/${rid()}.${extOf(image)}`, image) : null;
       check(await sb.rpc('set_my_photo', { p_url: url }));
     },
     takeAuthError() { const e = authError; authError = null; return e; },
@@ -212,7 +213,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
 
     // Free agents' photos live under players/free/ (admin-only folder).
-    uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId || 'free'}/${rid()}.jpg`, image),
+    uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId || 'free'}/${rid()}.${extOf(image)}`, image),
     async savePlayer(f) {
       const row = { team_id: f.teamId, name: f.name.trim(), pos: f.positions[0] ?? f.pos, positions: f.positions.length ? f.positions : [f.pos], ovr: f.ovr, num: f.num, age: f.age, foot: f.foot, stats: f.stats, photo_url: f.photo };
       if (f.id) {

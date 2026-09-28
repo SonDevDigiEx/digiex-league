@@ -155,6 +155,11 @@ export function lineup(squad: Player[], formation = FORMATION) {
 }
 
 /** Load an image file, downscale so its longest side is <= size, and re-encode. */
+/**
+ * Downscale an image file. `type: 'photo'` picks the format from the content: JPEG for opaque photos,
+ * WebP (PNG where the browser can't encode WebP) when the image has transparency, so a cut-out
+ * player photo keeps its transparent background instead of turning black.
+ */
 export function readImg(file: File, size: number, type: string): Promise<Blob> {
   return new Promise((res, rej) => {
     const url = URL.createObjectURL(file);
@@ -165,12 +170,28 @@ export function readImg(file: File, size: number, type: string): Promise<Blob> {
       const sc = Math.min(1, size / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
-      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
-      c.toBlob((b) => (b ? res(b) : rej(new Error('encode failed'))), type, 0.86);
+      const ctx = c.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      let out = type;
+      if (type === 'photo') {
+        const px = ctx.getImageData(0, 0, c.width, c.height).data;
+        let alpha = false;
+        for (let i = 3; i < px.length; i += 4) if (px[i] < 250) { alpha = true; break; }
+        out = alpha ? 'image/webp' : 'image/jpeg';
+      }
+      c.toBlob((b) => {
+        if (!b) return rej(new Error('encode failed'));
+        // Browsers without a WebP encoder return PNG, which also keeps transparency.
+        if (out === 'image/webp' && b.type !== 'image/webp') return c.toBlob((p) => (p ? res(p) : rej(new Error('encode failed'))), 'image/png');
+        res(b);
+      }, out, out === 'image/png' ? undefined : 0.88);
     };
     img.src = url;
   });
 }
+
+/** File extension for an uploaded image blob. */
+export const extOf = (b: Blob) => (b.type === 'image/png' ? 'png' : b.type === 'image/webp' ? 'webp' : 'jpg');
 
 export const blobToDataUrl = (b: Blob) =>
   new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onerror = rej; fr.onload = () => res(fr.result as string); fr.readAsDataURL(b); });
