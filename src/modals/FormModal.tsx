@@ -519,8 +519,12 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
       <label className="fld">Họ và tên<input className="inp" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Nguyễn Văn A" /></label>
       <div className="fld g8"><span>Vị trí sở trường <span className="note" style={{ fontSize: 11 }}>· tối đa 3, vị trí đầu tiên là vị trí chính</span></span><PositionPicker value={f.positions} onChange={(positions) => setF({ ...f, positions })} /></div>
       <div className="fld g8">Chân thuận<div className="opts">{(['Phải', 'Trái'] as Foot[]).map((x) => <button type="button" key={x} className={'opt vn' + (f.foot === x ? ' on' : '')} onClick={() => setF({ ...f, foot: x })}>{x}</button>)}</div></div>
-      <div className="ovr-auto"><span>OVR tự tính{primary ? ` · theo vị trí ${primary}` : ''}</span><b>{primary ? ovr : '—'}</b></div>
-      <div className="stat-box">
+      {!p && (
+        <div className="ovr-auto"><span>Chỉ số khởi điểm · hệ thống tự tạo theo vị trí{primary ? ` ${primary}` : ''}</span><b>~75</b></div>
+      )}
+      {!p && <div className="fm-note">Cầu thủ mới nhận chỉ số ngẫu nhiên quanh <span>OVR 72–78</span>, thiên về chỉ số hợp vị trí chính. Sau đó chỉ số tăng nhờ kinh nghiệm (XP) mỗi trận.</div>}
+      {p && <div className="ovr-auto"><span>OVR tự tính{primary ? ` · theo vị trí ${primary}` : ''}</span><b>{primary ? ovr : '—'}</b></div>}
+      {p && <div className="stat-box">
         <div className="stat-box-h"><span>CHỈ SỐ CHI TIẾT</span><span style={{ letterSpacing: 0 }}>OVR cập nhật theo chỉ số</span></div>
         {f.stats.map((v, j) => (
           <div key={j} className="stat-r">
@@ -529,7 +533,7 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
             <b>{v}</b>
           </div>
         ))}
-      </div>
+      </div>}
       <div className="g2">
         <label className="fld">Số áo{numTaken && <span className="err" style={{ fontSize: 11 }}>#{f.num} đã có: {numTaken.name}</span>}
           <input className="inp" type="number" min={0} max={999} value={f.num} onChange={(e) => setF({ ...f, num: e.target.value.replace(/\D/g, '').slice(0, 3) })} /></label>

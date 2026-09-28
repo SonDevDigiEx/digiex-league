@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` and `supabase/migrations/20260928170000_xp.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` `supabase/migrations/20260928170000_xp.sql` and `supabase/migrations/20260928180000_starter_stats.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -121,6 +121,7 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 - Stats grow from quests. When a match is finished (score entered, stats approved or MOM picked), the triggers call `refresh_match_xp`. It awards XP once per player, match and kind; see the table below or *📜 Bảng nhiệm vụ* in the app.
 - "Chia theo vị trí" XP is split over the six stats by the primary position's OVR weights. Goals, assists, clean sheets and saves go to specific stats.
 - Every stat has its own progress. +1 costs `xp_cost(v) = 12·1.1^(v−60)` (75 → 50 XP, 85 → 130 XP, 95 → 337 XP), so high stats are hard to raise. Penalties only reduce progress; stats never drop. OVR and market value update on their own.
+- New players start at the same floor: the `players_0_starter` trigger generates random starter stats (`starter_stats`, OVR 72–78, shaped by the primary position) and ignores any stats typed into the add or approve forms.
 - Chairmen get one *thưởng nóng* envelope per week (`hot_bonus`, +30 XP) for a player in their team, not themselves.
 - The player card and *Hồ sơ của tôi* show the level bar, per-stat progress, personal tips and the XP history.
 
