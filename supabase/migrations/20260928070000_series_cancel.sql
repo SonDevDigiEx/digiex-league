@@ -4,7 +4,7 @@
 --   calls on load (idempotent; a unique index prevents duplicates).
 -- * matches.status gains 'cancelled' with cancel_reason; admins and the two chairmen can cancel an upcoming match.
 
-create table public.match_series (
+create table if not exists public.match_series (
   id         text primary key default gen_random_uuid()::text,
   home_team  text not null references public.teams on delete cascade,
   away_team  text not null references public.teams on delete cascade,
@@ -14,6 +14,8 @@ create table public.match_series (
   check (home_team <> away_team)
 );
 alter table public.match_series enable row level security;
+drop policy if exists "series: public read" on public.match_series;
+drop policy if exists "series: admin update" on public.match_series;
 create policy "series: public read" on public.match_series for select using (true);
 create policy "series: admin update" on public.match_series for update to authenticated using (public.is_admin()) with check (public.is_admin());
 revoke insert, delete on public.match_series from anon, authenticated;
@@ -104,7 +106,8 @@ grant execute on function public.roll_series() to anon, authenticated;
 
 do $$
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'match_series') then
     alter publication supabase_realtime add table public.match_series;
   end if;
 end $$;

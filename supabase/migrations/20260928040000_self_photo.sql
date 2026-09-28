@@ -1,6 +1,9 @@
 -- Users set their own photo: profile avatar + their linked player card.
 -- Files live at media/avatars/<user id>/…; only that user can write there.
 
+drop policy if exists "media: own avatar upload" on storage.objects;
+drop policy if exists "media: own avatar update" on storage.objects;
+drop policy if exists "media: own avatar delete" on storage.objects;
 create policy "media: own avatar upload" on storage.objects for insert to authenticated
   with check (bucket_id = 'media' and (storage.foldername(name))[1] = 'avatars' and (storage.foldername(name))[2] = auth.uid()::text);
 create policy "media: own avatar update" on storage.objects for update to authenticated

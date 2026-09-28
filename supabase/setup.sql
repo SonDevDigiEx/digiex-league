@@ -814,6 +814,9 @@ drop function if exists public.allowed_email(text);
 -- Users set their own photo: profile avatar + their linked player card.
 -- Files live at media/avatars/<user id>/…; only that user can write there.
 
+drop policy if exists "media: own avatar upload" on storage.objects;
+drop policy if exists "media: own avatar update" on storage.objects;
+drop policy if exists "media: own avatar delete" on storage.objects;
 create policy "media: own avatar upload" on storage.objects for insert to authenticated
   with check (bucket_id = 'media' and (storage.foldername(name))[1] = 'avatars' and (storage.foldername(name))[2] = auth.uid()::text);
 create policy "media: own avatar update" on storage.objects for update to authenticated
@@ -860,7 +863,7 @@ end $$;
 -- * After the match the player submits their stats; the side's BHL / chairman (or an admin) approves or rejects.
 -- * Only approved rows count towards season stats.
 
-create table public.match_players (
+create table if not exists public.match_players (
   match_id     text not null references public.matches on delete cascade,
   player_id    text not null references public.players on delete cascade,
   team_id      text not null references public.teams on delete cascade,   -- the side they play for
@@ -878,9 +881,10 @@ create table public.match_players (
   reviewed_at  timestamptz,
   primary key (match_id, player_id)
 );
-create index on public.match_players (player_id);
+create index if not exists match_players_player_idx on public.match_players (player_id);
 
 alter table public.match_players enable row level security;
+drop policy if exists "match_players: public read" on public.match_players;
 create policy "match_players: public read" on public.match_players for select using (true);
 revoke insert, update, delete on public.match_players from anon, authenticated;
 
@@ -974,7 +978,8 @@ grant execute on function public.join_match(text, text), public.leave_match(text
 
 do $$
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'match_players') then
     alter publication supabase_realtime add table public.match_players;
   end if;
 end $$;
@@ -1203,7 +1208,7 @@ grant execute on function public.is_staff_player(text) to authenticated;
 --   calls on load (idempotent; a unique index prevents duplicates).
 -- * matches.status gains 'cancelled' with cancel_reason; admins and the two chairmen can cancel an upcoming match.
 
-create table public.match_series (
+create table if not exists public.match_series (
   id         text primary key default gen_random_uuid()::text,
   home_team  text not null references public.teams on delete cascade,
   away_team  text not null references public.teams on delete cascade,
@@ -1213,6 +1218,8 @@ create table public.match_series (
   check (home_team <> away_team)
 );
 alter table public.match_series enable row level security;
+drop policy if exists "series: public read" on public.match_series;
+drop policy if exists "series: admin update" on public.match_series;
 create policy "series: public read" on public.match_series for select using (true);
 create policy "series: admin update" on public.match_series for update to authenticated using (public.is_admin()) with check (public.is_admin());
 revoke insert, delete on public.match_series from anon, authenticated;
@@ -1303,7 +1310,8 @@ grant execute on function public.roll_series() to anon, authenticated;
 
 do $$
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'match_series') then
     alter publication supabase_realtime add table public.match_series;
   end if;
 end $$;

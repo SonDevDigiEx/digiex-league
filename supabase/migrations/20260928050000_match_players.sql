@@ -3,7 +3,7 @@
 -- * After the match the player submits their stats; the side's BHL / chairman (or an admin) approves or rejects.
 -- * Only approved rows count towards season stats.
 
-create table public.match_players (
+create table if not exists public.match_players (
   match_id     text not null references public.matches on delete cascade,
   player_id    text not null references public.players on delete cascade,
   team_id      text not null references public.teams on delete cascade,   -- the side they play for
@@ -21,9 +21,10 @@ create table public.match_players (
   reviewed_at  timestamptz,
   primary key (match_id, player_id)
 );
-create index on public.match_players (player_id);
+create index if not exists match_players_player_idx on public.match_players (player_id);
 
 alter table public.match_players enable row level security;
+drop policy if exists "match_players: public read" on public.match_players;
 create policy "match_players: public read" on public.match_players for select using (true);
 revoke insert, update, delete on public.match_players from anon, authenticated;
 
@@ -117,7 +118,8 @@ grant execute on function public.join_match(text, text), public.leave_match(text
 
 do $$
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'match_players') then
     alter publication supabase_realtime add table public.match_players;
   end if;
 end $$;
