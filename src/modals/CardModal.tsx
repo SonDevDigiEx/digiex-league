@@ -3,6 +3,7 @@ import { PlayerCard, Sparkline, Trend } from '../components/bits';
 import { api, useAccess, useLeague } from '../data/store';
 import { seasonStats } from '../views/MatchPlayers';
 import { hexA, LBL, LBL_GK, money, tier, valueTrend } from '../lib/league';
+import { awardIcon } from '../lib/tournament';
 import type { ValueFactors } from '../lib/types';
 
 const RINGS = ['100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60', '100,46.7 146.2,73.3 146.2,126.7 100,153.3 53.8,126.7 53.8,73.3', '100,73.3 123.1,86.7 123.1,113.3 100,126.7 76.9,113.3 76.9,86.7'];
@@ -10,7 +11,7 @@ const LABEL_XY: [number, number][] = [[100, 8], [186, 56], [186, 152], [100, 198
 const col = (v: number) => (v >= 85 ? '#c6ff3d' : v >= 75 ? '#f5c542' : v >= 65 ? '#ff9f43' : '#ff6b81');
 
 export function CardModal() {
-  const { snap, cardId, closeCard, openModal } = useLeague();
+  const { snap, cardId, closeCard, openModal, go } = useLeague();
   const { tm, canTransfer, canTeam, staffT, isStaffPlayer, staffLabel } = useAccess();
   const p = cardId ? snap?.players.find((x) => x.id === cardId) : null;
   useEffect(() => {
@@ -33,6 +34,8 @@ export function CardModal() {
   const season = seasonStats(snap!.participants, p.id);
   const hist = snap!.valueHistory[p.id] || [];
   const trend = valueTrend(hist, p.value);
+  const honors = snap!.awards.filter((a) => a.playerId === p.id);
+  const tourName = (id: string) => snap!.tournaments.find((x) => x.id === id)?.name || 'Giải đấu';
   const info = [{ l: 'OVR', v: p.ovr, c: '#c6ff3d' }, { l: 'TUỔI', v: p.age, c: '#fff' }, { l: 'CHÂN', v: p.foot, c: '#fff' }, { l: 'GIÁ TRỊ', v: money(p.value), c: '#f5c542' }];
 
   return (
@@ -72,6 +75,16 @@ export function CardModal() {
               ))}
             </div>
           </div>
+          {honors.length > 0 && (
+            <div className="honors">
+              <div className="k10">DANH HIỆU · {honors.length}</div>
+              {honors.map((a) => (
+                <a key={a.id} className="honor" onClick={() => { closeCard(); go({ view: 'tournament', id: a.tournamentId }); }}>
+                  <span className="aw-icon sm">{awardIcon(a.kind)}</span><b>{a.title}</b><span>{tourName(a.tournamentId)}</span>
+                </a>
+              ))}
+            </div>
+          )}
           <ValueBox playerId={p.id} value={p.value} trend={trend} history={hist.map((h) => h.value)} />
           <div className="cm-acts">
             {canTransfer(p.teamId) && !staffP && <button className="cm-btn lime" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển nhượng</button>}

@@ -17,6 +17,7 @@ export interface Team {
   chair: { name: string; since: string; quote: string };
   coach: { name: string };
   logo?: string | null;
+  cover?: string | null;
 }
 
 export interface Player {
@@ -61,6 +62,9 @@ export interface Match {
   cancelReason: string | null;
   /** Weekly fixed fixture this match belongs to. */
   seriesId: string | null;
+  tournamentId: string | null;
+  /** e.g. "Bảng A", "Bán kết" */
+  stage: string | null;
   venue: string;
   scorers: Goal[];
   /** Aggregated winner votes */
@@ -153,6 +157,55 @@ export interface Snapshot {
   series: Series[];
   /** Daily market value per player (last ~5 weeks), oldest first. */
   valueHistory: Record<string, { day: string; value: number }[]>;
+  tournaments: Tournament[];
+  awards: Award[];
+}
+
+export interface TournamentSettings {
+  weeks: number; stages: number; squadMin: number; squadMax: number; starters: number; halves: number; halfMin: string;
+  pts: { win: number; draw: number; loss: number; shootoutWin: number; shootoutLoss: number; closeLossBonus: number; noShow: number };
+  personal: { attend: number; goal: number; assist: number; mvp: number; cleanSheet: number; absent: number };
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  format: 's5' | 's7';
+  structure: 'league' | 'groups' | 'knockout';
+  groupCount: number;
+  status: 'upcoming' | 'ongoing' | 'finished';
+  startsOn: string | null;
+  endsOn: string | null;
+  settings: TournamentSettings;
+  rulesMd: string;
+  /** Knockout rounds: [[{home, away}]] (team ids, null = bye / TBD). */
+  bracket: { home: string | null; away: string | null }[][] | null;
+  drawnAt: string | null;
+  /** Participating teams in draw order. */
+  teams: { teamId: string; group: string | null; seed: number | null }[];
+}
+
+export interface TournamentInput {
+  name: string;
+  format: 's5' | 's7';
+  structure: 'league' | 'groups' | 'knockout';
+  groupCount: number;
+  startsOn: string | null;
+  endsOn: string | null;
+  settings: TournamentSettings;
+  rulesMd: string;
+  teamIds: string[];
+}
+
+export interface Award {
+  id: string;
+  tournamentId: string;
+  kind: string;
+  title: string;
+  teamId: string | null;
+  playerId: string | null;
+  playerName: string | null;
+  note: string | null;
 }
 
 /** Breakdown of a player's market value (public.value_factors). */
@@ -200,4 +253,6 @@ export interface MatchInput {
   venue: string;
   /** Repeat every week. */
   weekly?: boolean;
+  tournamentId?: string | null;
+  stage?: string;
 }

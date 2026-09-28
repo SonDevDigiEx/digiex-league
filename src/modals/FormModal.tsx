@@ -3,7 +3,8 @@ import { Crest, PlayerCard } from '../components/bits';
 import { Spin, useAction } from '../data/useAction';
 import { api, useAccess, useLeague, type Modal } from '../data/store';
 import { dmy, DEFAULT_VENUE, nextFreeNum, ovrOf, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
-import type { Foot, Player, Pos, Role } from '../lib/types';
+import type { Foot, Player, Pos, Role, TournamentInput } from '../lib/types';
+import { rulesTemplate, STRUCTURE_LABEL, TEMPLATES } from '../lib/tournament';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -584,12 +585,101 @@ function CancelMatchForm({ matchId }: { matchId: string }) {
   );
 }
 
+/** Admin: create or edit a tournament from the S7 / S5 template. */
+function TournamentForm({ id }: { id?: string }) {
+  const { snap, go } = useLeague();
+  const T = snap!.teams;
+  const t = id ? snap!.tournaments.find((x) => x.id === id) : undefined;
+  const [f, setF] = useState<TournamentInput>(() => t
+    ? { name: t.name, format: t.format, structure: t.structure, groupCount: t.groupCount, startsOn: t.startsOn, endsOn: t.endsOn, settings: t.settings, rulesMd: t.rulesMd, teamIds: t.teams.map((x) => x.teamId) }
+    : { name: `Giải Sân 7 Nội Bộ ${new Date().getFullYear()}`, format: 's7', structure: 'league', groupCount: 2, startsOn: null, endsOn: null,
+        settings: TEMPLATES.s7, rulesMd: rulesTemplate('s7', TEMPLATES.s7, `Giải Sân 7 Nội Bộ ${new Date().getFullYear()}`), teamIds: [] });
+  const { err, setErr, busy, submit } = useSubmit();
+  const set = <K extends keyof TournamentInput>(k: K, v: TournamentInput[K]) => setF((x) => ({ ...x, [k]: v }));
+  const setS = (patch: Partial<TournamentInput['settings']>) => setF((x) => ({ ...x, settings: { ...x.settings, ...patch } }));
+  const setPts = (k: keyof TournamentInput['settings']['pts'], v: number) => setF((x) => ({ ...x, settings: { ...x.settings, pts: { ...x.settings.pts, [k]: v } } }));
+  const useTemplate = (fmt: 's5' | 's7') => {
+    const court = fmt === 's5' ? 'Sân 5' : 'Sân 7';
+    const name = /Giải Sân [57]/.test(f.name) || !f.name.trim() ? f.name.replace(/Sân [57]/, court) || `Giải ${court} Nội Bộ` : f.name;
+    setF((x) => ({ ...x, format: fmt, name, settings: TEMPLATES[fmt], rulesMd: rulesTemplate(fmt, TEMPLATES[fmt], name) }));
+  };
+  const n = f.teamIds.length;
+  const num = (label: string, v: number, on: (n: number) => void, min = -9, max = 99) => (
+    <label className="fld" style={{ minWidth: 0 }}>{label}<input className="inp" type="number" min={min} max={max} value={v} onChange={(e) => on(+e.target.value)} /></label>
+  );
+  return (
+    <Shell title={t ? 'Sửa giải đấu' : 'Tạo giải đấu'} cta={t ? 'Lưu thay đổi' : n > 2 ? 'Tạo giải & bốc thăm' : n ? 'Tạo giải đấu' : 'Đăng giải & mở đăng ký'} err={err} busy={busy} onSubmit={() => {
+      if (!f.name.trim()) return setErr('Nhập tên giải.');
+      if (t) return submit(() => api.updateTournament(t.id, { ...f, teamIds: f.teamIds.join() === t.teams.map((x) => x.teamId).join() ? undefined : f.teamIds }), 'Đã cập nhật giải đấu');
+      let newId = '';
+      submit(async () => { newId = await api.createTournament(f); }, n > 2 ? 'Đã tạo giải và bốc thăm' : 'Đã tạo giải đấu', () => go({ view: 'tournament', id: newId }));
+    }}>
+      {!t && (
+        <div className="fld g8">Template
+          <div className="g2">
+            {(['s7', 's5'] as const).map((fmt) => (
+              <button type="button" key={fmt} className={'tpl' + (f.format === fmt ? ' on' : '')} onClick={() => useTemplate(fmt)}>
+                <b>{fmt === 's7' ? 'SÂN 7' : 'SÂN 5'}</b><span>{TEMPLATES[fmt].starters} đá chính · {TEMPLATES[fmt].squadMin}–{TEMPLATES[fmt].squadMax} người · {TEMPLATES[fmt].halves}×{TEMPLATES[fmt].halfMin}′</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <label className="fld">Tên giải<input className="inp" value={f.name} maxLength={80} onChange={(e) => set('name', e.target.value)} /></label>
+      <div className="fld g8">Đội tham gia · {n}
+        <div className="note">{t ? 'Chủ tịch các đội tự đăng ký khi giải còn "Sắp khởi tranh"; BTC có thể thêm/bớt đội tại đây.' : 'Để trống để mở đăng ký: Chủ tịch các đội sẽ thấy nút “Đăng ký tham gia”. Hoặc chọn sẵn đội.'}</div>
+        <div className="opts">
+          {T.map((x) => {
+            const on = f.teamIds.includes(x.id);
+            return <button type="button" key={x.id} className={'opt vn' + (on ? ' on' : '')} onClick={() => set('teamIds', on ? f.teamIds.filter((y) => y !== x.id) : [...f.teamIds, x.id])}>{x.short} · {x.name}</button>;
+          })}
+        </div>
+      </div>
+      <div className="g2">
+        <label className="fld">Thể thức
+          <select className="inp" value={f.structure} onChange={(e) => set('structure', e.target.value as TournamentInput['structure'])}>
+            {(Object.keys(STRUCTURE_LABEL) as (keyof typeof STRUCTURE_LABEL)[]).map((k) => <option key={k} value={k} disabled={k !== 'league' && n > 0 && n <= 2}>{STRUCTURE_LABEL[k]}</option>)}
+          </select>
+        </label>
+        {f.structure === 'groups'
+          ? num('Số bảng', f.groupCount, (v) => set('groupCount', Math.max(1, Math.min(8, v))), 1, 8)
+          : <div className="fld"><span>Bốc thăm</span><div className="note" style={{ paddingTop: 10 }}>{n > 2 ? (f.structure === 'knockout' ? 'Xếp nhánh ngẫu nhiên' : 'Xếp thứ tự ngẫu nhiên') : n === 2 ? '2 đội: đá vòng tròn hằng tuần' : 'Bốc thăm sau khi các đội đăng ký'}</div></div>}
+      </div>
+      <div className="g2">
+        <label className="fld">Ngày khai mạc<input className="inp" type="date" value={f.startsOn || ''} onChange={(e) => set('startsOn', e.target.value || null)} /></label>
+        <label className="fld">Ngày bế mạc<input className="inp" type="date" value={f.endsOn || ''} onChange={(e) => set('endsOn', e.target.value || null)} /></label>
+      </div>
+      <div className="stat-box">
+        <div className="stat-box-h"><span>THÔNG SỐ GIẢI</span><button type="button" onClick={() => set('rulesMd', rulesTemplate(f.format, f.settings, f.name))}>Cập nhật thể lệ theo thông số</button></div>
+        <div className="g3">
+          {num('Số tuần', f.settings.weeks, (v) => setS({ weeks: v }), 1, 60)}
+          {num('Số chặng', f.settings.stages, (v) => setS({ stages: v }), 1, 6)}
+          {num('Đá chính', f.settings.starters, (v) => setS({ starters: v }), 3, 11)}
+          {num('Quân số tối thiểu', f.settings.squadMin, (v) => setS({ squadMin: v }), 3, 30)}
+          {num('Quân số tối đa', f.settings.squadMax, (v) => setS({ squadMax: v }), 3, 30)}
+          <label className="fld">Phút/hiệp<input className="inp" value={f.settings.halfMin} onChange={(e) => setS({ halfMin: e.target.value })} /></label>
+          {num('Thắng', f.settings.pts.win, (v) => setPts('win', v))}
+          {num('Hòa', f.settings.pts.draw, (v) => setPts('draw', v))}
+          {num('Thua sát nút +', f.settings.pts.closeLossBonus, (v) => setPts('closeLossBonus', v))}
+        </div>
+      </div>
+      <label className="fld">Thể lệ chi tiết (Markdown)
+        <textarea className="inp" rows={10} value={f.rulesMd} onChange={(e) => set('rulesMd', e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }} />
+      </label>
+      {t && f.teamIds.join() !== t.teams.map((x) => x.teamId).join() && <div className="fm-note">Danh sách đội thay đổi → hệ thống sẽ <span>bốc thăm lại</span>.</div>}
+    </Shell>
+  );
+}
+
 function ScheduleForm() {
   const { snap } = useLeague();
   const T = snap!.teams;
   const t = new Date(Date.now() + 14 * 864e5);
   const [f, setF] = useState({ home: T[0]?.id || '', away: (T[1] || T[0])?.id || '', date: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T19:30`, venue: DEFAULT_VENUE });
   const [weekly, setWeekly] = useState(false);
+  const active = snap!.tournaments.find((x) => x.status !== 'finished');
+  const [tourId, setTourId] = useState(active?.id || '');
+  const [stage, setStage] = useState('');
   const when = f.date ? new Date(f.date) : null;
   const { err, setErr, busy, submit } = useSubmit();
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
@@ -597,7 +687,7 @@ function ScheduleForm() {
     <Shell title="Lên lịch thi đấu" cta="Tạo trận đấu" err={err} busy={busy} onSubmit={() => {
       if (!f.home || !f.away || f.home === f.away) return setErr('Chọn hai đội khác nhau.');
       if (!f.date) return setErr('Chọn thời gian.');
-      submit(() => api.scheduleMatch({ ...f, venue: f.venue.trim() || DEFAULT_VENUE, weekly }), weekly ? 'Đã tạo lịch cố định hằng tuần' : 'Đã lên lịch trận đấu');
+      submit(() => api.scheduleMatch({ ...f, venue: f.venue.trim() || DEFAULT_VENUE, weekly, tournamentId: tourId || null, stage }), weekly ? 'Đã tạo lịch cố định hằng tuần' : 'Đã lên lịch trận đấu');
     }}>
       <div className="g2">
         <label className="fld">Đội nhà<select className="inp" value={f.home} onChange={set('home')}>{T.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
@@ -605,6 +695,17 @@ function ScheduleForm() {
       </div>
       <label className="fld">Thời gian<input className="inp" type="datetime-local" value={f.date} onChange={set('date')} /></label>
       <label className="fld">Sân thi đấu<input className="inp" value={f.venue} onChange={set('venue')} /></label>
+      {snap!.tournaments.some((x) => x.status !== 'finished') && (
+        <div className="g2">
+          <label className="fld">Thuộc giải đấu
+            <select className="inp" value={tourId} onChange={(e) => setTourId(e.target.value)}>
+              <option value="">— Giao hữu —</option>
+              {snap!.tournaments.filter((x) => x.status !== 'finished').map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            </select>
+          </label>
+          <label className="fld">Vòng / bảng<input className="inp" value={stage} maxLength={40} placeholder="VD: Bảng A, Bán kết" onChange={(e) => setStage(e.target.value)} disabled={!tourId} /></label>
+        </div>
+      )}
       <label className="fld" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
         <input type="checkbox" checked={weekly} onChange={(e) => setWeekly(e.target.checked)} style={{ accentColor: '#c6ff3d', width: 18, height: 18 }} />
         <span style={{ fontSize: 13, color: '#fff' }}>Lặp lại hằng tuần{weekly && when ? ` · ${['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][when.getDay()]} ${pad(when.getHours())}:${pad(when.getMinutes())}` : ''}</span>
@@ -629,6 +730,7 @@ export function FormModal() {
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;
     case 'schedule': return <ScheduleForm />;
+    case 'tournament': return <TournamentForm key={m.id || 'new'} id={m.id} />;
     case 'handover': return <HandoverForm teamId={m.teamId} />;
     case 'cancelMatch': return snap?.matches.some((x) => x.id === m.matchId) ? <CancelMatchForm matchId={m.matchId} /> : null;
   }

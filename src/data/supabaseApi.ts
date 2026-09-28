@@ -7,7 +7,7 @@ type Row = Record<string, any>;
 
 const toTeam = (r: Row): Team => ({
   id: r.id, name: r.name, short: r.short, color: r.color, color2: r.color2, motto: r.motto, founded: r.founded,
-  chair: { name: r.chair_name, since: r.chair_since, quote: r.chair_quote }, coach: { name: r.coach_name }, logo: r.logo_url,
+  chair: { name: r.chair_name, since: r.chair_since, quote: r.chair_quote }, coach: { name: r.coach_name }, logo: r.logo_url, cover: r.cover_url ?? null,
 });
 const toPlayer = (r: Row): Player => ({
   id: r.id, teamId: r.team_id, name: r.name, pos: r.pos as Pos, positions: ((r.positions?.length ? r.positions : [r.pos]) as Pos[]), ovr: r.ovr, num: r.num, age: r.age, foot: r.foot as Foot,
@@ -16,7 +16,7 @@ const toPlayer = (r: Row): Player => ({
 const toMatch = (r: Row): Match => ({
   id: r.id, date: r.kickoff, home: r.home_team, away: r.away_team, hs: r.home_score, as: r.away_score, status: r.status,
   venue: r.venue, scorers: (r.scorers || []) as Goal[], votes: { home: 0, draw: 0, away: 0 }, sv: {},
-  cancelReason: r.cancel_reason ?? null, seriesId: r.series_id ?? null,
+  cancelReason: r.cancel_reason ?? null, seriesId: r.series_id ?? null, tournamentId: r.tournament_id ?? null, stage: r.stage ?? null,
 });
 const toTransfer = (r: Row): Transfer => ({ pid: r.player_id, name: r.player_name, from: r.from_team, to: r.to_team, fee: Number(r.fee), date: r.created_on });
 const toOffer = (r: Row): Offer => ({
@@ -88,13 +88,16 @@ export function createSupabaseApi(url: string, key: string): Api {
       await Promise.all(['roll_series', 'daily_value_refresh'].map((fn) =>
         sb.rpc(fn).then(({ error }) => { if (error) console.warn('[DigiEx League]', fn, error.message); })));
       const since = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
-      const [teams, players, matches, participants, series, history] = await Promise.all([
+      const [teams, players, matches, participants, series, history, tours, tteams, awards] = await Promise.all([
         sb.from('teams').select('*').order('created_at').then(check),
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
         sb.from('match_players').select('*').order('joined_at').then(check),
         sb.from('match_series').select('*').then(check),
         sb.from('player_value_history').select('player_id, day, value').gte('day', since).order('day').then(check),
+        sb.from('tournaments').select('*').order('created_at', { ascending: false }).then(check),
+        sb.from('tournament_teams').select('*').order('seed').then(check),
+        sb.from('tournament_awards').select('*').order('created_at').then(check),
       ]);
       const valueHistory: Snapshot['valueHistory'] = {};
       (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
@@ -103,6 +106,14 @@ export function createSupabaseApi(url: string, key: string): Api {
         participants: participants.map(toParticipation),
         series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
         valueHistory,
+        tournaments: (tours as Row[]).map((r) => ({
+          id: r.id, name: r.name, format: r.format, structure: r.structure, groupCount: r.group_count, status: r.status,
+          startsOn: r.starts_on, endsOn: r.ends_on, settings: r.settings, rulesMd: r.rules_md, bracket: r.bracket, drawnAt: r.drawn_at,
+          teams: (tteams as Row[]).filter((x) => x.tournament_id === r.id).map((x) => ({ teamId: x.team_id, group: x.group_label, seed: x.seed })),
+        })),
+        awards: (awards as Row[]).map((r) => ({
+          id: r.id, tournamentId: r.tournament_id, kind: r.kind, title: r.title, teamId: r.team_id, playerId: r.player_id, playerName: r.player_name, note: r.note,
+        })),
       };
       if (!me) return snap;
       const [transfers, offers, stats, votes, members] = await Promise.all([
@@ -215,9 +226,63 @@ export function createSupabaseApi(url: string, key: string): Api {
 
     async scheduleMatch(f) {
       const kickoff = new Date(f.date).toISOString();
-      if (f.weekly) check(await sb.rpc('create_series', { p_home: f.home, p_away: f.away, p_first: kickoff, p_venue: f.venue }));
-      else check(await sb.from('matches').insert({ kickoff, home_team: f.home, away_team: f.away, venue: f.venue }));
+      const extra = { tournament_id: f.tournamentId || null, stage: f.stage?.trim() || null };
+      if (f.weekly) {
+        const sid = check(await sb.rpc('create_series', { p_home: f.home, p_away: f.away, p_first: kickoff, p_venue: f.venue })) as unknown as string;
+        if (extra.tournament_id || extra.stage) {
+          check(await sb.from('match_series').update({ tournament_id: extra.tournament_id }).eq('id', sid));
+          check(await sb.from('matches').update(extra).eq('series_id', sid));
+        }
+      } else check(await sb.from('matches').insert({ kickoff, home_team: f.home, away_team: f.away, venue: f.venue, ...extra }));
     },
+    async setTeamCover(teamId, image) {
+      const cover_url = image ? await upload(`covers/${teamId}/${rid()}.jpg`, image) : null;
+      const rows = check(await sb.from('teams').update({ cover_url }).eq('id', teamId).select('id'));
+      if (!rows.length) throw new Error('Bạn không có quyền với đội này.');
+    },
+    async createTournament(f) {
+      const row = check(await sb.from('tournaments').insert({
+        name: f.name.trim(), format: f.format, structure: f.structure, group_count: f.groupCount, starts_on: f.startsOn, ends_on: f.endsOn,
+        settings: f.settings, rules_md: f.rulesMd,
+      }).select('id').single());
+      if (f.teamIds.length) check(await sb.from('tournament_teams').insert(f.teamIds.map((t) => ({ tournament_id: row.id, team_id: t }))));
+      if (f.teamIds.length >= 2) check(await sb.rpc('draw_tournament', { p_id: row.id }));
+      return row.id as string;
+    },
+    async updateTournament(id, f) {
+      const patch: Row = {};
+      if (f.name !== undefined) patch.name = f.name.trim();
+      if (f.format) patch.format = f.format;
+      if (f.structure) patch.structure = f.structure;
+      if (f.groupCount) patch.group_count = f.groupCount;
+      if (f.startsOn !== undefined) patch.starts_on = f.startsOn;
+      if (f.endsOn !== undefined) patch.ends_on = f.endsOn;
+      if (f.settings) patch.settings = f.settings;
+      if (f.rulesMd !== undefined) patch.rules_md = f.rulesMd;
+      if (f.status) patch.status = f.status;
+      if (Object.keys(patch).length) {
+        const rows = check(await sb.from('tournaments').update(patch).eq('id', id).select('id'));
+        if (!rows.length) throw new Error('Chỉ Ban tổ chức được sửa giải đấu.');
+      }
+      if (f.teamIds) {
+        check(await sb.from('tournament_teams').delete().eq('tournament_id', id));
+        if (f.teamIds.length) check(await sb.from('tournament_teams').insert(f.teamIds.map((t) => ({ tournament_id: id, team_id: t }))));
+      }
+      const n = f.teamIds?.length ?? (await sb.from('tournament_teams').select('team_id', { count: 'exact', head: true }).eq('tournament_id', id)).count ?? 0;
+      if ((f.teamIds || f.structure || f.groupCount) && n >= 2) check(await sb.rpc('draw_tournament', { p_id: id }));
+    },
+    async registerTournament(id, join) { check(await sb.rpc('register_tournament', { p_id: id, p_join: join })); },
+    async deleteTournament(id) {
+      const rows = check(await sb.from('tournaments').delete().eq('id', id).select('id'));
+      if (!rows.length) throw new Error('Chỉ Ban tổ chức được xóa giải đấu.');
+    },
+    async drawTournament(id) { check(await sb.rpc('draw_tournament', { p_id: id })); },
+    async addAward(a) {
+      check(await sb.from('tournament_awards').insert({
+        tournament_id: a.tournamentId, kind: a.kind, title: a.title.trim(), team_id: a.teamId, player_id: a.playerId, player_name: a.playerName, note: a.note || null,
+      }));
+    },
+    async deleteAward(id) { check(await sb.from('tournament_awards').delete().eq('id', id)); },
     async cancelMatch(id, reason) { check(await sb.rpc('cancel_match', { p_match: id, p_reason: reason })); },
     async stopSeries(seriesId) {
       const rows = check(await sb.from('match_series').update({ active: false }).eq('id', seriesId).select('id'));

@@ -3,6 +3,7 @@ import { hrefOf, useAccess, useLeague } from '../data/store';
 import { crestBg, fDate, fTime, hexA, money, record, sortedMatches, valueTrend } from '../lib/league';
 import type { Match, Team } from '../lib/types';
 import { Countdown } from './Matches';
+import { TournamentBanner } from './Tournament';
 
 export function ResultRow({ m, i, H, A }: { m: Match; i: number; H: Team; A: Team }) {
   const { go } = useLeague();
@@ -17,8 +18,8 @@ export function ResultRow({ m, i, H, A }: { m: Match; i: number; H: Team; A: Tea
 }
 
 export function Home() {
-  const { snap, go, openCard } = useLeague();
-  const { tm } = useAccess();
+  const { snap, go, openCard, openModal } = useLeague();
+  const { tm, isAdmin } = useAccess();
   const d = snap!;
   const T = d.teams;
   const { done, ups } = sortedMatches(d.matches);
@@ -39,9 +40,20 @@ export function Home() {
   const risers = d.players.map((p) => ({ p, pct: valueTrend(d.valueHistory[p.id], p.value) }))
     .filter((x): x is { p: typeof x.p; pct: number } => x.pct != null && x.pct >= 1).sort((a, b) => b.pct - a.pct).slice(0, 4);
   const glow = (t: Team) => hexA(t.color, 0.3);
+  // Featured tournament: ongoing first, then the nearest upcoming, else the latest finished.
+  const rank = { ongoing: 0, upcoming: 1, finished: 2 } as const;
+  const featured = d.tournaments.slice().sort((a, b) => rank[a.status] - rank[b.status] || (b.startsOn || '').localeCompare(a.startsOn || ''))[0];
+  const others = d.tournaments.filter((x) => x.id !== featured?.id).slice(0, 4);
 
   return (
     <div className="view">
+      {featured && <TournamentBanner t={featured} onOpen={() => go({ view: 'tournament', id: featured.id })} />}
+      {(isAdmin || others.length > 0) && (
+        <div className="row-sb wrap" style={{ marginTop: featured ? -8 : 0 }}>
+          <div className="t-chips">{others.map((x) => <a key={x.id} className="pill" href={hrefOf({ view: 'tournament', id: x.id })} onClick={(e) => { e.preventDefault(); go({ view: 'tournament', id: x.id }); }}>🏆 {x.name}</a>)}</div>
+          {isAdmin && <button className="btn-gold" onClick={() => openModal({ kind: 'tournament' })}>+ Tạo giải đấu</button>}
+        </div>
+      )}
       <section className="hero">
         <div className="hero-glow" style={{ background: `radial-gradient(55% 100% at 0% 50%,${glow(A0)},transparent 70%),radial-gradient(55% 100% at 100% 50%,${glow(B0)},transparent 70%)` }} />
         <div className="hero-hatch" />

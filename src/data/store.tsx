@@ -17,7 +17,7 @@ export const api: Api = createSupabaseApi(sbUrl || 'https://not-configured.inval
 
 export type Route =
   | { view: 'home' } | { view: 'teams'; teamId?: string } | { view: 'matches' } | { view: 'match'; matchId: string }
-  | { view: 'market' } | { view: 'manage'; teamId?: string };
+  | { view: 'market' } | { view: 'manage'; teamId?: string } | { view: 'tournament'; id: string };
 
 function parseHash(): Route {
   const [a, b] = window.location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
@@ -26,6 +26,7 @@ function parseHash(): Route {
     case 'matches': return { view: 'matches' };
     case 'match': return b ? { view: 'match', matchId: b } : { view: 'matches' };
     case 'market': return { view: 'market' };
+    case 'tournament': return b ? { view: 'tournament', id: b } : { view: 'home' };
     case 'manage': return { view: 'manage', teamId: b };
     default: return { view: 'home' };
   }
@@ -36,6 +37,7 @@ export function hrefOf(r: Route) {
     case 'teams': return r.teamId ? `#/teams/${r.teamId}` : '#/teams';
     case 'match': return `#/match/${r.matchId}`;
     case 'manage': return r.teamId ? `#/manage/${r.teamId}` : '#/manage';
+    case 'tournament': return `#/tournament/${r.id}`;
     default: return `#/${r.view}`;
   }
 }
@@ -52,6 +54,7 @@ export type Modal =
   | { kind: 'inbox' }
   | { kind: 'cancelMatch'; matchId: string }
   | { kind: 'handover'; teamId: string }
+  | { kind: 'tournament'; id?: string }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
   | { kind: 'schedule' };

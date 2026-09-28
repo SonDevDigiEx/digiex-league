@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` and `supabase/migrations/20260928100000_market_value.sql`. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql` and `supabase/migrations/20260928120000_tournament_signup.sql`. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -94,6 +94,15 @@ Triggers recompute the value on every relevant change, and `daily_value_refresh(
 | guest | home, teams, fixtures, lineups |
 
 Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER` functions `set_member`, `set_my_photo`, `approve_member`, `reject_member`, `sign_player`, `release_player`, `update_team`, `save_result`, `make_offer`, `respond_offer`, `cancel_offer`, `transfer_player`, `vote_winner`, `vote_score` and `vote_stats`. The UI only hides actions a user can't take. Uploads go to the public `media` bucket under `logos/<team>/…` and `players/<team>/…`, and only that team's staff can write there.
+
+### Tournaments
+
+- Only admins create tournaments, from *+ Tạo giải đấu* on the home page. They pick the S7 or S5 template (squad size, duration, team and personal points), then a format (round robin, groups then knockout, or knockout) and dates. The rules are Markdown generated from the template and can be edited.
+- Teams can be chosen up front, or the list can be left empty to open registration. While a tournament is *Sắp khởi tranh*, chairmen see *Đăng ký tham gia* / *Rút* on the banner and on the tournament page (RPC `register_tournament`). Any change to the entry list clears the draw.
+- `draw_tournament` (admin) shuffles the teams at random: a snake order into groups (at least 2 teams per group), or a power-of-2 bracket with byes.
+- The home page shows a gold banner for the ongoing or next tournament, with the logos of registered teams. Clicking it opens `#/tournament/<id>`, which shows the info, table or bracket, points, awards, matches and rules.
+- Awards (`tournament_awards`) link to a team and/or player. They appear on the team page (*Lịch sử giải thưởng*) and on the player card (*Danh hiệu*). The award form suggests winners from approved match stats.
+- Team staff can upload or remove a cover photo (`covers/<team>/…`).
 
 ## Deploy (Vercel)
 

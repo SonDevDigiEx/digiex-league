@@ -1,4 +1,4 @@
-import type { Goal, MatchInput, PlayerInput, Pos, Profile, Role, Snapshot, StatsInput, TeamInput, ValueFactors, WinnerKey } from '../lib/types';
+import type { Award, Goal, MatchInput, PlayerInput, Pos, Profile, Role, Snapshot, StatsInput, TeamInput, Tournament, TournamentInput, ValueFactors, WinnerKey } from '../lib/types';
 
 /**
  * Everything the UI reads or writes goes through this interface (implemented by supabaseApi.ts).
@@ -29,6 +29,17 @@ export interface Api {
   setMyNumber(num: number): Promise<void>;
   /** A player sets their 1–3 preferred positions (first = primary; OVR is recomputed). */
   setMyPositions(positions: Pos[]): Promise<void>;
+  setTeamCover(teamId: string, image: Blob | null): Promise<void>;
+  /** Admin: create a tournament with its teams and run the draw. Returns the id. */
+  createTournament(input: TournamentInput): Promise<string>;
+  /** Admin: edit details; changing the team list re-runs the draw. */
+  updateTournament(id: string, input: Partial<TournamentInput> & { status?: Tournament['status'] }): Promise<void>;
+  deleteTournament(id: string): Promise<void>;
+  drawTournament(id: string): Promise<void>;
+  /** Chair: register / withdraw the own team (upcoming tournaments only). */
+  registerTournament(id: string, join: boolean): Promise<void>;
+  addAward(award: Omit<Award, 'id'>): Promise<void>;
+  deleteAward(id: string): Promise<void>;
   /** Why a player is worth what they're worth. */
   valueFactors(playerId: string): Promise<ValueFactors>;
   /** Reject a pending sign-up (deletes the account). */

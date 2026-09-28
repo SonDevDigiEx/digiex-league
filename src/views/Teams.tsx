@@ -1,6 +1,7 @@
 import { Crest, PlayerCard, SecTitle } from '../components/bits';
-import { api, squadOf, useAccess, useLeague } from '../data/store';
+import { api, hrefOf, squadOf, useAccess, useLeague } from '../data/store';
 import { GNAME, GROUP, hexA, ini, readImg, record, sortedMatches } from '../lib/league';
+import { awardIcon } from '../lib/tournament';
 import type { Group } from '../lib/types';
 
 /** File input handler: downscale then upload as the team logo. */
@@ -14,10 +15,23 @@ export function useLogoUpload() {
   };
 }
 
+/** File input handler: downscale then upload as the team cover photo. */
+function useCoverUpload() {
+  const { run } = useLeague();
+  return (teamId: string) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await run(async () => api.setTeamCover(teamId, await readImg(file, 1400, 'image/jpeg')), 'Đã cập nhật ảnh bìa');
+  };
+}
+
 export function Teams({ teamId }: { teamId?: string }) {
   const { snap, go, openCard, openModal, user } = useLeague();
   const { isAdmin, canTeam } = useAccess();
   const onLogo = useLogoUpload();
+  const onCover = useCoverUpload();
+  const { run } = useLeague();
   const d = snap!;
   const T = d.teams;
   const ct = T.find((t) => t.id === (teamId || user?.team)) || T[0];
@@ -28,6 +42,11 @@ export function Teams({ teamId }: { teamId?: string }) {
   const avg = sq.length ? Math.round(sq.reduce((a, p) => a + p.ovr, 0) / sq.length) : 0;
   const can = canTeam(ct.id);
   const kpis = [{ l: 'GIÁ TRỊ ĐỘI HÌNH', v: val.toFixed(1) + ' tỷ', c: '#f5c542' }, { l: 'OVR TRUNG BÌNH', v: avg, c: '#c6ff3d' }, { l: 'THẮNG · HÒA · BẠI', v: `${tr.w}-${tr.d}-${tr.l}`, c: '#fff' }, { l: 'BÀN THẮNG', v: tr.gf, c: '#fff' }, { l: 'ĐIỂM', v: tr.pts, c: '#fff' }];
+  const tourName = (id: string) => d.tournaments.find((x) => x.id === id)?.name || 'Giải đấu';
+  const teamAwards = d.awards.filter((a) => a.teamId === ct.id);
+  // Team trophies first, then individual awards won by its players.
+  const trophies = teamAwards.filter((a) => !a.playerId && !a.playerName);
+  const personal = teamAwards.filter((a) => a.playerId || a.playerName);
   let ci = 0;
   const groups = (['GK', 'DEF', 'MID', 'FWD'] as Group[]).map((g) => ({ g, cards: sq.filter((p) => GROUP[p.pos] === g).sort((a, b) => b.ovr - a.ovr) })).filter((x) => x.cards.length);
 
@@ -45,7 +64,8 @@ export function Teams({ teamId }: { teamId?: string }) {
         {isAdmin && <button className="pill add" onClick={() => openModal({ kind: 'addTeam' })}>+ Thêm đội</button>}
       </div>
 
-      <section className="team-hero" style={{ background: `linear-gradient(120deg,${ct.color2} 0%,#0a0e17 62%)` }}>
+      <section className={'team-hero' + (ct.cover ? ' has-cover' : '')} style={{ background: `linear-gradient(120deg,${ct.color2} 0%,#0a0e17 62%)` }}>
+        {ct.cover && <div className="team-cover" style={{ backgroundImage: `url(${ct.cover})` }} />}
         <div className="team-ghost">{ct.short}</div>
         <div className="team-top">
           <div className="team-id">
@@ -58,6 +78,8 @@ export function Teams({ teamId }: { teamId?: string }) {
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button className="btn-upload" onClick={() => openModal({ kind: 'editTeam', teamId: ct.id })}>Sửa thông tin</button>
                   <label className="btn-upload">Tải logo đội<input type="file" accept="image/*" onChange={onLogo(ct.id)} /></label>
+                  <label className="btn-upload">{ct.cover ? 'Đổi ảnh bìa' : 'Tải ảnh bìa'}<input type="file" accept="image/*" onChange={onCover(ct.id)} /></label>
+                  {ct.cover && <button className="btn-upload" onClick={() => run(() => api.setTeamCover(ct.id, null), 'Đã xóa ảnh bìa')}>Xóa ảnh bìa</button>}
                 </div>
               )}
             </div>
@@ -76,6 +98,26 @@ export function Teams({ teamId }: { teamId?: string }) {
           {kpis.map((k, i) => <div key={k.l} className="kpi" style={{ animationDelay: i * 0.07 + 's' }}><span>{k.l}</span><b style={{ color: k.c }}>{k.v}</b></div>)}
         </div>
       </section>
+
+      {teamAwards.length > 0 && (
+        <section className="panel">
+          <SecTitle sm color="#f5c542">Lịch sử giải thưởng · {teamAwards.length}</SecTitle>
+          {trophies.length > 0 && <div className="trophy-shelf">{trophies.map((a) => (
+            <a key={a.id} className={'shelf-item k-' + a.kind} href={hrefOf({ view: 'tournament', id: a.tournamentId })} onClick={(e) => { e.preventDefault(); go({ view: 'tournament', id: a.tournamentId }); }}>
+              <span className="aw-icon">{awardIcon(a.kind)}</span><b>{a.title}</b><span>{tourName(a.tournamentId)}</span>
+            </a>
+          ))}</div>}
+          {personal.length > 0 && <div className="awards">{personal.map((a) => {
+            const p = a.playerId ? d.players.find((x) => x.id === a.playerId) : undefined;
+            return (
+              <div key={a.id} className="award">
+                <span className="aw-icon">{awardIcon(a.kind)}</span>
+                <div><b>{a.title}</b><span>{p ? <a onClick={() => openCard(p.id)}>{p.name}</a> : a.playerName} · {tourName(a.tournamentId)}</span>{a.note && <em>{a.note}</em>}</div>
+              </div>
+            );
+          })}</div>}
+        </section>
+      )}
 
       <div className="row-sb wrap">
         <SecTitle>Đội hình · {sq.length} cầu thủ</SecTitle>
