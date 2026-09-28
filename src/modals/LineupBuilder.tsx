@@ -121,7 +121,7 @@ export function LineupBuilder({ teamId, initial }: { teamId: string; initial?: F
                 return (
                   <button type="button" key={p.id} className={'lb-p' + (at != null ? ' on' : '') + (good === 2 ? ' fit' : '')} onClick={() => assign(p.id)}>
                     <span className="lb-ovr" style={{ background: team.color }}>{p.ovr}</span>
-                    <span className="lb-n"><b>{p.name}</b><small>{p.positions.join(' / ')}{at != null ? ` · đang ở vị trí ${at + 1}` : ''}</small></span>
+                    <span className="lb-n"><b>{p.name}</b><small>{p.positions.join(' / ')}{at != null ? ` · đang ở vị trí ${at + 1}` : ' · dự bị'}</small></span>
                     {good === 2 && <em>Hợp</em>}
                   </button>
                 );

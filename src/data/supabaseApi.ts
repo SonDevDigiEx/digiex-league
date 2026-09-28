@@ -29,6 +29,7 @@ const num = (v: unknown) => (v == null ? null : Number(v));
 const toParticipation = (r: Row): Participation => ({
   matchId: r.match_id, playerId: r.player_id, teamId: r.team_id, goals: num(r.goals), assists: num(r.assists), saves: num(r.saves),
   yellow: num(r.yellow), red: num(r.red), rating: num(r.rating), note: r.note, status: r.stats_status as StatsStatus,
+  attendance: r.attendance ?? 'present',
 });
 const toProfile = (r: Row): Profile => ({
   id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null, nameChangedAt: r.name_changed_at ?? null,
@@ -287,6 +288,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       const rows = check(await sb.from('player_xp').select('*').eq('player_id', playerId).order('created_at', { ascending: false }).limit(30)) as Row[];
       return rows.map((r) => ({ id: r.id, matchId: r.match_id, kind: r.kind, amount: r.amount, dist: r.dist, note: r.note, date: r.created_at }));
     },
+    async setAttendance(matchId, playerId, status) { return check(await sb.rpc('set_attendance', { p_match: matchId, p_player: playerId, p_status: status })) as string; },
     async markNotificationsRead(ids) { check(await sb.rpc('mark_notifications_read', { p_ids: ids ?? null })); },
     async hotBonus(playerId) { return check(await sb.rpc('hot_bonus', { p_player: playerId })) as string; },
     async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },

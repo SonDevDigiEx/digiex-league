@@ -1168,3 +1168,25 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .xp-pending { padding: 8px 10px; border-radius: 8px; border: 1px dashed rgba(245, 197, 66, .45); background: rgba(245, 197, 66, .07); font: 600 12px/1.4 var(--vn); color: #e8cf86 }
 .jr-q.pend { border-style: dashed; border-color: rgba(245, 197, 66, .45); background: rgba(245, 197, 66, .06) }
 .jr-q.pend b { color: var(--gold) }
+/* lineup card: pitch + bench */
+.tl-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start }
+@media (min-width: 700px) { .tl-body { grid-template-columns: minmax(0, 360px) minmax(0, 1fr) } }
+.tl-body .tl-pitch { width: 100%; justify-self: center }
+.tl-bench { display: flex; flex-direction: column; gap: 5px; min-width: 0; max-height: 520px; overflow-y: auto }
+.tl-b { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .2); color: #fff; cursor: pointer; text-align: left }
+.tl-b:hover { background: rgba(255, 255, 255, .06) }
+.tl-b.me { border-color: rgba(198, 255, 61, .55); background: rgba(198, 255, 61, .08) }
+.tl-b-n { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px }
+.tl-b-n b { font: 700 13px/1.1 var(--vn); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.tl-b-n small { font: 500 11px/1 var(--vn); color: var(--muted) }
+.tl-b em { font: italic 900 16px/1 var(--bc); font-style: italic; color: var(--soft) }
+/* attendance */
+.att { font: 700 10px/1 var(--vn); font-style: normal; padding: 4px 7px; border-radius: 10px; letter-spacing: .06em }
+.att.late { background: rgba(245, 197, 66, .15); color: var(--gold) }
+.att.no { background: rgba(229, 72, 77, .18); color: var(--red) }
+.att-pick { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px }
+.att-pick button { border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .03); color: var(--soft); border-radius: 16px; padding: 5px 10px; font: 600 11px/1 var(--vn); cursor: pointer }
+.att-pick button.on.present { background: rgba(198, 255, 61, .15); border-color: rgba(198, 255, 61, .5); color: var(--lime) }
+.att-pick button.on.late { background: rgba(245, 197, 66, .15); border-color: rgba(245, 197, 66, .5); color: var(--gold) }
+.att-pick button.on.no_show { background: rgba(229, 72, 77, .18); border-color: rgba(229, 72, 77, .55); color: var(--red) }
+.att-pick button:disabled { opacity: .6 }

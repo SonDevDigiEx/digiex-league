@@ -20,6 +20,8 @@ export const RULES: Rule[] = [
   { kind: 'mom', icon: '🏅', title: 'Cầu thủ xuất sắc trận (MOM)', xp: '+25', goes: 'Chia theo vị trí' },
   { kind: 'streak', icon: '🔥', title: 'Chuỗi 3 trận liên tiếp của đội đều có mặt', xp: '+15', goes: 'Chia theo vị trí' },
   { kind: 'bonus', icon: '🧧', title: 'Thưởng nóng từ Chủ tịch (1 phong bì/tuần/Chủ tịch)', xp: '+30', goes: 'Chia theo vị trí' },
+  { kind: 'late', icon: '⏰', title: 'Đi trễ (Chủ tịch đánh dấu sau trận)', xp: '−5', goes: 'Chỉ trừ tiến độ' },
+  { kind: 'no_show', icon: '🚫', title: 'Điểm danh mà không đến (Chủ tịch đánh dấu)', xp: 'Mất XP trận −10', goes: 'Mất toàn bộ XP của trận đó và trừ thêm 10. Trận bị hủy không tính' },
   { kind: 'absent', icon: '😴', title: 'Vắng trận của đội (khi đội có ≥ 3 người bấm Tham gia)', xp: '−6', goes: 'Chỉ trừ tiến độ, không tụt chỉ số' },
 ];
 export const RULE_ICON: Record<string, string> = Object.fromEntries(RULES.map((r) => [r.kind, r.icon]));

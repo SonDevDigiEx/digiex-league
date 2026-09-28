@@ -49,6 +49,8 @@ export interface Api {
   hotBonus(playerId: string): Promise<string>;
   /** Mark the given notifications (or all) as read. */
   markNotificationsRead(ids?: number[]): Promise<void>;
+  /** Chairman / admin, after the match: present · late (−5 XP) · no_show (loses the match's XP, −10). */
+  setAttendance(matchId: string, playerId: string, status: 'present' | 'late' | 'no_show'): Promise<string>;
   /** Chairman / BHL / admin: save the team's starting lineup for S5 or S7. */
   saveLineup(teamId: string, format: 's5' | 's7', formation: string, slots: Slot[]): Promise<void>;
   /** Free agent: apply to join a team (the team's chairman decides). */

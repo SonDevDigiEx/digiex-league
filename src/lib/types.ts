@@ -139,6 +139,8 @@ export interface Participation {
   rating: number | null;
   note: string | null;
   status: StatsStatus;
+  /** Marked by the chairman after the match. */
+  attendance?: 'present' | 'late' | 'no_show';
 }
 
 export interface StatsInput {

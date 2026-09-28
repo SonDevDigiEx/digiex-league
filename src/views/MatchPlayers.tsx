@@ -90,8 +90,9 @@ const EMPTY: StatsInput = { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, r
 /** Post-match: participants report their stats; the side's BHL / chairman (or admin) approves. */
 export function MatchStats({ m }: { m: Match }) {
   const { snap, user, openCard } = useLeague();
-  const { tm, canTeam } = useAccess();
+  const { tm, canTeam, isAdmin, myT } = useAccess();
   const { act, pending, busy } = useAction();
+  const att = useAction(800);
   const d = snap!;
   const rows = participantsOf(d.participants, m.id);
   const byId = new Map(d.players.map((p) => [p.id, p]));
@@ -103,6 +104,7 @@ export function MatchStats({ m }: { m: Match }) {
   const side = (t: Team) => {
     const list = rows.filter((r) => r.teamId === t.id);
     const staff = canTeam(t.id);
+    const marker = isAdmin || myT === t.id;
     const waiting = list.filter((r) => r.status === 'submitted').length;
     return (
       <div key={t.id} className="panel" style={{ gap: 10 }}>
@@ -120,7 +122,20 @@ export function MatchStats({ m }: { m: Match }) {
             <div key={r.playerId} className="st-row">
               <OvrBadge p={p} className="rq-badge" onClick={() => openCard(p.id)} />
               <div className="st-main">
-                <div className="st-name"><span>{p.name}{p.teamId !== t.id ? ' · tự do' : ''}</span><em style={{ background: bg, color: fg }}>{label}</em></div>
+                <div className="st-name"><span>{p.name}{p.teamId !== t.id ? ' · tự do' : ''}</span><em style={{ background: bg, color: fg }}>{label}</em>
+                  {r.attendance === 'late' && <em className="att late">⏰ ĐI TRỄ</em>}
+                  {r.attendance === 'no_show' && <em className="att no">🚫 VẮNG</em>}
+                </div>
+                {marker && (
+                  <div className="att-pick" role="group" aria-label={'Điểm danh ' + p.name}>
+                    {([['present', '✅ Có mặt'], ['late', '⏰ Trễ −5'], ['no_show', '🚫 Không đến']] as const).map(([k, l]) => (
+                      <button key={k} className={(r.attendance ?? 'present') === k ? 'on ' + k : ''} disabled={att.busy}
+                        onClick={() => (r.attendance ?? 'present') !== k && att.act('att:' + p.id, () => api.setAttendance(m.id, p.id, k), (msg) => msg as string)}>
+                        {att.pending === 'att:' + p.id && (r.attendance ?? 'present') !== k ? '…' : l}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {has
                   ? <div className="st-nums">
                       <span>⚽ {r.goals}</span><span>🅰 {r.assists}</span>{!!r.saves && <span>🧤 {r.saves}</span>}
@@ -148,7 +163,7 @@ export function MatchStats({ m }: { m: Match }) {
       {mine && mine.status !== 'approved' && <MyStatsForm key={mine.status} m={m} row={mine} />}
       {mine && mine.status === 'approved' && <div className="mine">Thông số của bạn đã được duyệt và ghi vào thống kê mùa giải.</div>}
       <div className="two" style={{ animation: 'none' }}>{[tm(m.home), tm(m.away)].map(side)}</div>
-      <div className="note">Chỉ thông số đã được BHL / Chủ tịch của đội (hoặc Ban tổ chức) duyệt mới được tính vào thống kê mùa giải.</div>
+      <div className="note">Chỉ thông số đã được BHL / Chủ tịch của đội (hoặc Ban tổ chức) duyệt mới được tính vào thống kê mùa giải. Chủ tịch điểm danh sau trận: đi trễ −5 XP, điểm danh mà không đến mất toàn bộ XP trận và −10.</div>
     </div>
   );
 }
