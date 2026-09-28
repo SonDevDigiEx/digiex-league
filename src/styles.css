@@ -949,3 +949,21 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
   .rk-who { gap: 7px }
   .rk-who .fa { width: 28px !important; height: 28px !important; font-size: 10px !important }
 }
+
+/* ───────── Image cropper ───────── */
+.crop { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 16px; background: rgba(3, 5, 9, .82); backdrop-filter: blur(6px); animation: fadeIn .2s ease both }
+.crop-in { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(100%, 380px); padding: 20px; border-radius: 18px; background: #0e131e; border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); animation: pop .3s ease both }
+.crop-title { font: italic 900 24px/1 var(--bc); text-transform: uppercase; color: #fff }
+.crop-hint { font: 500 12px/1.4 var(--vn); color: var(--muted); text-align: center }
+.crop-stage { position: relative; overflow: hidden; flex: none; max-width: 100%; border-radius: 12px; cursor: grab; touch-action: none; user-select: none;
+  background: repeating-conic-gradient(#1b2231 0 25%, #141a26 0 50%) 0 0 / 18px 18px; box-shadow: 0 0 0 2px var(--lime), 0 0 30px rgba(198, 255, 61, .2) }
+.crop-stage:active { cursor: grabbing }
+.crop-stage img { position: absolute; max-width: none; pointer-events: none }
+.crop-grid { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent 33.2%, rgba(255, 255, 255, .25) 33.3% 33.5%, transparent 33.6% 66.5%, rgba(255, 255, 255, .25) 66.6% 66.8%, transparent 66.9%), linear-gradient(transparent 33.2%, rgba(255, 255, 255, .25) 33.3% 33.5%, transparent 33.6% 66.5%, rgba(255, 255, 255, .25) 66.6% 66.8%, transparent 66.9%) }
+.crop-grid::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28%; background: linear-gradient(transparent, rgba(6, 8, 13, .55)); border-top: 1px dashed rgba(255, 255, 255, .25) }
+.crop-load { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 500 13px/1 var(--vn) }
+.crop-zoom { display: flex; align-items: center; gap: 8px; width: 100% }
+.crop-zoom input { flex: 1; accent-color: var(--lime) }
+.crop-zoom button { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .15); background: rgba(255, 255, 255, .05); color: #fff; font-size: 18px; line-height: 1; cursor: pointer }
+.crop-zoom .crop-reset { width: auto; padding: 0 10px; border-radius: 16px; font: 600 11px/1 var(--vn) }
+.crop-acts { display: flex; gap: 8px; justify-content: flex-end; width: 100% }

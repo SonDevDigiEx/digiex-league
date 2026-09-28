@@ -106,6 +106,7 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 
 ### Accounts
 
+- Player photos go through a cropper (drag, zoom with the slider, mouse wheel or pinch) shaped like the card's photo frame. The result is saved at 480×520: JPEG for opaque photos, WebP/PNG when the image has transparency.
 - Users rename themselves in *Hồ sơ của tôi* (RPC `set_my_name`, 2–40 characters, at most once every 24 hours). The new name is also written to their player card and to the chairman/BHL line on the team card.
 - In *Quản lý → Thành viên*, admins can delete any account except their own (RPC `delete_user`). The player card is kept, unlinked from the account, unless *Xóa luôn thẻ cầu thủ* is ticked. If the deleted user was a chairman or BHL, the team card goes back to *Chưa bổ nhiệm*.
 

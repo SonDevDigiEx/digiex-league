@@ -170,24 +170,28 @@ export function readImg(file: File, size: number, type: string): Promise<Blob> {
       const sc = Math.min(1, size / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
-      const ctx = c.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      let out = type;
-      if (type === 'photo') {
-        const px = ctx.getImageData(0, 0, c.width, c.height).data;
-        let alpha = false;
-        for (let i = 3; i < px.length; i += 4) if (px[i] < 250) { alpha = true; break; }
-        out = alpha ? 'image/webp' : 'image/jpeg';
-      }
-      c.toBlob((b) => {
-        if (!b) return rej(new Error('encode failed'));
-        // Browsers without a WebP encoder return PNG, which also keeps transparency.
-        if (out === 'image/webp' && b.type !== 'image/webp') return c.toBlob((p) => (p ? res(p) : rej(new Error('encode failed'))), 'image/png');
-        res(b);
-      }, out, out === 'image/png' ? undefined : 0.88);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      encodeCanvas(c, type).then(res, rej);
     };
     img.src = url;
   });
+}
+
+/** Encode a canvas; `'photo'` = JPEG when opaque, WebP/PNG when it has transparency. */
+export function encodeCanvas(c: HTMLCanvasElement, type: string): Promise<Blob> {
+  let out = type;
+  if (type === 'photo') {
+    const px = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+    let alpha = false;
+    for (let i = 3; i < px.length; i += 4) if (px[i] < 250) { alpha = true; break; }
+    out = alpha ? 'image/webp' : 'image/jpeg';
+  }
+  return new Promise((res, rej) => c.toBlob((b) => {
+    if (!b) return rej(new Error('encode failed'));
+    // Browsers without a WebP encoder return PNG, which also keeps transparency.
+    if (out === 'image/webp' && b.type !== 'image/webp') return c.toBlob((p) => (p ? res(p) : rej(new Error('encode failed'))), 'image/png');
+    res(b);
+  }, out, out === 'image/png' ? undefined : 0.88));
 }
 
 /** File extension for an uploaded image blob. */

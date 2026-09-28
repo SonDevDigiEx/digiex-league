@@ -6,6 +6,7 @@ import { dmy, DEFAULT_VENUE, nextFreeNum, ovrOf, fDate, fTime, genStats, ini, RO
 import type { Foot, Player, Pos, Role, TournamentInput } from '../lib/types';
 import { rulesTemplate, STRUCTURE_LABEL, TEMPLATES } from '../lib/tournament';
 import { MyApplications } from '../components/Applications';
+import { ImageCropper } from '../components/ImageCropper';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -78,6 +79,7 @@ function MeForm() {
   const { me, snap, run, closeModal, openModal } = useLeague();
   const { tm } = useAccess();
   const [preview, setPreview] = useState<{ blob: Blob; url: string } | null>(null);
+  const [crop, setCrop] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
@@ -94,8 +96,7 @@ function MeForm() {
     e.target.value = '';
     if (!file) return;
     setErr('');
-    try { const blob = await readImg(file, 480, 'photo'); setPreview({ blob, url: URL.createObjectURL(blob) }); }
-    catch { setErr('Không đọc được ảnh. Hãy chọn file JPG hoặc PNG.'); }
+    setCrop(file);
   };
   const save = async (blob: Blob | null) => {
     setBusy(true); setErr('');
@@ -106,6 +107,7 @@ function MeForm() {
 
   return (
     <Shell title="Hồ sơ của tôi" err={err} busy={busy} onSubmit={() => {}}>
+      {crop && <ImageCropper file={crop} onCancel={() => setCrop(null)} onDone={(blob) => { setCrop(null); setPreview({ blob, url: URL.createObjectURL(blob) }); }} />}
       <div className="me-top">
         {player
           ? <div className="me-card"><PlayerCard p={{ ...player, photo: shown }} team={team} still /></div>
@@ -120,6 +122,10 @@ function MeForm() {
             {!preview && <label className="ph-btn">Đổi ảnh<input type="file" accept="image/*" onChange={pick} disabled={busy} /></label>}
             {preview && <button type="button" className="ph-btn" style={{ background: '#c6ff3d', color: '#06080d' }} disabled={busy} onClick={() => save(preview.blob)}>{busy ? 'Đang lưu…' : 'Lưu ảnh'}</button>}
             {preview && <button type="button" className="ph-btn grey" disabled={busy} onClick={() => setPreview(null)}>Hủy</button>}
+            {!preview && current && <button type="button" className="ph-btn grey" disabled={busy} onClick={async () => {
+              try { const r = await fetch(current); const b = await r.blob(); setCrop(new File([b], 'photo', { type: b.type })); }
+              catch { setErr('Không tải được ảnh hiện tại để căn chỉnh.'); }
+            }}>Căn chỉnh</button>}
             {!preview && <button type="button" className="ph-btn grey" disabled={busy} onClick={() => save(null)}>Dùng ảnh Google</button>}
           </div>
           {preview && <div className="fm-note" style={{ color: '#e4ff9a' }}>Đang xem trước — bấm Lưu ảnh để áp dụng.</div>}
@@ -429,13 +435,17 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   const L = primary === 'GK' ? LBL_GK : LBL;
   const ovr = primary ? ovrOf(primary, f.stats) : 0;
   const numTaken = f.num !== '' ? snap!.players.find((x) => x.num === +f.num && x.id !== p?.id) : undefined;
-  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [crop, setCrop] = useState<File | null>(null);
+  const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
+    if (file) setCrop(file);
+  };
+  const uploadCropped = async (blob: Blob) => {
+    setCrop(null);
     setUploading(true);
-    try { const url = await api.uploadPlayerPhoto(team.id, await readImg(file, 480, 'photo')); setF((s) => ({ ...s, photo: url })); }
-    catch (x) { flash((x as Error).message || 'Không đọc được ảnh', true); }
+    try { const url = await api.uploadPlayerPhoto(team.id, blob); setF((s) => ({ ...s, photo: url })); }
+    catch (x) { flash((x as Error).message || 'Không tải được ảnh', true); }
     finally { setUploading(false); }
   };
   return (
@@ -456,6 +466,7 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
       }
       submit(() => api.savePlayer({ id: p?.id, ...input }), (p ? 'Đã cập nhật ' : 'Đã đăng ký ') + f.name.trim());
     }}>
+      {crop && <ImageCropper file={crop} onCancel={() => setCrop(null)} onDone={uploadCropped} />}
       {acct && <div className="info">Tài khoản <b>{acct.email}</b>. Một người có thể vừa giữ vai trò quản lý (Chủ tịch / BHL / Ban tổ chức) vừa là cầu thủ.</div>}
       {acct && (
         <div className="g2">
