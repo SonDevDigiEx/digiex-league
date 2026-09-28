@@ -41,7 +41,12 @@ export interface Player {
   stats: number[];
   value: number;
   photo?: string | null;
+  /** Lifetime XP (net) and per-stat progress toward the next point. */
+  xp?: number;
+  statXp?: number[];
 }
+
+export interface XpEvent { id: number; matchId: string | null; kind: string; amount: number; dist: number[]; note: string | null; date: string }
 
 export interface Goal {
   pid: string;

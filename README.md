@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` and `supabase/migrations/20260928160000_lineups.sql`. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` and `supabase/migrations/20260928170000_xp.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -115,6 +115,28 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 - Free agents with a player card see *Ứng tuyển vào đội* on a team page. They can add a note, have up to 3 pending applications at once, and withdraw them from the team page or *Hồ sơ của tôi*.
 - The team's chairman (or an admin) accepts or rejects in *Chuyển nhượng → Đơn ứng tuyển* or on the team page. The market tab badge counts pending applications.
 - On acceptance the player joins the team and the move is logged. Their other pending applications and invitations lapse (trigger `lapse_applications` fires on any move into a team).
+
+### Experience (XP) → stats
+
+- Stats grow from quests. When a match is finished (score entered, stats approved or MOM picked), the triggers call `refresh_match_xp`. It awards XP once per player, match and kind; see the table below or *📜 Bảng nhiệm vụ* in the app.
+- "Chia theo vị trí" XP is split over the six stats by the primary position's OVR weights. Goals, assists, clean sheets and saves go to specific stats.
+- Every stat has its own progress. +1 costs `xp_cost(v) = 12·1.1^(v−60)` (75 → 50 XP, 85 → 130 XP, 95 → 337 XP), so high stats are hard to raise. Penalties only reduce progress; stats never drop. OVR and market value update on their own.
+- Chairmen get one *thưởng nóng* envelope per week (`hot_bonus`, +30 XP) for a player in their team, not themselves.
+- The player card and *Hồ sơ của tôi* show the level bar, per-stat progress, personal tips and the XP history.
+
+| Quest | XP |
+|---|---|
+| Attend (registered with *Tham gia*) | +20 |
+| Stats filled in and approved by BHL | +10 |
+| Win / draw | +8 / +4 |
+| Each goal / assist | +16 (SHO or PAS +12, DRI +4) |
+| Clean sheet (GK, DEF / MID) | +20 / +6 |
+| Conceded only 1 (GK, DEF) | +6 |
+| Each save, GK (max 10) | +3 |
+| Match rating ≥ 8 / ≥ 9 | +10 / +20 |
+| MOM | +25 |
+| Played the team's last 3 matches | +15 |
+| Missed own team's match (team had ≥ 3 registrations) | −6 |
 
 ### Lineups (đội hình)
 

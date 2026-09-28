@@ -13,6 +13,7 @@ const toTeam = (r: Row): Team => ({
 const toPlayer = (r: Row): Player => ({
   id: r.id, teamId: r.team_id, name: r.name, pos: r.pos as Pos, positions: ((r.positions?.length ? r.positions : [r.pos]) as Pos[]), ovr: r.ovr, num: r.num, age: r.age, foot: r.foot as Foot,
   stats: r.stats, value: Number(r.value), photo: r.photo_url, userId: r.user_id ?? null,
+  xp: r.xp ?? 0, statXp: r.stat_xp ?? [0, 0, 0, 0, 0, 0],
 });
 const toMatch = (r: Row): Match => ({
   id: r.id, date: r.kickoff, home: r.home_team, away: r.away_team, hs: r.home_score, as: r.away_score, status: r.status,
@@ -280,6 +281,11 @@ export function createSupabaseApi(url: string, key: string): Api {
     async cancelApplication(id) { check(await sb.rpc('cancel_application', { p_id: id })); },
     async respondApplication(id, accept) { return check(await sb.rpc('respond_application', { p_id: id, p_accept: accept })) as string; },
     async saveLineup(teamId, format, formation, slots) { check(await sb.rpc('save_lineup', { p_team: teamId, p_format: format, p_formation: formation, p_slots: slots })); },
+    async xpHistory(playerId) {
+      const rows = check(await sb.from('player_xp').select('*').eq('player_id', playerId).order('created_at', { ascending: false }).limit(30)) as Row[];
+      return rows.map((r) => ({ id: r.id, matchId: r.match_id, kind: r.kind, amount: r.amount, dist: r.dist, note: r.note, date: r.created_at }));
+    },
+    async hotBonus(playerId) { return check(await sb.rpc('hot_bonus', { p_player: playerId })) as string; },
     async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },
     async deleteUser(userId, deletePlayer) { check(await sb.rpc('delete_user', { p_user: userId, p_delete_player: deletePlayer })); },
     async setMom(matchId, playerId) { check(await sb.rpc('set_mom', { p_match: matchId, p_player: playerId })); },

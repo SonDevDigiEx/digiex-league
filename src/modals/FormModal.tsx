@@ -8,6 +8,7 @@ import { rulesTemplate, STRUCTURE_LABEL, TEMPLATES } from '../lib/tournament';
 import { MyApplications } from '../components/Applications';
 import { CREST_ASPECT, ImageCropper } from '../components/ImageCropper';
 import { LineupBuilder } from './LineupBuilder';
+import { XpPanel, XpRules } from '../components/Xp';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -150,7 +151,8 @@ function MeForm() {
             ))}
           </div>
           <PositionEdit key={player.positions.join()} player={player} />
-          <div className="fm-note">Bạn tự đổi được ảnh, số áo và vị trí sở trường. Chỉ số do Chủ tịch / BHL của đội hoặc Ban tổ chức cập nhật; OVR hệ thống tự tính theo vị trí chính và chỉ số.</div>
+          <XpPanel p={player} own />
+          <div className="fm-note">Bạn tự đổi được ảnh, số áo và vị trí sở trường. Chỉ số tăng nhờ <span>kinh nghiệm (XP)</span> kiếm được sau mỗi trận; OVR hệ thống tự tính theo vị trí chính và chỉ số.</div>
         </>
       ) : (
         <div className="fm-note">{me.role === 'pending' ? 'Tài khoản đang chờ Ban tổ chức duyệt. ' : ''}Bạn chưa có hồ sơ cầu thủ — khi được duyệt làm cầu thủ, thẻ cầu thủ sẽ dùng ảnh này.</div>
@@ -802,6 +804,7 @@ export function FormModal() {
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;
     case 'schedule': return <ScheduleForm />;
+    case 'xpRules': return <XpRules />;
     case 'lineup': return snap?.teams.some((t) => t.id === m.teamId) ? <LineupBuilder key={m.teamId} teamId={m.teamId} initial={m.format} /> : null;
     case 'apply': return snap?.teams.some((t) => t.id === m.teamId) ? <ApplyForm teamId={m.teamId} /> : null;
     case 'tournament': return <TournamentForm key={m.id || 'new'} id={m.id} />;

@@ -4,6 +4,7 @@ import { api, useAccess, useLeague } from '../data/store';
 import { seasonStats } from '../views/MatchPlayers';
 import { hexA, LBL, LBL_GK, money, tier, valueTrend } from '../lib/league';
 import { awardIcon } from '../lib/tournament';
+import { XpPanel } from '../components/Xp';
 import type { ValueFactors } from '../lib/types';
 
 const RINGS = ['100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60', '100,46.7 146.2,73.3 146.2,126.7 100,153.3 53.8,126.7 53.8,73.3', '100,73.3 123.1,86.7 123.1,113.3 100,126.7 76.9,113.3 76.9,86.7'];
@@ -11,7 +12,7 @@ const LABEL_XY: [number, number][] = [[100, 8], [186, 56], [186, 152], [100, 198
 const col = (v: number) => (v >= 85 ? '#c6ff3d' : v >= 75 ? '#f5c542' : v >= 65 ? '#ff9f43' : '#ff6b81');
 
 export function CardModal() {
-  const { snap, cardId, closeCard, openModal, go } = useLeague();
+  const { snap, cardId, closeCard, openModal, go, user } = useLeague();
   const { tm, canTransfer, canTeam, staffT, isStaffPlayer, staffLabel } = useAccess();
   const p = cardId ? snap?.players.find((x) => x.id === cardId) : null;
   useEffect(() => {
@@ -85,6 +86,7 @@ export function CardModal() {
               ))}
             </div>
           )}
+          <XpPanel p={p} own={!!user && p.userId === user.id} />
           <ValueBox playerId={p.id} value={p.value} trend={trend} history={hist.map((h) => h.value)} />
           <div className="cm-acts">
             {canTransfer(p.teamId) && !staffP && <button className="cm-btn lime" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển nhượng</button>}

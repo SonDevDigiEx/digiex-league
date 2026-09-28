@@ -1,5 +1,5 @@
 import type { Slot } from '../lib/formation';
-import type { Award, Goal, MatchInput, PlayerInput, Pos, Profile, Role, Snapshot, StatsInput, TeamInput, Tournament, TournamentInput, ValueFactors, WinnerKey } from '../lib/types';
+import type { Award, Goal, MatchInput, PlayerInput, Pos, Profile, Role, Snapshot, StatsInput, TeamInput, Tournament, TournamentInput, ValueFactors, WinnerKey, XpEvent } from '../lib/types';
 
 /**
  * Everything the UI reads or writes goes through this interface (implemented by supabaseApi.ts).
@@ -43,6 +43,10 @@ export interface Api {
   setMom(matchId: string, playerId: string | null): Promise<void>;
   /** Own display name (also on the player / team card); once every 24 h. */
   setMyName(name: string): Promise<void>;
+  /** Latest XP events of a player (members only). */
+  xpHistory(playerId: string): Promise<XpEvent[]>;
+  /** Chairman: weekly "thưởng nóng" +30 XP to a player of their team. */
+  hotBonus(playerId: string): Promise<string>;
   /** Chairman / BHL / admin: save the team's starting lineup for S5 or S7. */
   saveLineup(teamId: string, format: 's5' | 's7', formation: string, slots: Slot[]): Promise<void>;
   /** Free agent: apply to join a team (the team's chairman decides). */
