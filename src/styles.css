@@ -516,3 +516,5 @@ input[type=range] { accent-color: var(--lime); width: 100% }
 @media (max-width: 560px) { .mb-row { grid-template-columns: 44px minmax(0, 1fr) } .mb-row .mg-ph { width: 44px; height: 44px } .mb-acts { grid-column: 1 / -1; justify-content: flex-start } }
 .me-open { display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; color: inherit; font: inherit }
 .me-open:hover .me-name { color: var(--lime) }
+.me-top { display: flex; gap: 18px; align-items: center; flex-wrap: wrap }
+.me-card { width: 150px; height: 214px; flex: none }

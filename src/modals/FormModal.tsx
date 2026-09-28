@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { PlayerCard } from '../components/bits';
 import { api, useAccess, useLeague, type Modal } from '../data/store';
 import { DEFAULT_VENUE, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Pos, Role } from '../lib/types';
@@ -66,39 +67,82 @@ function LoginForm({ reason }: { reason?: string }) {
   );
 }
 
-/** The signed-in user's own profile: change photo (used for the avatar and their player card). */
+/**
+ * The signed-in user's profile: their player card + stats (read-only) and a photo picker
+ * that previews on the card before saving. Only the photo is user-editable; stats belong to staff.
+ */
 function MeForm() {
-  const { me, snap, flash, run, closeModal, openCard } = useLeague();
+  const { me, snap, run, closeModal } = useLeague();
   const { tm } = useAccess();
+  const [preview, setPreview] = useState<{ blob: Blob; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
   if (!me) return null;
   const player = snap?.players.find((p) => p.userId === me.id);
-  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const team = tm(player ? player.teamId : null);
+  const current = player?.photo || me.avatar || null;
+  const shown = preview?.url ?? current;
+  const L = player?.pos === 'GK' ? LBL_GK : LBL;
+  const col = (v: number) => (v >= 85 ? '#c6ff3d' : v >= 75 ? '#f5c542' : v >= 65 ? '#ff9f43' : '#ff6b81');
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    setBusy(true);
-    try { await run(async () => api.setMyPhoto(await readImg(file, 360, 'image/jpeg')), 'Đã cập nhật ảnh của bạn', true); }
-    catch (x) { flash((x as Error).message || 'Không đọc được ảnh', true); }
+    setErr('');
+    try { const blob = await readImg(file, 360, 'image/jpeg'); setPreview({ blob, url: URL.createObjectURL(blob) }); }
+    catch { setErr('Không đọc được ảnh. Hãy chọn file JPG hoặc PNG.'); }
+  };
+  const save = async (blob: Blob | null) => {
+    setBusy(true); setErr('');
+    try { await run(() => api.setMyPhoto(blob), blob ? 'Đã cập nhật ảnh' : 'Đã dùng lại ảnh Google', true); setPreview(null); }
+    catch (x) { setErr((x as Error).message); }
     finally { setBusy(false); }
   };
-  const photo = player?.photo || me.avatar;
+
   return (
-    <Shell title="Hồ sơ của tôi" err="" busy={busy} onSubmit={() => {}}>
-      <div className="ph-row">
-        <div className="ph" style={{ width: 96, height: 96, borderRadius: '50%', background: photo ? `center/cover url("${photo}")` : 'rgba(255,255,255,.05)' }}>{photo ? '' : ini(me.name)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <div style={{ font: "italic 800 22px/1 'Barlow Condensed',sans-serif", color: '#fff' }}>{me.name}</div>
+    <Shell title="Hồ sơ của tôi" err={err} busy={busy} onSubmit={() => {}}>
+      <div className="me-top">
+        {player
+          ? <div className="me-card"><PlayerCard p={{ ...player, photo: shown }} team={team} still /></div>
+          : <div className="ph" style={{ width: 110, height: 110, borderRadius: '50%', background: shown ? `center/cover url("${shown}")` : 'rgba(255,255,255,.05)' }}>{shown ? '' : ini(me.name)}</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+          <div style={{ font: "italic 800 24px/1 'Barlow Condensed',sans-serif", color: '#fff', textTransform: 'uppercase' }}>{player?.name || me.name}</div>
           <div className="lead" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{me.email}</div>
-          <div className="lead" style={{ fontSize: 12 }}><span style={{ color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).short : ''}</span>
-            {player && <> · <a onClick={() => { closeModal(); openCard(player.id); }}>⚽ Cầu thủ · {tm(player.teamId).short}</a></>}</div>
+          <div className="lead" style={{ fontSize: 12, color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).name : ''}</div>
+          {player && <div className="lead" style={{ fontSize: 12 }}>⚽ {team.id ? team.name : 'Cầu thủ tự do'} · #{player.num} · {player.pos}</div>}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+            {!preview && <label className="ph-btn">Đổi ảnh<input type="file" accept="image/*" onChange={pick} disabled={busy} /></label>}
+            {preview && <button type="button" className="ph-btn" style={{ background: '#c6ff3d', color: '#06080d' }} disabled={busy} onClick={() => save(preview.blob)}>{busy ? 'Đang lưu…' : 'Lưu ảnh'}</button>}
+            {preview && <button type="button" className="ph-btn grey" disabled={busy} onClick={() => setPreview(null)}>Hủy</button>}
+            {!preview && <button type="button" className="ph-btn grey" disabled={busy} onClick={() => save(null)}>Dùng ảnh Google</button>}
+          </div>
+          {preview && <div className="fm-note" style={{ color: '#e4ff9a' }}>Đang xem trước — bấm Lưu ảnh để áp dụng.</div>}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <label className="ph-btn">{busy ? 'Đang tải…' : 'Đổi ảnh'}<input type="file" accept="image/*" onChange={onPhoto} disabled={busy} /></label>
-        <button type="button" className="ph-btn grey" disabled={busy} onClick={() => run(() => api.setMyPhoto(null), 'Đã dùng lại ảnh Google')}>Dùng ảnh Google</button>
-      </div>
-      <div className="fm-note">{player ? 'Ảnh này dùng cho ảnh đại diện và thẻ cầu thủ của bạn.' : 'Ảnh này dùng cho ảnh đại diện của bạn. Khi được duyệt làm cầu thủ, thẻ cầu thủ cũng dùng ảnh này.'}</div>
+
+      {player ? (
+        <>
+          <div className="cm-info">
+            {[{ l: 'OVR', v: player.ovr, c: '#c6ff3d' }, { l: 'TUỔI', v: player.age, c: '#fff' }, { l: 'CHÂN', v: player.foot, c: '#fff' }, { l: 'GIÁ TRỊ', v: money(player.value), c: '#f5c542' }]
+              .map((i) => <div key={i.l}><span>{i.l}</span><b style={{ color: i.c }}>{i.v}</b></div>)}
+          </div>
+          <div className="cm-bars">
+            {player.stats.map((v, j) => (
+              <div key={j} className="cm-bar">
+                <span>{L[j]}</span>
+                <div><div style={{ width: v + '%', background: col(v), animationDelay: 0.1 + j * 0.05 + 's' }} /></div>
+                <b style={{ color: col(v) }}>{v}</b>
+              </div>
+            ))}
+          </div>
+          <div className="fm-note">Bạn chỉ đổi được ảnh. Vị trí, chỉ số, số áo do Chủ tịch / BHL của đội hoặc Ban tổ chức cập nhật.</div>
+        </>
+      ) : (
+        <div className="fm-note">{me.role === 'pending' ? 'Tài khoản đang chờ Ban tổ chức duyệt. ' : ''}Bạn chưa có hồ sơ cầu thủ — khi được duyệt làm cầu thủ, thẻ cầu thủ sẽ dùng ảnh này.</div>
+      )}
+      <button type="button" className="cm-btn close" style={{ alignSelf: 'flex-end' }} onClick={closeModal}>Đóng</button>
     </Shell>
   );
 }
