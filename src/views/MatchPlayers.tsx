@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Crest, OvrBadge } from '../components/bits';
 import { api, useAccess, useLeague } from '../data/store';
+import { Spin, useAction } from '../data/useAction';
 import { clamp } from '../lib/league';
 import type { Match, Participation, Player, StatsInput, StatsStatus, Team } from '../lib/types';
 
@@ -15,8 +16,11 @@ const STATUS: Record<StatsStatus, [string, string, string]> = {
 
 /** Pre-match registration: players join for their team; free agents pick a side and are listed separately. */
 export function Rsvp({ m }: { m: Match }) {
-  const { snap, user, run, openCard } = useLeague();
+  const { snap, user, openCard } = useLeague();
   const { tm, canVote } = useAccess();
+  // One request at a time + 3s cooldown after each change, so join/switch/leave can't be spammed.
+  const { act, pending, busy, wait } = useAction(3000);
+  const label = (key: string, text: string) => (pending === key ? <><Spin />Đang xử lý…</> : wait > 0 ? `${text} (${wait}s)` : text);
   const d = snap!;
   const H = tm(m.home), A = tm(m.away);
   const rows = participantsOf(d.participants, m.id);
@@ -30,19 +34,19 @@ export function Rsvp({ m }: { m: Match }) {
     if (!user) return <div className="note">Đăng nhập để đăng ký tham gia.</div>;
     if (!canVote) return <div className="note">Tài khoản đang chờ Ban tổ chức duyệt.</div>;
     if (!me) return <div className="note">Bạn chưa có hồ sơ cầu thủ — liên hệ Ban tổ chức để được duyệt làm cầu thủ.</div>;
-    const leave = <button className="btn-cancel" onClick={() => run(() => api.leaveMatch(m.id), 'Đã hủy đăng ký')}>Hủy tham gia</button>;
+    const leave = <button className="btn-cancel" disabled={busy} onClick={() => act('leave', () => api.leaveMatch(m.id), 'Đã hủy đăng ký')}>{label('leave', 'Hủy tham gia')}</button>;
     if (me.teamId) {
       if (me.teamId !== m.home && me.teamId !== m.away) return <div className="note">Đội của bạn ({tm(me.teamId).short}) không thi đấu trận này.</div>;
       return mine
         ? <div className="rsvp-me"><span>✓ Bạn đã đăng ký đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></span>{leave}</div>
-        : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} onClick={() => run(() => api.joinMatch(m.id, null), 'Đã đăng ký tham gia')}>Tham gia trận này</button>;
+        : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã đăng ký tham gia')}>{label('join', 'Tham gia trận này')}</button>;
     }
     return (
       <div className="rsvp-me">
         <span>{mine ? <>✓ Cầu thủ tự do · đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></> : 'Cầu thủ tự do · chọn đội muốn đá cùng:'}</span>
         {[H, A].filter((t) => t.id !== mine?.teamId).map((t) => (
-          <button key={t.id} className="btn-lime" style={{ background: t.color, color: '#fff' }}
-            onClick={() => run(() => api.joinMatch(m.id, t.id), `Đã đăng ký đá cho ${t.short}`)}>{mine ? 'Chuyển sang' : 'Tham gia cho'} {t.short}</button>
+          <button key={t.id} className="btn-lime" style={{ background: t.color, color: '#fff' }} disabled={busy}
+            onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã đăng ký đá cho ${t.short}`)}>{label('join:' + t.id, `${mine ? 'Chuyển sang' : 'Tham gia cho'} ${t.short}`)}</button>
         ))}
         {mine && leave}
       </div>
@@ -85,8 +89,9 @@ const EMPTY: StatsInput = { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, r
 
 /** Post-match: participants report their stats; the side's BHL / chairman (or admin) approves. */
 export function MatchStats({ m }: { m: Match }) {
-  const { snap, user, run, openCard } = useLeague();
+  const { snap, user, openCard } = useLeague();
   const { tm, canTeam } = useAccess();
+  const { act, pending, busy } = useAction();
   const d = snap!;
   const rows = participantsOf(d.participants, m.id);
   const byId = new Map(d.players.map((p) => [p.id, p]));
@@ -126,8 +131,8 @@ export function MatchStats({ m }: { m: Match }) {
                 {r.note && <div className="quote">“{r.note}”</div>}
                 {staff && r.status === 'submitted' && (
                   <div className="acts">
-                    <button className="btn-ok" onClick={() => run(() => api.reviewStats(m.id, p.id, true), `Đã duyệt thông số của ${p.name}`)}>Duyệt</button>
-                    <button className="btn-no" onClick={() => run(() => api.reviewStats(m.id, p.id, false), `Đã từ chối thông số của ${p.name}`)}>Từ chối</button>
+                    <button className="btn-ok" disabled={busy} onClick={() => act('ok:' + p.id, () => api.reviewStats(m.id, p.id, true), `Đã duyệt thông số của ${p.name}`)}>{pending === 'ok:' + p.id ? <><Spin />Đang duyệt…</> : 'Duyệt'}</button>
+                    <button className="btn-no" disabled={busy} onClick={() => act('no:' + p.id, () => api.reviewStats(m.id, p.id, false), `Đã từ chối thông số của ${p.name}`)}>{pending === 'no:' + p.id ? <><Spin />Đang xử lý…</> : 'Từ chối'}</button>
                   </div>
                 )}
               </div>
@@ -149,11 +154,10 @@ export function MatchStats({ m }: { m: Match }) {
 }
 
 function MyStatsForm({ m, row }: { m: Match; row: Participation }) {
-  const { run } = useLeague();
+  const { act, pending } = useAction(2000);
   const [s, setS] = useState<StatsInput>(() => row.status === 'none' ? EMPTY : {
     goals: row.goals ?? 0, assists: row.assists ?? 0, saves: row.saves ?? 0, yellow: row.yellow ?? 0, red: row.red ?? 0, rating: row.rating, note: row.note ?? '',
   });
-  const [busy, setBusy] = useState(false);
   const step = (k: 'goals' | 'assists' | 'saves' | 'yellow' | 'red', max: number) => (dl: number) => setS({ ...s, [k]: clamp(s[k] + dl, 0, max) });
   const field = (label: string, k: 'goals' | 'assists' | 'saves' | 'yellow' | 'red', max: number) => (
     <div className="st-field">
@@ -179,11 +183,9 @@ function MyStatsForm({ m, row }: { m: Match; row: Participation }) {
         <input type="range" min={1} max={10} step={0.5} value={s.rating ?? 6} onChange={(e) => setS({ ...s, rating: +e.target.value })} />
       </label>
       <label className="fld">Ghi chú (không bắt buộc)<input className="inp" maxLength={300} value={s.note} onChange={(e) => setS({ ...s, note: e.target.value })} placeholder="VD: đá cặp trung vệ cả trận" /></label>
-      <button className="btn-lime lg" disabled={busy} onClick={async () => {
-        setBusy(true);
-        await run(() => api.submitStats(m.id, s), row.status === 'submitted' ? 'Đã cập nhật thông số' : 'Đã gửi thông số, chờ BHL duyệt');
-        setBusy(false);
-      }}>{busy ? 'Đang gửi…' : row.status === 'submitted' ? 'Cập nhật thông số' : 'Gửi thông số'}</button>
+      <button className="btn-lime lg" disabled={pending !== null} onClick={() => act('submit', () => api.submitStats(m.id, s), row.status === 'submitted' ? 'Đã cập nhật thông số' : 'Đã gửi thông số, chờ BHL duyệt')}>
+        {pending ? <><Spin />Đang gửi…</> : row.status === 'submitted' ? 'Cập nhật thông số' : 'Gửi thông số'}
+      </button>
     </div>
   );
 }

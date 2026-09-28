@@ -531,3 +531,8 @@ input[type=range] { accent-color: var(--lime); width: 100% }
 .st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
 .st-field { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font: 600 12px/1 var(--vn); color: var(--soft) }
 .st-field .stepper b { font-size: 30px; width: 36px }
+
+/* inline loading spinner for buttons */
+.spin { display: inline-block; width: 1em; height: 1em; margin-right: 8px; vertical-align: -.15em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite }
+button:disabled { cursor: default }
+.btn-lime:disabled, .btn-ok:disabled, .btn-no:disabled, .btn-cancel:disabled { opacity: .6 }
