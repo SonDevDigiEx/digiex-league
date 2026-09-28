@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { PlayerCard } from '../components/bits';
 import { api, useAccess, useLeague } from '../data/store';
+import { seasonStats } from '../views/MatchPlayers';
 import { hexA, LBL, LBL_GK, money, tier } from '../lib/league';
 
 const RINGS = ['100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60', '100,46.7 146.2,73.3 146.2,126.7 100,153.3 53.8,126.7 53.8,73.3', '100,73.3 123.1,86.7 123.1,113.3 100,126.7 76.9,113.3 76.9,86.7'];
@@ -26,6 +27,7 @@ export function CardModal() {
     const a = ((-90 + 60 * j) * Math.PI) / 180, r = (80 * v) / 99;
     return (100 + r * Math.cos(a)).toFixed(1) + ',' + (100 + r * Math.sin(a)).toFixed(1);
   }).join(' ');
+  const season = seasonStats(snap!.participants, p.id);
   const info = [{ l: 'OVR', v: p.ovr, c: '#c6ff3d' }, { l: 'TUỔI', v: p.age, c: '#fff' }, { l: 'CHÂN', v: p.foot, c: '#fff' }, { l: 'GIÁ TRỊ', v: money(p.value), c: '#f5c542' }];
 
   return (
@@ -42,6 +44,12 @@ export function CardModal() {
           </div>
           <h2 className="cm-name">{p.name}</h2>
           <div className="cm-info">{info.map((i) => <div key={i.l}><span>{i.l}</span><b style={{ color: i.c }}>{i.v}</b></div>)}</div>
+          {season.played > 0 && (
+            <div className="cm-info">
+              {[{ l: 'TRẬN', v: season.played }, { l: 'BÀN THẮNG', v: season.goals }, { l: 'KIẾN TẠO', v: season.assists }, { l: 'ĐIỂM TB', v: season.rating == null ? '—' : season.rating.toFixed(1) }]
+                .map((i) => <div key={i.l}><span>{i.l}</span><b style={{ color: '#fff' }}>{i.v}</b></div>)}
+            </div>
+          )}
           <div className="cm-stats">
             <svg viewBox="0 0 200 200" width="190" height="190" style={{ flex: 'none', overflow: 'visible' }}>
               {RINGS.map((pts, i) => <polygon key={i} points={pts} fill={i ? 'none' : 'rgba(255,255,255,.03)'} stroke={i ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.15)'} />)}

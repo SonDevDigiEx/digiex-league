@@ -1,4 +1,4 @@
-import type { Goal, MatchInput, PlayerInput, Profile, Role, Snapshot, TeamInput, WinnerKey } from '../lib/types';
+import type { Goal, MatchInput, PlayerInput, Profile, Role, Snapshot, StatsInput, TeamInput, WinnerKey } from '../lib/types';
 
 /**
  * Everything the UI reads or writes goes through this interface (implemented by supabaseApi.ts).
@@ -39,6 +39,13 @@ export interface Api {
   scheduleMatch(input: MatchInput): Promise<void>;
   saveResult(id: string, hs: number, as: number, scorers: Goal[]): Promise<void>;
   deleteMatch(id: string): Promise<void>;
+  /** Register the signed-in player for a match; teamId is only used by free agents. */
+  joinMatch(matchId: string, teamId: string | null): Promise<void>;
+  leaveMatch(matchId: string): Promise<void>;
+  /** Participant reports their own stats after the match. */
+  submitStats(matchId: string, stats: StatsInput): Promise<void>;
+  /** Team staff approve/reject a participant's submitted stats. */
+  reviewStats(matchId: string, playerId: string, approve: boolean): Promise<void>;
   voteWinner(matchId: string, key: WinnerKey): Promise<void>;
   voteScore(matchId: string, score: string): Promise<void>;
 

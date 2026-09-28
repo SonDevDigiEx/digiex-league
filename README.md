@@ -21,7 +21,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
 2. Run `supabase/cleanup-demo.sql` once. This deletes the demo players, matches and accounts but keeps F8/F9.
-3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`, then `supabase/migrations/20260928030000_open_signup.sql`, then `supabase/migrations/20260928040000_self_photo.sql`. These add account approval, player profiles linked to accounts, and free agents.
+3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`, then `supabase/migrations/20260928030000_open_signup.sql`, then `supabase/migrations/20260928040000_self_photo.sql`, then `supabase/migrations/20260928050000_match_players.sql`. These add account approval, player profiles linked to accounts, and free agents.
 
 ### Google sign-in
 
@@ -48,6 +48,8 @@ New accounts start as `pending` (**Chờ duyệt**): they can sign in and **view
 Emails in `public.bootstrap_admins` (`son.pham@digiex.group`) skip approval and become admin.
 
 Everyone can change their own photo by clicking their name in the header (**Hồ sơ của tôi**). The photo is used for the avatar and for their player card, and "Dùng ảnh Google" resets it. Files go to `media/avatars/<user id>/`, which only that user can write.
+
+**Match registration and stats.** Before kickoff, players register on the match page (*Đội hình* tab). A team player registers for their own team; a free agent picks one of the two sides, and free agents are listed on a separate line under each team. Once anyone has registered, the pitch lineup is built from the registered list. After the match, each participant fills in their own stats in the *Thống kê* tab: goals, assists, saves, cards, self-rating and a note. The BHL or chairman of the side they played for (or an admin) approves or rejects them. Only approved stats count towards the season totals shown on the player card (`match_players` table; RPCs `join_match`, `leave_match`, `submit_match_stats`, `review_match_stats`).
 
 **Free agents** show in the market under the "Tự do" filter. A chairman clicks **Tuyển** to sign one to their team at no fee, and can **Giải phóng** (release) a player back to free agency. Both moves are logged in the transfer history. Offers apply only to players who already have a team.
 

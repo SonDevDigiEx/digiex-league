@@ -99,6 +99,34 @@ export interface Profile {
   avatar: string | null;
 }
 
+export type StatsStatus = 'none' | 'submitted' | 'approved' | 'rejected';
+
+/** A player registered for a match (RSVP) and, after it, their self-reported stats. */
+export interface Participation {
+  matchId: string;
+  playerId: string;
+  /** Side they play for (their team, or the side a free agent chose). */
+  teamId: string;
+  goals: number | null;
+  assists: number | null;
+  saves: number | null;
+  yellow: number | null;
+  red: number | null;
+  rating: number | null;
+  note: string | null;
+  status: StatsStatus;
+}
+
+export interface StatsInput {
+  goals: number;
+  assists: number;
+  saves: number;
+  yellow: number;
+  red: number;
+  rating: number | null;
+  note: string;
+}
+
 export interface MyVote {
   winner?: WinnerKey;
   score?: string;
@@ -113,6 +141,7 @@ export interface Snapshot {
   my: Record<string, MyVote>;
   /** Everyone with an account (signed-in viewers only). */
   members: Profile[];
+  participants: Participation[];
 }
 
 export interface PlayerInput {

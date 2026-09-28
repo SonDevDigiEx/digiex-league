@@ -3,6 +3,7 @@ import { Crest, Lock } from '../components/bits';
 import { api, findMatch, hrefOf, squadOf, useAccess, useLeague, useNow } from '../data/store';
 import { clamp, fDate, fTime, FORMATION, hexA, lineup, record, sortedMatches } from '../lib/league';
 import type { Goal, Match, Player, WinnerKey } from '../lib/types';
+import { MatchStats, participantsOf, Rsvp } from './MatchPlayers';
 
 export function Countdown({ iso, small }: { iso: string; small?: boolean }) {
   const now = useNow();
@@ -65,7 +66,7 @@ export function Matches() {
   );
 }
 
-type Tab = 'lineup' | 'stats' | 'vote';
+type Tab = 'lineup' | 'stats' | 'vote' | 'record';
 
 export function MatchDetail({ matchId }: { matchId: string }) {
   const { snap, go, openCard, openModal, user, run } = useLeague();
@@ -79,7 +80,14 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   const H = tm(m.home), A = tm(m.away);
   const isDone = m.status === 'done';
   const { done } = sortedMatches(d.matches);
-  const lH = lineup(squadOf(d.players, H.id)), lA = lineup(squadOf(d.players, A.id));
+  // Once players have registered, the lineup is built from the registered list (incl. free agents); otherwise the whole squad.
+  const reg = participantsOf(d.participants, m.id);
+  const roster = (tid: string) => {
+    const ids = new Set(reg.filter((r) => r.teamId === tid).map((r) => r.playerId));
+    return ids.size ? d.players.filter((p) => ids.has(p.id)) : squadOf(d.players, tid);
+  };
+  const fromRsvp = reg.length > 0;
+  const lH = lineup(roster(H.id)), lA = lineup(roster(A.id));
   const Y = [93, 80, 68, 56];
   let k = 0;
   const tokens: { p: Player; x: string; y: string; color: string; delay: string }[] = [];
@@ -142,15 +150,17 @@ export function MatchDetail({ matchId }: { matchId: string }) {
       </section>
 
       <div className="tabs">
-        {([['lineup', 'Đội hình'], ['stats', 'Phân tích'], ['vote', 'Dự đoán']] as [Tab, string][]).map(([k2, l]) => (
+        {([['lineup', 'Đội hình'], ['stats', 'Phân tích'], ['vote', 'Dự đoán'], ...(isDone ? [['record', 'Thống kê']] : [])] as [Tab, string][]).map(([k2, l]) => (
           <button key={k2} className={'tab' + (tab === k2 ? ' on' : '')} onClick={() => setTab(k2)}>{l}</button>
         ))}
       </div>
 
+      {tab === 'lineup' && !isDone && <Rsvp m={m} />}
+      {tab === 'record' && <MatchStats m={m} />}
       {tab === 'lineup' && (
         <div className="lineup">
           <div className="pitch-col">
-            <div className="pitch-k">SƠ ĐỒ SÂN 7 · {FORMATION}</div>
+            <div className="pitch-k">SƠ ĐỒ SÂN 7 · {FORMATION}{fromRsvp ? ' · THEO DANH SÁCH ĐĂNG KÝ' : ''}</div>
             <div className="pitch">
               <i className="mid" /><i className="circ" /><i className="box-t" /><i className="box-b" /><i className="six-t" /><i className="six-b" />
               {tokens.map((t) => (
@@ -176,7 +186,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
         </div>
       )}
 
-      {tab !== 'lineup' && !user && <Lock title="Nội dung dành cho thành viên" desc="Đăng nhập để xem phân tích chỉ số, vote đội thắng và dự đoán tỉ số." onLogin={login} />}
+      {(tab === 'stats' || tab === 'vote') && !user && <Lock title="Nội dung dành cho thành viên" desc="Đăng nhập để xem phân tích chỉ số, vote đội thắng và dự đoán tỉ số." onLogin={login} />}
 
       {tab === 'stats' && user && (
         <div className="two">

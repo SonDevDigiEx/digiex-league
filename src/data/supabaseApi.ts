@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Foot, Goal, Match, MyVote, Offer, OfferStatus, Player, Pos, Profile, Role, Snapshot, Team, Transfer, WinnerKey } from '../lib/types';
+import type { Foot, Goal, Match, MyVote, Offer, OfferStatus, Participation, Player, Pos, Profile, Role, Snapshot, StatsStatus, Team, Transfer, WinnerKey } from '../lib/types';
 import type { Api } from './api';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -21,6 +21,11 @@ const toTransfer = (r: Row): Transfer => ({ pid: r.player_id, name: r.player_nam
 const toOffer = (r: Row): Offer => ({
   id: r.id, pid: r.player_id, from: r.buyer_team, to: r.seller_team, price: Number(r.price), value: Number(r.value),
   note: r.note, byName: r.creator?.name || '—', status: r.status as OfferStatus, date: r.created_on,
+});
+const num = (v: unknown) => (v == null ? null : Number(v));
+const toParticipation = (r: Row): Participation => ({
+  matchId: r.match_id, playerId: r.player_id, teamId: r.team_id, goals: num(r.goals), assists: num(r.assists), saves: num(r.saves),
+  yellow: num(r.yellow), red: num(r.red), rating: num(r.rating), note: r.note, status: r.stats_status as StatsStatus,
 });
 const toProfile = (r: Row): Profile => ({
   id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null,
@@ -78,12 +83,16 @@ export function createSupabaseApi(url: string, key: string): Api {
   return {
     async load(): Promise<Snapshot> {
       const me = await uid();
-      const [teams, players, matches] = await Promise.all([
+      const [teams, players, matches, participants] = await Promise.all([
         sb.from('teams').select('*').order('created_at').then(check),
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
+        sb.from('match_players').select('*').order('joined_at').then(check),
       ]);
-      const snap: Snapshot = { teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [] };
+      const snap: Snapshot = {
+        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [],
+        participants: participants.map(toParticipation),
+      };
       if (!me) return snap;
       const [transfers, offers, stats, votes, members] = await Promise.all([
         sb.from('transfers').select('*').order('id').then(check),
@@ -195,6 +204,14 @@ export function createSupabaseApi(url: string, key: string): Api {
       const rows = check(await sb.from('matches').delete().eq('id', id).select('id'));
       if (!rows.length) throw new Error('Chỉ Ban tổ chức được xóa trận.');
     },
+    async joinMatch(matchId, teamId) { check(await sb.rpc('join_match', { p_match: matchId, p_team: teamId })); },
+    async leaveMatch(matchId) { check(await sb.rpc('leave_match', { p_match: matchId })); },
+    async submitStats(matchId, s) {
+      check(await sb.rpc('submit_match_stats', {
+        p_match: matchId, p_goals: s.goals, p_assists: s.assists, p_saves: s.saves, p_yellow: s.yellow, p_red: s.red, p_rating: s.rating, p_note: s.note,
+      }));
+    },
+    async reviewStats(matchId, playerId, approve) { check(await sb.rpc('review_match_stats', { p_match: matchId, p_player: playerId, p_approve: approve })); },
     async voteWinner(matchId, key) { check(await sb.rpc('vote_winner', { p_match: matchId, p_winner: key })); },
     async voteScore(matchId, score) { check(await sb.rpc('vote_score', { p_match: matchId, p_score: score })); },
 

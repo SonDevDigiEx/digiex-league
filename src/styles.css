@@ -518,3 +518,16 @@ input[type=range] { accent-color: var(--lime); width: 100% }
 .me-open:hover .me-name { color: var(--lime) }
 .me-top { display: flex; gap: 18px; align-items: center; flex-wrap: wrap }
 .me-card { width: 150px; height: 214px; flex: none }
+
+/* match registration + post-match stats */
+.rsvp-me { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font: 500 13px/1.4 var(--vn); color: var(--soft2) }
+.li.me-li { background: rgba(198, 255, 61, .08) }
+.st-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .03); border: 1px solid rgba(255, 255, 255, .06) }
+.st-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px }
+.st-name { display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.st-name span { font: 600 14px/1.2 var(--vn); color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.st-name em { flex: none; font: 700 10px/1 var(--vn); font-style: normal; letter-spacing: .06em; padding: 4px 7px; border-radius: 5px }
+.st-nums { display: flex; gap: 12px; flex-wrap: wrap; font: 800 16px/1 var(--bc); color: #fff }
+.st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
+.st-field { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font: 600 12px/1 var(--vn); color: var(--soft) }
+.st-field .stepper b { font-size: 30px; width: 36px }
