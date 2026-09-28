@@ -34,7 +34,7 @@ drop function if exists public.handle_new_user(), public.my_role(), public.my_te
   public.xp_cost(int), public.pos_weights(text), public.xp_split(text, int), public.pos_group(text), public.apply_xp(text, int[]),
   public.grant_xp(text, text, text, int[], text, uuid), public.refresh_match_xp(text), public.tg_match_xp(), public.hot_bonus(text), public.starter_stats(text), public.players_starter(),
   public.vn_when(timestamptz), public.mark_notifications_read(bigint[]), public.notify_new_match(), public.notify_new_tournament(), public.notify_application(), public.set_attendance(text, text, text),
-  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text) cascade;
+  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text), public.rsvp_follow_team() cascade;
 drop table if exists public.match_busy, public.notifications, public.player_xp, public.team_lineups, public.team_applications, public.player_value_history, public.app_state, public.tournament_awards, public.tournament_teams, public.tournaments cascade;
 drop table if exists public.match_series cascade;
 drop trigger if exists on_auth_user_updated on auth.users;
@@ -2911,6 +2911,47 @@ begin
 end $$;
 revoke execute on function public.sync_player_value(text) from public;
 grant execute on function public.sync_player_value(text) to anon, authenticated;
+-- When a player joins a team (signed, transferred, application accepted…), their check-ins for upcoming
+-- matches follow the new team: moved to the new team's side if it plays that match, removed otherwise.
+-- ("Bận" answers get the new team too.) Also repairs rows that are already inconsistent.
+
+create or replace function public.rsvp_follow_team() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.team_id is null or new.team_id is not distinct from old.team_id then return new; end if;
+  -- matches the new team plays: switch side
+  update public.match_players mp set team_id = new.team_id
+  from public.matches m
+  where mp.match_id = m.id and mp.player_id = new.id and m.status = 'up'
+    and new.team_id in (m.home_team, m.away_team) and mp.team_id is distinct from new.team_id;
+  -- matches the new team doesn't play: the old answer no longer makes sense
+  delete from public.match_players mp using public.matches m
+  where mp.match_id = m.id and mp.player_id = new.id and m.status = 'up'
+    and new.team_id not in (m.home_team, m.away_team);
+  update public.match_busy b set team_id = new.team_id
+  from public.matches m
+  where b.match_id = m.id and b.player_id = new.id and m.status = 'up' and new.team_id in (m.home_team, m.away_team);
+  delete from public.match_busy b using public.matches m
+  where b.match_id = m.id and b.player_id = new.id and m.status = 'up' and new.team_id not in (m.home_team, m.away_team);
+  return new;
+end $$;
+
+drop trigger if exists on_player_team_rsvp on public.players;
+create trigger on_player_team_rsvp after update of team_id on public.players
+  for each row execute function public.rsvp_follow_team();
+
+-- Repair: players with a team who are checked in for the other side of an upcoming match.
+update public.match_players mp set team_id = p.team_id
+from public.players p, public.matches m
+where mp.player_id = p.id and mp.match_id = m.id and m.status = 'up'
+  and p.team_id is not null and p.team_id in (m.home_team, m.away_team) and mp.team_id <> p.team_id;
+delete from public.match_players mp using public.players p, public.matches m
+where mp.player_id = p.id and mp.match_id = m.id and m.status = 'up'
+  and p.team_id is not null and p.team_id not in (m.home_team, m.away_team);
+update public.match_busy b set team_id = p.team_id
+from public.players p, public.matches m
+where b.player_id = p.id and b.match_id = m.id and m.status = 'up'
+  and p.team_id is not null and p.team_id in (m.home_team, m.away_team) and b.team_id is distinct from p.team_id;
 -- Starting teams. Players, fixtures and people are entered through the app.
 insert into public.teams (id, name, short, color, color2, motto, founded, chair_quote) values
   ('f8', 'F8 Warriors', 'F8', '#ff3b5c', '#7a0f24', 'Không lùi bước, máu lửa từ phút đầu tiên', 2024, 'Chơi hết mình, thắng bằng tinh thần.'),
