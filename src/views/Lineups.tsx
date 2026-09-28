@@ -3,7 +3,8 @@ import { Crest, SecTitle } from '../components/bits';
 import { Pitch, Token } from '../components/Pitch';
 import { squadOf, useAccess, useLeague } from '../data/store';
 import { FORMAT_LABEL, liveSlots, type Format, type Lineup } from '../lib/formation';
-import type { Team } from '../lib/types';
+import { money } from '../lib/league';
+import type { Player, Team } from '../lib/types';
 
 /** One team's saved lineup on its own (vertical, own goal at the bottom). */
 export function TeamLineupCard({ team, lineups }: { team: Team; lineups: Lineup[] }) {
@@ -15,11 +16,19 @@ export function TeamLineupCard({ team, lineups }: { team: Team; lineups: Lineup[
   const squad = squadOf(snap!.players, team.id);
   const byId = new Map(squad.map((p) => [p.id, p]));
   const slots = l ? liveSlots(l, squad) : [];
+  const starters = slots.map((s) => (s.pid ? byId.get(s.pid) : undefined)).filter(Boolean) as Player[];
+  const value = starters.reduce((a, p) => a + p.value, 0);
+  const avg = starters.length ? Math.round(starters.reduce((a, p) => a + p.ovr, 0) / starters.length) : 0;
   return (
     <div className="tl-card" style={{ ['--tc' as string]: team.color }}>
       <div className="tl-head">
         <Crest team={team} text={false} />
         <div><b>{team.name}</b><span>{l ? `${FORMAT_LABEL[fmt]} · ${l.formation}` : 'Chưa xếp đội hình'}</span></div>
+        {l && starters.length > 0 && (
+          <div className="tl-val" title="Tổng giá trị các cầu thủ trong đội hình chính">
+            <b>{money(value)}</b><span>GIÁ TRỊ · OVR TB {avg}</span>
+          </div>
+        )}
         {lineups.length > 1 && <div className="seg sm">{(['s7', 's5'] as Format[]).filter(has).map((f) => <button key={f} className={fmt === f ? 'on' : ''} onClick={() => setFmt(f)}>{FORMAT_LABEL[f]}</button>)}</div>}
       </div>
       <Pitch className="tl-pitch" half>
