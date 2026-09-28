@@ -110,7 +110,7 @@ function MeForm() {
           ? <div className="me-card"><PlayerCard p={{ ...player, photo: shown }} team={team} still /></div>
           : <div className="ph" style={{ width: 110, height: 110, borderRadius: '50%', background: shown ? `center/cover url("${shown}")` : 'rgba(255,255,255,.05)' }}>{shown ? '' : ini(me.name)}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
-          <div style={{ font: "italic 800 24px/1 'Barlow Condensed',sans-serif", color: '#fff', textTransform: 'uppercase' }}>{player?.name || me.name}</div>
+          <NameEdit name={me.name} changedAt={me.nameChangedAt} />
           <div className="lead" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{me.email}</div>
           <div className="lead" style={{ fontSize: 12, color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).name : ''}</div>
           {player && <div className="lead" style={{ fontSize: 12 }}>⚽ {team.id ? team.name : 'Cầu thủ tự do'} · #{player.num} · {player.pos}</div>}
@@ -154,6 +154,39 @@ function MeForm() {
 }
 
 /** A player changes their own jersey number (unique across the league, 0–999). */
+/** Own display name; the server allows one change every 24 hours. */
+function NameEdit({ name, changedAt }: { name: string; changedAt: string | null }) {
+  const [edit, setEdit] = useState(false);
+  const [v, setV] = useState(name);
+  const { act, pending, busy } = useAction();
+  const next = changedAt ? new Date(new Date(changedAt).getTime() + 864e5) : null;
+  const locked = !!next && next.getTime() > Date.now();
+  const clean = v.trim().replace(/\s+/g, ' ');
+  const ok = clean.length >= 2 && clean.length <= 40 && clean !== name;
+  const save = () => { if (ok && !busy) act('name', async () => { await api.setMyName(clean); setEdit(false); }, 'Đã đổi tên thành ' + clean); };
+  if (!edit) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ font: "italic 800 24px/1 'Barlow Condensed',sans-serif", color: '#fff', textTransform: 'uppercase', overflowWrap: 'anywhere' }}>{name}</div>
+        {locked
+          ? <span className="lead" style={{ fontSize: 11 }} title="Mỗi 24 giờ được đổi tên 1 lần">✎ đổi lại sau {fTime(next!.toISOString())} {fDate(next!.toISOString())}</span>
+          : <button type="button" className="ph-btn grey" onClick={() => { setV(name); setEdit(true); }}>✎ Đổi tên</button>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <input className="inp" style={{ flex: '1 1 160px', padding: '8px 10px', fontSize: 15 }} value={v} maxLength={40} autoFocus aria-label="Tên hiển thị"
+          onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }} />
+        <button type="button" className="ph-btn" disabled={!ok || busy} onClick={save}>{pending ? <><Spin />Đang lưu…</> : 'Lưu'}</button>
+        <button type="button" className="ph-btn grey" disabled={busy} onClick={() => setEdit(false)}>Hủy</button>
+      </div>
+      <div className="fm-note" style={{ color: '#e4ff9a' }}>Tên mới hiện trên thẻ cầu thủ và trang đội. Sau khi đổi phải chờ <span>24 giờ</span> mới đổi lại được.</div>
+    </div>
+  );
+}
+
 function NumberEdit({ current, playerId }: { current: number; playerId: string }) {
   const { snap } = useLeague();
   const [v, setV] = useState(String(current));

@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` and `supabase/migrations/20260928130000_mom.sql`. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` and `supabase/migrations/20260928140000_rename_delete_user.sql`. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -103,6 +103,11 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 - The home page shows a gold banner for the ongoing or next tournament, with the logos of registered teams. Clicking it opens `#/tournament/<id>`, which shows the info, table or bracket, points, awards, matches and rules.
 - Awards (`tournament_awards`) link to a team and/or player. They appear on the team page (*Lịch sử giải thưởng*) and on the player card (*Danh hiệu*). The award form suggests winners from approved match stats.
 - Team staff can upload or remove a cover photo (`covers/<team>/…`).
+
+### Accounts
+
+- Users rename themselves in *Hồ sơ của tôi* (RPC `set_my_name`, 2–40 characters, at most once every 24 hours). The new name is also written to their player card and to the chairman/BHL line on the team card.
+- In *Quản lý → Thành viên*, admins can delete any account except their own (RPC `delete_user`). The player card is kept, unlinked from the account, unless *Xóa luôn thẻ cầu thủ* is ticked. If the deleted user was a chairman or BHL, the team card goes back to *Chưa bổ nhiệm*.
 
 ### Hall of fame (Vinh danh)
 

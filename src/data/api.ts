@@ -40,6 +40,10 @@ export interface Api {
   registerTournament(id: string, join: boolean): Promise<void>;
   /** Admin or either team's chairman: Man of the Match (null clears). */
   setMom(matchId: string, playerId: string | null): Promise<void>;
+  /** Own display name (also on the player / team card); once every 24 h. */
+  setMyName(name: string): Promise<void>;
+  /** Admin: delete an account; optionally its player card too. */
+  deleteUser(userId: string, deletePlayer: boolean): Promise<void>;
   addAward(award: Omit<Award, 'id'>): Promise<void>;
   deleteAward(id: string): Promise<void>;
   /** Why a player is worth what they're worth. */

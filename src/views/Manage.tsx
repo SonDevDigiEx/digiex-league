@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Spin, useAction } from '../data/useAction';
 import { Crest, SecTitle } from '../components/bits';
 import { api, squadOf, useAccess, useLeague } from '../data/store';
 import { GORD, GROUP, hexA, ini, money, ROLE_LABEL, tier } from '../lib/league';
@@ -101,6 +102,8 @@ function Members() {
   const { snap, user, run, openModal, openCard } = useLeague();
   const [q, setQ] = useState('');
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<{ id: string; card: boolean } | null>(null);
+  const del = useAction();
   const d = snap!;
   const needle = q.trim().toLowerCase();
   const order: Record<Role, number> = { pending: -1, admin: 0, chair: 1, coach: 2, member: 3 };
@@ -165,7 +168,26 @@ function Members() {
                   {!needsTeam && <option value="">—</option>}
                   {d.teams.map((t) => <option key={t.id} value={t.id}>{t.short} · {t.name}</option>)}
                 </select>
+                {!self && <button className="mb-del" title="Xóa tài khoản" aria-label={'Xóa tài khoản ' + m.name} onClick={() => setDeleting(deleting?.id === m.id ? null : { id: m.id, card: false })}>🗑</button>}
               </div>
+              {deleting?.id === m.id && (() => {
+                const pl = d.players.find((x) => x.userId === m.id);
+                return (
+                  <div className="mb-confirm">
+                    <div><b>Xóa tài khoản {m.name}?</b> Người này sẽ bị đăng xuất và mất quyền truy cập. Đăng nhập lại bằng Google sẽ thành tài khoản mới, phải chờ duyệt.</div>
+                    {pl && (
+                      <label className="chk"><input type="checkbox" checked={deleting.card} onChange={(e) => setDeleting({ id: m.id, card: e.target.checked })} />
+                        Xóa luôn thẻ cầu thủ <b>{pl.name}</b> (mất thống kê trận). Không chọn: thẻ được giữ lại, không còn gắn với tài khoản.</label>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button className="btn-danger on" disabled={del.busy} onClick={() => del.act('del', async () => { await api.deleteUser(m.id, !!pl && deleting.card); setDeleting(null); }, `Đã xóa tài khoản ${m.name}`)}>
+                        {del.pending ? <><Spin /> Đang xóa…</> : 'Xác nhận xóa'}
+                      </button>
+                      <button className="btn-cancel" disabled={del.busy} onClick={() => setDeleting(null)}>Hủy</button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}

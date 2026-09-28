@@ -111,6 +111,8 @@ export interface Profile {
   team: string | null;
   email: string;
   avatar: string | null;
+  /** Last self rename (limit: once every 24 h). */
+  nameChangedAt: string | null;
 }
 
 export type StatsStatus = 'none' | 'submitted' | 'approved' | 'rejected';

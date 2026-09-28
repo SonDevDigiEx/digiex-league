@@ -29,7 +29,7 @@ const toParticipation = (r: Row): Participation => ({
   yellow: num(r.yellow), red: num(r.red), rating: num(r.rating), note: r.note, status: r.stats_status as StatsStatus,
 });
 const toProfile = (r: Row): Profile => ({
-  id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null,
+  id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null, nameChangedAt: r.name_changed_at ?? null,
 });
 
 /** Turn Supabase/Postgres errors into messages for the toast/form. RPCs raise Vietnamese messages already. */
@@ -271,6 +271,8 @@ export function createSupabaseApi(url: string, key: string): Api {
       const n = f.teamIds?.length ?? (await sb.from('tournament_teams').select('team_id', { count: 'exact', head: true }).eq('tournament_id', id)).count ?? 0;
       if ((f.teamIds || f.structure || f.groupCount) && n >= 2) check(await sb.rpc('draw_tournament', { p_id: id }));
     },
+    async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },
+    async deleteUser(userId, deletePlayer) { check(await sb.rpc('delete_user', { p_user: userId, p_delete_player: deletePlayer })); },
     async setMom(matchId, playerId) { check(await sb.rpc('set_mom', { p_match: matchId, p_player: playerId })); },
     async registerTournament(id, join) { check(await sb.rpc('register_tournament', { p_id: id, p_join: join })); },
     async deleteTournament(id) {
