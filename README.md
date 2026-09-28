@@ -21,22 +21,22 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
 2. Run `supabase/cleanup-demo.sql` once. This deletes the demo players, matches and accounts but keeps F8/F9.
-3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`. These add account approval, player profiles linked to accounts, and free agents.
+3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`, then `supabase/migrations/20260928030000_open_signup.sql`. These add account approval, player profiles linked to accounts, and free agents.
 
-### Google sign-in (@digiex.group only)
+### Google sign-in
 
 1. **Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID**
    - Application type: *Web application*
    - Authorized JavaScript origins: `https://digiex-league.vercel.app`, `http://localhost:5173`
    - Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
-   - If asked to configure the consent screen, choose **Internal**, so only accounts in the Workspace can sign in.
+   - Consent screen audience: **External**, so any Google account can request access. The admin approval step is the gate.
 2. **Supabase → Authentication → Sign In / Providers → Google**: enable it and paste the Client ID and Client Secret.
 3. **Supabase → Authentication → URL Configuration**
    - Site URL: `https://digiex-league.vercel.app`
    - Redirect URLs: `https://digiex-league.vercel.app/**`, `http://localhost:5173/**`
 4. **Supabase → Authentication → Sign In / Providers → Email**: turn off "Allow new users to sign up". Only Google is used.
 
-The database refuses to create any account whose email isn't `@digiex.group` (see `handle_new_user`). The `hd` hint on the Google screen only makes this friendlier.
+Any Google account can sign in, but new accounts are view-only until an admin approves them (see Roles).
 
 ### Roles
 
@@ -63,7 +63,7 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 ## Deploy (Vercel)
 
 Framework preset *Vite*. Set these environment variables for Production and Preview, then redeploy:
-`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_AUTH_EMAIL_DOMAIN=digiex.group`.
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 Never add the service-role key.
 
 ## Scripts

@@ -42,21 +42,19 @@ function check<T>(res: { data: T; error: { message: string; code?: string } | nu
 
 const RETURN_HASH = 'digiex-return-hash';
 
-/**
- * Read (and strip) OAuth error parameters that Supabase appends on redirect.
- * A user outside the company domain is rejected by the handle_new_user trigger, which GoTrue reports as a database error.
- */
-function readAuthError(domain: string): string | null {
+/** Read (and strip) OAuth error parameters that Supabase appends on a failed redirect. */
+function readAuthError(): string | null {
   const q = new URLSearchParams(window.location.search);
   const h = new URLSearchParams(window.location.hash.replace(/^#\/?/, ''));
   const raw = q.get('error_description') || h.get('error_description');
   if (!raw) return null;
   window.history.replaceState(null, '', window.location.pathname + '#/');
-  return /database error|saving new user/i.test(raw) ? `Chỉ tài khoản Google @${domain} được đăng nhập.` : 'Đăng nhập không thành công: ' + raw;
+  console.error('[DigiEx League] OAuth error', raw);
+  return 'Đăng nhập không thành công, vui lòng thử lại.';
 }
 
-export function createSupabaseApi(url: string, key: string, domain: string): Api {
-  let authError = readAuthError(domain);
+export function createSupabaseApi(url: string, key: string): Api {
+  let authError = readAuthError();
   const sb: SupabaseClient = createClient(url, key, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
 
   // After the PKCE exchange, drop ?code=… from the address bar and go back to the page the user signed in from.
@@ -130,14 +128,14 @@ export function createSupabaseApi(url: string, key: string, domain: string): Api
       if (p[0]) return toProfile(p[0]);
       // No profile means the account was created before the trigger existed or was refused: treat as signed out.
       await sb.auth.signOut();
-      authError = authError || `Tài khoản chưa được cấp quyền. Hãy đăng nhập bằng email @${domain}.`;
+      authError = authError || 'Không tìm thấy hồ sơ tài khoản. Vui lòng đăng nhập lại.';
       return null;
     },
     async signInWithGoogle() {
       try { sessionStorage.setItem(RETURN_HASH, window.location.hash || '#/'); } catch { /* ignore */ }
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { hd: domain, prompt: 'select_account' } },
+        options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account' } },
       });
       if (error) throw new Error('Không mở được đăng nhập Google: ' + error.message);
     },

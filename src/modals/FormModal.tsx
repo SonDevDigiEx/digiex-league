@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { api, AUTH_DOMAIN, useAccess, useLeague, type Modal } from '../data/store';
+import { api, useAccess, useLeague, type Modal } from '../data/store';
 import { DEFAULT_VENUE, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Pos, Role } from '../lib/types';
 
@@ -60,7 +60,7 @@ function LoginForm({ reason }: { reason?: string }) {
     <Shell title="Đăng nhập" cta="Đăng nhập với Google" err={err} busy={busy} onSubmit={go}>
       {reason && <div className="info">{reason}</div>}
       <div className="lead" style={{ fontSize: 13 }}>
-        Dùng tài khoản Google công ty <b style={{ color: '#fff' }}>@{AUTH_DOMAIN}</b>. Tài khoản mới cần Ban tổ chức duyệt trước khi sử dụng.
+        Đăng nhập bằng tài khoản Google. Tài khoản mới sẽ chờ Ban tổ chức duyệt; trong lúc chờ bạn vẫn xem được thông tin giải đấu.
       </div>
     </Shell>
   );

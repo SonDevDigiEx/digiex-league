@@ -7,12 +7,11 @@ import { createSupabaseApi } from './supabaseApi';
 const env = import.meta.env;
 const sbUrl = env.VITE_SUPABASE_URL;
 const sbKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
-export const AUTH_DOMAIN = env.VITE_AUTH_EMAIL_DOMAIN || 'digiex.group';
 /** Set when the build is missing its Supabase env vars; the app shows a setup screen instead of failing requests. */
 export const CONFIG_ERROR = sbUrl && sbKey ? null : 'Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY at build time.';
 // Technical detail goes to the console for whoever deploys; users only see a friendly screen.
 if (CONFIG_ERROR) console.error('[DigiEx League]', CONFIG_ERROR);
-export const api: Api = createSupabaseApi(sbUrl || 'https://not-configured.invalid', sbKey || 'missing', AUTH_DOMAIN);
+export const api: Api = createSupabaseApi(sbUrl || 'https://not-configured.invalid', sbKey || 'missing');
 
 // ───────── routing (hash based so links to a team / match can be shared) ─────────
 
