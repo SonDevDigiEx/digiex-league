@@ -56,7 +56,10 @@ export interface Toast { msg: string; err?: boolean; key: number }
 interface Ctx {
   snap: Snapshot | null;
   loadError: string | null;
+  /** Signed-in and approved. Everything gated on "logged in" uses this. */
   user: Profile | null;
+  /** Signed-in account, including one still waiting for approval (header / login dialog). */
+  me: Profile | null;
   route: Route;
   go(r: Route): void;
   cardId: string | null;
@@ -79,7 +82,8 @@ const LeagueCtx = createContext<Ctx | null>(null);
 export function LeagueProvider({ children }: { children: ReactNode }) {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [user, setUser] = useState<Profile | null>(null);
+  const [me, setMe] = useState<Profile | null>(null);
+  const user = me && me.role !== 'pending' ? me : null;
   const [route, setRoute] = useState<Route>(parseHash);
   const [cardId, setCardId] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal | null>(null);
@@ -89,7 +93,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(async () => {
     try {
       const [s, u] = await Promise.all([api.load(), api.currentUser()]);
-      setSnap(s); setUser(u); setLoadError(null);
+      setSnap(s); setMe(u); setLoadError(null);
     } catch (e) {
       console.error('[DigiEx League] load failed', e);
       setLoadError('Không tải được dữ liệu. Kiểm tra kết nối mạng và thử lại.');
@@ -137,20 +141,20 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   }, [reload, flash]);
 
   const value = useMemo<Ctx>(() => ({
-    snap, loadError, user, route, go, cardId, modal, toast, flash, run, reload,
-    openCard: (id) => { if (!user) setModal({ kind: 'login', reason: 'Đăng nhập để xem chi tiết chỉ số cầu thủ.' }); else setCardId(id); },
+    snap, loadError, user, me, route, go, cardId, modal, toast, flash, run, reload,
+    openCard: (id) => { if (!user) setModal({ kind: 'login', reason: me ? undefined : 'Đăng nhập để xem chi tiết chỉ số cầu thủ.' }); else setCardId(id); },
     closeCard: () => setCardId(null),
     openModal: setModal,
     closeModal: () => setModal(null),
     signIn: () => api.signInWithGoogle(),
     async signOut() {
       await api.signOut();
-      setUser(null); setCardId(null);
+      setMe(null); setCardId(null);
       if (route.view === 'manage') go({ view: 'home' });
       await reload();
       flash('Đã đăng xuất');
     },
-  }), [snap, loadError, user, route, go, cardId, modal, toast, flash, run, reload]);
+  }), [snap, loadError, user, me, route, go, cardId, modal, toast, flash, run, reload]);
 
   return <LeagueCtx.Provider value={value}>{children}</LeagueCtx.Provider>;
 }

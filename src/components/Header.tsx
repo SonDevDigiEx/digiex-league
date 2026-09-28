@@ -2,9 +2,10 @@ import { CONFIG_ERROR, hrefOf, useAccess, useLeague, type Route } from '../data/
 import { ini, ROLE_LABEL } from '../lib/league';
 
 export function Header() {
-  const { route, go, snap, user, openModal, signOut } = useLeague();
-  const { canAny, myT, tm } = useAccess();
+  const { route, go, snap, me: user, openModal, signOut } = useLeague();
+  const { canAny, myT, tm, isAdmin } = useAccess();
   const inCount = myT && snap ? snap.offers.filter((o) => o.to === myT && o.status === 'pending').length : 0;
+  const waiting = isAdmin && snap ? snap.members.filter((m) => m.role === 'pending').length : 0;
   const items: [Route['view'], string][] = [['home', 'Trang chủ'], ['teams', 'Đội bóng'], ['matches', 'Trận đấu'], ['market', 'Chuyển nhượng'], ...(canAny ? [['manage', 'Quản lý'] as [Route['view'], string]] : [])];
 
   return (
@@ -24,6 +25,7 @@ export function Header() {
               <a key={k} href={hrefOf({ view: k } as Route)} className={'nav-btn' + (on ? ' on' : '')} onClick={(e) => { e.preventDefault(); go({ view: k } as Route); }}>
                 {l}
                 {k === 'market' && inCount > 0 && <span className="nav-badge">{inCount}</span>}
+                {k === 'manage' && waiting > 0 && <span className="nav-badge" title="Tài khoản chờ duyệt">{waiting}</span>}
               </a>
             );
           })}

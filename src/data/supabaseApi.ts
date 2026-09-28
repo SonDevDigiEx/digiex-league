@@ -159,6 +159,7 @@ export function createSupabaseApi(url: string, key: string, domain: string): Api
       if (!rows.length) throw new Error('Bạn không có quyền với đội này.');
     },
     async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
+    async rejectMember(userId) { check(await sb.rpc('reject_member', { p_user: userId })); },
 
     uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId}/${rid()}.jpg`, image),
     async savePlayer(f) {

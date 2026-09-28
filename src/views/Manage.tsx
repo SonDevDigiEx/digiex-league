@@ -26,7 +26,7 @@ export function Manage({ teamId }: { teamId?: string }) {
         </button>
       ))}
       {isAdmin && <button className="pill" style={showMembers ? { background: 'rgba(198,255,61,.18)', color: '#fff' } : undefined} onClick={() => go({ view: 'manage', teamId: MEMBERS })}>
-        <span className="dot" style={{ background: '#c6ff3d', border: 0 }} />Thành viên · {d.members.length}
+        <span className="dot" style={{ background: '#c6ff3d', border: 0 }} />Thành viên · {d.members.filter((m) => m.role !== 'pending').length}{d.members.some((m) => m.role === 'pending') ? ` (+${d.members.filter((m) => m.role === 'pending').length} chờ)` : ''}
       </button>}
       {isAdmin && <button className="pill add" onClick={() => openModal({ kind: 'addTeam' })}>+ Thêm đội</button>}
     </div>
@@ -92,10 +92,12 @@ export function Manage({ teamId }: { teamId?: string }) {
 function Members() {
   const { snap, user, run } = useLeague();
   const [q, setQ] = useState('');
+  const [rejecting, setRejecting] = useState<string | null>(null);
   const d = snap!;
   const needle = q.trim().toLowerCase();
-  const order: Record<Role, number> = { admin: 0, chair: 1, coach: 2, member: 3 };
-  const list = d.members
+  const order: Record<Role, number> = { pending: -1, admin: 0, chair: 1, coach: 2, member: 3 };
+  const pending = d.members.filter((m) => m.role === 'pending').sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  const list = d.members.filter((m) => m.role !== 'pending')
     .filter((m) => !needle || m.name.toLowerCase().includes(needle) || m.email.toLowerCase().includes(needle))
     .sort((a, b) => order[a.role] - order[b.role] || a.name.localeCompare(b.name, 'vi'));
   const save = (id: string, role: Role, team: string | null, name: string) => {
@@ -105,8 +107,31 @@ function Members() {
   return (
     <>
       <div className="note" style={{ fontSize: 13 }}>
-        Mọi người đăng nhập bằng Google công ty sẽ xuất hiện ở đây với vai trò Thành viên. Mỗi đội có một Chủ tịch — chỉ định Chủ tịch mới sẽ đưa Chủ tịch cũ về Thành viên.
+        Người đăng nhập lần đầu bằng Google công ty sẽ vào mục Chờ duyệt. Duyệt để họ thành Thành viên; từ chối sẽ xóa tài khoản (họ có thể đăng nhập lại để gửi yêu cầu mới). Mỗi đội có một Chủ tịch — chỉ định Chủ tịch mới sẽ đưa Chủ tịch cũ về Thành viên.
       </div>
+      {pending.length > 0 && (
+        <div className="rq" style={{ animation: 'none' }}>
+          <div className="row-sb">
+            <SecTitle sm color="#f5c542">Chờ duyệt</SecTitle>
+            <span className="rq-pend">{pending.length} tài khoản</span>
+          </div>
+          {pending.map((m) => (
+            <div key={m.id} className="mb-row" style={{ background: 'rgba(255,255,255,.03)' }}>
+              <div className="mg-ph" style={{ background: m.avatar ? `center/cover url("${m.avatar}")` : 'rgba(255,255,255,.05)', borderRadius: '50%' }}>{m.avatar ? '' : ini(m.name)}</div>
+              <div className="mg-info"><div><span>{m.name}</span></div><div>{m.email}</div></div>
+              <div className="mb-acts">
+                <button className="btn-ok" style={{ flex: 'none', padding: '10px 16px' }} onClick={() => run(() => api.setMember(m.id, 'member', null), `Đã duyệt ${m.name}`)}>Duyệt</button>
+                <button className={'btn-no' + (rejecting === m.id ? ' on' : '')} style={{ flex: 'none', padding: '10px 16px', ...(rejecting === m.id ? { background: '#e5484d', color: '#fff' } : {}) }}
+                  onClick={() => {
+                    if (rejecting !== m.id) return setRejecting(m.id);
+                    setRejecting(null);
+                    run(() => api.rejectMember(m.id), `Đã từ chối ${m.name}`);
+                  }}>{rejecting === m.id ? 'Xác nhận từ chối' : 'Từ chối'}</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <input className="inp" style={{ maxWidth: 360 }} placeholder="Tìm theo tên hoặc email…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {list.map((m, i) => {
@@ -131,7 +156,7 @@ function Members() {
             </div>
           );
         })}
-        {!list.length && <div className="empty">{needle ? 'Không tìm thấy thành viên.' : 'Chưa có ai đăng nhập.'}</div>}
+        {!list.length && <div className="empty">{needle ? 'Không tìm thấy thành viên.' : 'Chưa có thành viên nào được duyệt.'}</div>}
       </div>
     </>
   );

@@ -1,4 +1,5 @@
-export type Role = 'admin' | 'chair' | 'coach' | 'member';
+/** 'pending' = signed in but not yet approved by an admin (sees only what guests see). */
+export type Role = 'admin' | 'chair' | 'coach' | 'member' | 'pending';
 export type Pos = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LW' | 'RW' | 'ST';
 export type Group = 'GK' | 'DEF' | 'MID' | 'FWD';
 export type Foot = 'Phải' | 'Trái';

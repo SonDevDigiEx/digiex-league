@@ -3,7 +3,7 @@ import { api, AUTH_DOMAIN, useAccess, useLeague, type Modal } from '../data/stor
 import { DEFAULT_VENUE, genStats, ini, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Pos } from '../lib/types';
 
-function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
+function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
@@ -16,7 +16,7 @@ function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; c
         <div className="fm-head"><div className="fm-title">{title}</div><button type="button" className="fm-x" onClick={closeModal} aria-label="Đóng">×</button></div>
         {children}
         {err && <div className="err">{err}</div>}
-        <button type="submit" className="btn-submit" disabled={busy}>{busy ? 'Đang xử lý…' : cta}</button>
+        {cta && <button type="submit" className="btn-submit" disabled={busy}>{busy ? 'Đang xử lý…' : cta}</button>}
       </form>
     </div>
   );
@@ -41,18 +41,26 @@ function useSubmit() {
 }
 
 function LoginForm({ reason }: { reason?: string }) {
-  const { signIn } = useLeague();
+  const { signIn, me } = useLeague();
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const go = async () => {
     setBusy(true); setErr('');
     try { await signIn(); } catch (e) { setErr((e as Error).message); setBusy(false); }
   };
+  if (me?.role === 'pending') {
+    return (
+      <Shell title="Đang chờ duyệt" err="" busy={false} onSubmit={() => {}}>
+        <div className="info">Tài khoản <b>{me.email}</b> đã đăng ký thành công và đang chờ Ban tổ chức duyệt.</div>
+        <div className="lead" style={{ fontSize: 13 }}>Sau khi được duyệt, bạn sẽ xem được thẻ cầu thủ, phân tích trận, thị trường chuyển nhượng và tham gia vote. Tải lại trang để cập nhật.</div>
+      </Shell>
+    );
+  }
   return (
     <Shell title="Đăng nhập" cta="Đăng nhập với Google" err={err} busy={busy} onSubmit={go}>
       {reason && <div className="info">{reason}</div>}
       <div className="lead" style={{ fontSize: 13 }}>
-        Dùng tài khoản Google công ty <b style={{ color: '#fff' }}>@{AUTH_DOMAIN}</b>. Lần đầu đăng nhập bạn là Thành viên; Ban tổ chức sẽ phân quyền Chủ tịch / BHL.
+        Dùng tài khoản Google công ty <b style={{ color: '#fff' }}>@{AUTH_DOMAIN}</b>. Tài khoản mới cần Ban tổ chức duyệt trước khi sử dụng.
       </div>
     </Shell>
   );

@@ -21,6 +21,8 @@ export interface Api {
   updateTeam(teamId: string, input: TeamInput): Promise<void>;
   setTeamLogo(teamId: string, image: Blob | null): Promise<void>;
   setMember(userId: string, role: Role, teamId: string | null): Promise<void>;
+  /** Reject a pending sign-up (deletes the account). */
+  rejectMember(userId: string): Promise<void>;
 
   /** Upload a player photo and return its URL (stored on the player when the form is saved). */
   uploadPlayerPhoto(teamId: string, image: Blob): Promise<string>;
