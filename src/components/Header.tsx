@@ -32,7 +32,7 @@ export function Header() {
           {!user && <button className="btn-login" onClick={() => openModal({ kind: 'login' })}>Đăng nhập</button>}
           {user && (
             <div className="me">
-              <div className="me-ava">{ini(user.name)}</div>
+              <div className="me-ava" style={user.avatar ? { background: `center/cover url("${user.avatar}")` } : undefined}>{user.avatar ? '' : ini(user.name)}</div>
               <div>
                 <div className="me-name">{user.name}</div>
                 <div className="me-role">{ROLE_LABEL[user.role] + (user.team && snap ? ' · ' + tm(user.team)?.short : '')}</div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { api, SHOW_DEMO_ACCOUNTS, useAccess, useLeague, type Modal } from '../data/store';
+import { api, AUTH_DOMAIN, useAccess, useLeague, type Modal } from '../data/store';
 import { DEFAULT_VENUE, genStats, ini, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Pos } from '../lib/types';
 
@@ -41,58 +41,56 @@ function useSubmit() {
 }
 
 function LoginForm({ reason }: { reason?: string }) {
-  const { signIn, closeModal } = useLeague();
-  const [u, setU] = useState('');
-  const [pw, setPw] = useState('');
-  const { err, setErr, busy } = useSubmit();
-  const [loading, setLoading] = useState(false);
+  const { signIn } = useLeague();
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const go = async () => {
-    setLoading(true); setErr('');
-    try { await signIn(u, pw); closeModal(); } catch (e) { setErr((e as Error).message); } finally { setLoading(false); }
+    setBusy(true); setErr('');
+    try { await signIn(); } catch (e) { setErr((e as Error).message); setBusy(false); }
   };
-  const demo = SHOW_DEMO_ACCOUNTS ? api.demoAccounts() : [];
   return (
-    <Shell title="Đăng nhập" cta="Đăng nhập" err={err} busy={busy || loading} onSubmit={go}>
+    <Shell title="Đăng nhập" cta="Đăng nhập với Google" err={err} busy={busy} onSubmit={go}>
       {reason && <div className="info">{reason}</div>}
-      <label className="fld">Tên đăng nhập<input className="inp" value={u} onChange={(e) => setU(e.target.value)} autoComplete="username" placeholder="vd: son.f8" autoFocus /></label>
-      <label className="fld">Mật khẩu<input className="inp" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" /></label>
-      {demo.length > 0 && (
-        <div className="demo">
-          <div className="demo-k">TÀI KHOẢN DEMO · MẬT KHẨU 123456</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {demo.map((a) => <button type="button" key={a.u} className="demo-a" onClick={() => { setU(a.u); setPw(a.pw); }}><span>{a.u}</span><span>{a.label}</span></button>)}
-          </div>
-        </div>
-      )}
+      <div className="lead" style={{ fontSize: 13 }}>
+        Dùng tài khoản Google công ty <b style={{ color: '#fff' }}>@{AUTH_DOMAIN}</b>. Lần đầu đăng nhập bạn là Thành viên; Ban tổ chức sẽ phân quyền Chủ tịch / BHL.
+      </div>
     </Shell>
   );
 }
 
-function AddTeamForm() {
-  const { go } = useLeague();
-  const [f, setF] = useState({ name: '', short: '', chair: '', motto: '', sw: 2 });
+/** Create a team (admin) or edit one (staff: motto + chairman quote; admin: also name, code, colours). */
+function TeamForm({ teamId }: { teamId?: string }) {
+  const { go, snap } = useLeague();
+  const { isAdmin } = useAccess();
+  const t = teamId ? snap!.teams.find((x) => x.id === teamId) : undefined;
+  const sw0 = t ? Math.max(0, SWATCHES.findIndex(([c]) => c.toLowerCase() === t.color.toLowerCase())) : 2;
+  const [f, setF] = useState({ name: t?.name || '', short: t?.short || '', motto: t?.motto || '', quote: t?.chair.quote || '', sw: sw0 });
   const { err, setErr, busy, submit } = useSubmit();
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
+  const input = () => ({ name: f.name, short: f.short, motto: f.motto, chairQuote: f.quote, color: SWATCHES[f.sw][0], color2: SWATCHES[f.sw][1] });
+  const adminFields = !t || isAdmin;
   return (
-    <Shell title="Thành lập đội mới" cta="Tạo đội" err={err} busy={busy} onSubmit={() => {
+    <Shell title={t ? 'Thông tin đội' : 'Thành lập đội mới'} cta={t ? 'Lưu thay đổi' : 'Tạo đội'} err={err} busy={busy} onSubmit={() => {
       if (!f.name.trim() || !f.short.trim()) return setErr('Nhập tên đội và mã đội.');
+      if (t) return submit(() => api.updateTeam(t.id, input()), 'Đã cập nhật ' + f.name.trim());
       let id = '';
-      submit(async () => { const r = await api.createTeam({ ...f, color: SWATCHES[f.sw][0], color2: SWATCHES[f.sw][1] }); id = r.id; return r; },
-        (r) => `Đã thành lập ${f.name}` + ((r as { note?: string }).note ? ' · ' + (r as { note?: string }).note : ''),
-        () => go({ view: 'teams', teamId: id }));
+      submit(async () => { id = (await api.createTeam(input())).id; }, `Đã thành lập ${f.name.trim()}`, () => go({ view: 'teams', teamId: id }));
     }}>
-      <label className="fld">Tên đội<input className="inp" value={f.name} onChange={set('name')} placeholder="VD: F10 Phoenix" /></label>
-      <label className="fld">Mã đội (2–4 ký tự)<input className="inp" value={f.short} onChange={set('short')} placeholder="F10" maxLength={4} /></label>
-      <label className="fld">Chủ tịch đội<input className="inp" value={f.chair} onChange={set('chair')} placeholder="Họ và tên" /></label>
-      <label className="fld">Khẩu hiệu<input className="inp" value={f.motto} onChange={set('motto')} placeholder="Chiến đến cùng" /></label>
-      <div className="fld g8">Màu áo
-        <div style={{ display: 'flex', gap: 10 }}>
-          {SWATCHES.map(([c, c2], i) => (
-            <button type="button" key={c} className="sw" aria-label={c} onClick={() => setF({ ...f, sw: i })}
-              style={{ background: `linear-gradient(160deg,${c},${c2})`, transform: `scale(${f.sw === i ? 1.2 : 1})`, opacity: f.sw === i ? 1 : 0.55 }} />
-          ))}
+      {adminFields && <label className="fld">Tên đội<input className="inp" value={f.name} onChange={set('name')} placeholder="VD: F10 Phoenix" maxLength={60} /></label>}
+      {adminFields && <label className="fld">Mã đội (2–4 ký tự)<input className="inp" value={f.short} onChange={set('short')} placeholder="F10" maxLength={4} /></label>}
+      <label className="fld">Khẩu hiệu<input className="inp" value={f.motto} onChange={set('motto')} placeholder="Chiến đến cùng" maxLength={120} /></label>
+      {t && <label className="fld">Phát biểu của Chủ tịch<input className="inp" value={f.quote} onChange={set('quote')} maxLength={160} /></label>}
+      {adminFields && (
+        <div className="fld g8">Màu áo
+          <div style={{ display: 'flex', gap: 10 }}>
+            {SWATCHES.map(([c, c2], i) => (
+              <button type="button" key={c} className="sw" aria-label={c} onClick={() => setF({ ...f, sw: i })}
+                style={{ background: `linear-gradient(160deg,${c},${c2})`, transform: `scale(${f.sw === i ? 1.2 : 1})`, opacity: f.sw === i ? 1 : 0.55 }} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+      {!t && <div className="fm-note">Sau khi tạo đội, vào <span>Quản lý → Thành viên</span> để chỉ định Chủ tịch và BHL.</div>}
     </Shell>
   );
 }
@@ -250,7 +248,8 @@ export function FormModal() {
   const m: Modal = modal;
   switch (m.kind) {
     case 'login': return <LoginForm reason={m.reason} />;
-    case 'addTeam': return <AddTeamForm />;
+    case 'addTeam': return <TeamForm />;
+    case 'editTeam': return <TeamForm key={m.teamId} teamId={m.teamId} />;
     case 'player': return !m.playerId || snap?.players.some((p) => p.id === m.playerId) ? <PlayerForm key={m.playerId || 'new'} playerId={m.playerId} teamId={m.teamId} /> : null;
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;

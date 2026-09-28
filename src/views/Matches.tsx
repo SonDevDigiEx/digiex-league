@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Crest, Lock } from '../components/bits';
 import { api, findMatch, hrefOf, squadOf, useAccess, useLeague, useNow } from '../data/store';
 import { clamp, fDate, fTime, FORMATION, hexA, lineup, record, sortedMatches } from '../lib/league';
-import type { Match, Player, WinnerKey } from '../lib/types';
+import type { Goal, Match, Player, WinnerKey } from '../lib/types';
 
 export function Countdown({ iso, small }: { iso: string; small?: boolean }) {
   const now = useNow();
@@ -48,6 +48,7 @@ export function Matches() {
       <div className="kicker" style={{ marginTop: 8 }}>LỊCH SỬ THI ĐẤU</div>
       <div className="tl">
         <div className="tl-line" />
+        {!done.length && <div className="none">Chưa có trận nào kết thúc.</div>}
         {done.slice().reverse().map((m, i) => {
           const H = tm(m.home), A = tm(m.away);
           return (
@@ -71,7 +72,6 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   const { tm, isAdmin } = useAccess();
   const [tab, setTab] = useState<Tab>('lineup');
   const [vs, setVs] = useState({ h: 1, a: 1 });
-  const [res, setRes] = useState({ h: 0, a: 0 });
   const d = snap!;
   const m = findMatch(d.matches, matchId);
   if (!m) return <div className="view"><a className="back" onClick={() => go({ view: 'matches' })}>← Lịch thi đấu</a><div className="none">Không tìm thấy trận đấu.</div></div>;
@@ -111,7 +111,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   const mx = sv.length ? sv[0][1] : 1;
   const acc = actual ? Math.round((v[actual] / vt) * 100) : 0;
   const pn = (id: string) => { const p = d.players.find((x) => x.id === id); return p ? p.name.split(' ').slice(-2).join(' ') : '?'; };
-  const goals = (side: 'home' | 'away') => (m.scorers || []).filter((g) => g.side === side).map((g, i) => <span key={i}>⚽ {pn(g.pid)} {g.min}'</span>);
+  const goals = (side: 'home' | 'away') => (m.scorers || []).filter((g) => g.side === side).map((g, i) => <span key={i}>⚽ {pn(g.pid)}{g.min != null ? ` ${g.min}'` : ''}</span>);
   const li = (p: Player, sub?: boolean) => (
     <button key={p.id} className={'li' + (sub ? ' sub' : '')} onClick={() => openCard(p.id)}><span>{p.pos}</span><span>{p.name}</span><span>{p.ovr}</span></button>
   );
@@ -253,19 +253,69 @@ export function MatchDetail({ matchId }: { matchId: string }) {
             })}
             {!sv.length && <div className="note">Chưa có dự đoán nào.</div>}
           </div>
-          {!isDone && isAdmin && (
-            <div className="result">
-              <div className="result-t">Ban tổ chức · Nhập kết quả</div>
-              <div className="result-s">
-                <button onClick={step(setRes, 'h', -1, 20)}>−</button><b>{res.h}</b><button onClick={step(setRes, 'h', 1, 20)}>+</button>
-                <i>–</i>
-                <button onClick={step(setRes, 'a', -1, 20)}>−</button><b>{res.a}</b><button onClick={step(setRes, 'a', 1, 20)}>+</button>
-              </div>
-              <button className="btn-gold-o" onClick={() => run(() => api.finishMatch(m.id, res.h, res.a), `Kết thúc: ${H.short} ${res.h} – ${res.a} ${A.short}`)}>Kết thúc trận &amp; lưu</button>
-            </div>
-          )}
+          {isAdmin && <ResultPanel key={m.id + m.status} m={m} />}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Admin: enter or correct the score, pick scorers, or delete the match. */
+function ResultPanel({ m }: { m: Match }) {
+  const { snap, run, go } = useLeague();
+  const { tm } = useAccess();
+  const H = tm(m.home), A = tm(m.away);
+  const isDone = m.status === 'done';
+  const [res, setRes] = useState({ h: isDone ? m.hs : 0, a: isDone ? m.as : 0 });
+  // One scorer slot per goal: { pid, min } ('' = not recorded).
+  const init = (side: 'home' | 'away', n: number) => {
+    const g = (m.scorers || []).filter((x) => x.side === side);
+    return Array.from({ length: n }, (_, i) => ({ pid: g[i]?.pid || '', min: g[i]?.min != null ? String(g[i].min) : '' }));
+  };
+  const [goals, setGoals] = useState({ home: init('home', res.h), away: init('away', res.a) });
+  const [confirmDel, setConfirmDel] = useState(false);
+  const setScore = (key: 'h' | 'a', dl: number) => () => {
+    const side = key === 'h' ? 'home' : 'away';
+    const n = clamp(res[key] + dl, 0, 20);
+    setRes({ ...res, [key]: n });
+    setGoals((g) => ({ ...g, [side]: Array.from({ length: n }, (_, i) => g[side][i] || { pid: '', min: '' }) }));
+  };
+  const squad = (tid: string) => squadOf(snap!.players, tid).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  const scorers = (): Goal[] => (['home', 'away'] as const).flatMap((side) => goals[side]
+    .filter((g) => g.pid)
+    .map((g) => ({ pid: g.pid, side, ...(g.min !== '' && !isNaN(+g.min) ? { min: clamp(Math.round(+g.min), 1, 130) } : {}) } as Goal)))
+    .sort((x, y) => (x.min ?? 999) - (y.min ?? 999));
+  const col = (side: 'home' | 'away', tid: string) => goals[side].map((g, i) => (
+    <div key={i} className="goal-row">
+      <select className="inp" value={g.pid} aria-label={`Bàn ${i + 1}`} onChange={(e) => setGoals({ ...goals, [side]: goals[side].map((x, j) => (j === i ? { ...x, pid: e.target.value } : x)) })}>
+        <option value="">⚽ Bàn {i + 1} · chưa rõ</option>
+        {squad(tid).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+      <input className="inp" inputMode="numeric" placeholder="phút" value={g.min} aria-label="Phút"
+        onChange={(e) => setGoals({ ...goals, [side]: goals[side].map((x, j) => (j === i ? { ...x, min: e.target.value.replace(/\D/g, '').slice(0, 3) } : x)) })} />
+    </div>
+  ));
+  return (
+    <div className="result">
+      <div className="result-t">Ban tổ chức · {isDone ? 'Sửa kết quả' : 'Nhập kết quả'}</div>
+      <div className="result-s">
+        <button onClick={setScore('h', -1)} aria-label="Giảm">−</button><b>{res.h}</b><button onClick={setScore('h', 1)} aria-label="Tăng">+</button>
+        <i>–</i>
+        <button onClick={setScore('a', -1)} aria-label="Giảm">−</button><b>{res.a}</b><button onClick={setScore('a', 1)} aria-label="Tăng">+</button>
+      </div>
+      {res.h + res.a > 0 && (
+        <div className="goals-edit">
+          <div><div className="k10" style={{ color: H.color }}>{H.short} · GHI BÀN</div>{col('home', H.id)}</div>
+          <div><div className="k10" style={{ color: A.color }}>{A.short} · GHI BÀN</div>{col('away', A.id)}</div>
+        </div>
+      )}
+      <button className="btn-gold-o" onClick={() => run(() => api.saveResult(m.id, res.h, res.a, scorers()), `${isDone ? 'Đã cập nhật' : 'Kết thúc'}: ${H.short} ${res.h} – ${res.a} ${A.short}`)}>
+        {isDone ? 'Lưu kết quả' : 'Kết thúc trận & lưu'}
+      </button>
+      <button className={'btn-danger' + (confirmDel ? ' on' : '')} style={{ alignSelf: 'flex-start' }} onClick={() => {
+        if (!confirmDel) return setConfirmDel(true);
+        run(() => api.deleteMatch(m.id), 'Đã xóa trận đấu').then((ok) => ok && go({ view: 'matches' }));
+      }}>{confirmDel ? 'Xác nhận xóa trận (mất cả vote)' : 'Xóa trận đấu'}</button>
     </div>
   );
 }

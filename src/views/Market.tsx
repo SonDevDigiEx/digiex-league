@@ -42,6 +42,7 @@ export function Market() {
       </div>
       <div className="mk">
         <div className="mk-list">
+          {!fl.length && <div className="empty">{d.players.length ? 'Không có cầu thủ phù hợp bộ lọc.' : 'Chưa có cầu thủ nào trên thị trường.'}</div>}
           {fl.map((p, i) => {
             const team = tm(p.teamId);
             const canBuy = canTransfer(p.teamId);

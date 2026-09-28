@@ -1,15 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Match, Player, Profile, Snapshot, Team } from '../lib/types';
 import type { Api } from './api';
-import { createLocalApi } from './localApi';
 import { createSupabaseApi } from './supabaseApi';
 
 const env = import.meta.env;
+const sbUrl = env.VITE_SUPABASE_URL;
 const sbKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
-export const api: Api = env.VITE_SUPABASE_URL && sbKey
-  ? createSupabaseApi(env.VITE_SUPABASE_URL, sbKey, env.VITE_AUTH_EMAIL_DOMAIN || 'digiex.group')
-  : createLocalApi();
-export const SHOW_DEMO_ACCOUNTS = api.mode === 'local' || env.VITE_SHOW_DEMO_ACCOUNTS === 'true';
+export const AUTH_DOMAIN = env.VITE_AUTH_EMAIL_DOMAIN || 'digiex.group';
+/** Set when the build is missing its Supabase env vars; the app shows a setup screen instead of failing requests. */
+export const CONFIG_ERROR = sbUrl && sbKey ? null : 'Thiếu VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY trong biến môi trường của bản build.';
+export const api: Api = createSupabaseApi(sbUrl || 'https://not-configured.invalid', sbKey || 'missing', AUTH_DOMAIN);
 
 // ───────── routing (hash based so links to a team / match can be shared) ─────────
 
@@ -43,6 +43,7 @@ export function hrefOf(r: Route) {
 export type Modal =
   | { kind: 'login'; reason?: string }
   | { kind: 'addTeam' }
+  | { kind: 'editTeam'; teamId: string }
   | { kind: 'player'; playerId?: string; teamId: string }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
@@ -66,7 +67,7 @@ interface Ctx {
   flash(msg: string, err?: boolean): void;
   /** Run a mutation, refresh data and toast the result. Returns false (and toasts) on error unless `rethrow`. */
   run(fn: () => Promise<unknown>, ok?: string | ((r: unknown) => string), rethrow?: boolean): Promise<boolean>;
-  signIn(u: string, pw: string): Promise<void>;
+  signIn(): Promise<void>;
   signOut(): Promise<void>;
   reload(): Promise<void>;
 }
@@ -92,7 +93,14 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { reload(); return api.subscribe(reload); }, [reload]);
+  useEffect(() => {
+    if (CONFIG_ERROR) return;
+    reload().then(() => {
+      const e = api.takeAuthError();
+      if (e) setModal({ kind: 'login', reason: e });
+    });
+    return api.subscribe(reload);
+  }, [reload]);
   useEffect(() => {
     const on = () => { setRoute(parseHash()); setCardId(null); };
     window.addEventListener('hashchange', on);
@@ -131,12 +139,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     closeCard: () => setCardId(null),
     openModal: setModal,
     closeModal: () => setModal(null),
-    async signIn(u, pw) {
-      const p = await api.signIn(u, pw);
-      setUser(p);
-      await reload();
-      flash('Xin chào, ' + p.name);
-    },
+    signIn: () => api.signInWithGoogle(),
     async signOut() {
       await api.signOut();
       setUser(null); setCardId(null);

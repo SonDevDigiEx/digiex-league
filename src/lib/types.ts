@@ -36,7 +36,8 @@ export interface Player {
 export interface Goal {
   pid: string;
   side: 'home' | 'away';
-  min: number;
+  /** Minute, when recorded. */
+  min?: number;
 }
 
 export interface Match {
@@ -88,6 +89,8 @@ export interface Profile {
   name: string;
   role: Role;
   team: string | null;
+  email: string;
+  avatar: string | null;
 }
 
 export interface MyVote {
@@ -102,6 +105,8 @@ export interface Snapshot {
   transfers: Transfer[];
   offers: Offer[];
   my: Record<string, MyVote>;
+  /** Everyone with an account (signed-in viewers only). */
+  members: Profile[];
 }
 
 export interface PlayerInput {
@@ -120,8 +125,8 @@ export interface PlayerInput {
 export interface TeamInput {
   name: string;
   short: string;
-  chair: string;
   motto: string;
+  chairQuote?: string;
   color: string;
   color2: string;
 }
@@ -131,10 +136,4 @@ export interface MatchInput {
   away: string;
   date: string;
   venue: string;
-}
-
-export interface DemoAccount {
-  u: string;
-  pw: string;
-  label: string;
 }

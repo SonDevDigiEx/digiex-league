@@ -1,5 +1,5 @@
 import { Header } from './components/Header';
-import { api, useLeague } from './data/store';
+import { CONFIG_ERROR, useLeague } from './data/store';
 import { CardModal } from './modals/CardModal';
 import { FormModal } from './modals/FormModal';
 import { Home } from './views/Home';
@@ -10,6 +10,7 @@ import { Teams } from './views/Teams';
 
 function Body() {
   const { snap, loadError, route, reload } = useLeague();
+  if (CONFIG_ERROR) return <div className="boot">Chưa cấu hình máy chủ.<br />{CONFIG_ERROR}</div>;
   if (!snap) {
     return (
       <div className="boot">
@@ -30,7 +31,7 @@ function Body() {
 }
 
 export function App() {
-  const { toast, run } = useLeague();
+  const { toast } = useLeague();
   return (
     <div className="app">
       <Header />
@@ -38,7 +39,6 @@ export function App() {
         <Body />
         <footer className="foot">
           <span>DigiEx League · Phòng Văn hóa – Thể thao</span>
-          {api.reset && <a onClick={() => run(() => api.reset!(), 'Đã khôi phục dữ liệu mẫu')}>Khôi phục dữ liệu mẫu</a>}
         </footer>
       </main>
       <CardModal />

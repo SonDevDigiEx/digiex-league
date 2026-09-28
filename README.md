@@ -2,76 +2,82 @@
 
 Web app for the F8 vs F9 football derby at DigiEx. It covers teams, FO4-style player cards, fixtures and head-to-head history, lineups, match analysis, winner and score predictions, and a transfer market where chairmen send, accept and reject offers.
 
-Built with **Vite + React + TypeScript**, with **Supabase** providing auth, Postgres (RLS), storage and realtime. The original Claude Design prototype and the chat transcript are in `project/` and `chats/`.
+Built with **Vite + React + TypeScript**, with **Supabase** providing Google auth, Postgres (RLS), storage and realtime. The original Claude Design prototype and the chat transcript are in `project/` and `chats/`.
 
 ## Run locally
 
 ```bash
+cp .env.example .env.local   # fill in the Supabase URL + publishable key
 npm install
-npm run dev
+npm run dev                  # http://localhost:5173
 ```
 
-If `VITE_SUPABASE_URL` is not set, the app runs in **local demo mode**. Data lives in the browser's localStorage, and the login dialog lists the demo accounts (password `123456`). The footer has a "Khôi phục dữ liệu mẫu" link that resets the data.
+Local dev talks to the same Supabase project (there is no offline/demo mode).
 
-## Connect Supabase
+## Supabase setup
 
-1. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
-2. Apply the schema.
-   **Simplest (dashboard only, no service key):** in **SQL Editor** run `supabase/setup.sql`; create the six demo users in **Authentication → Users → Add user** (`admin`, `son.f8`, `hlv.f8`, `vinh.f9`, `hlv.f9`, `member` @digiex.group, tick *Auto Confirm User*); then run `supabase/assign-roles.sql`. You can skip step 3.
-   Or:
-   - paste `supabase/migrations/20260924000000_init.sql` and then `supabase/seed.sql` into the Supabase **SQL Editor**, or
-   - with the Supabase CLI, run `supabase link --project-ref <ref>`, then `supabase db push`, then `psql "$DB_URL" -f supabase/seed.sql`.
-3. Create the demo accounts and demo offers. This needs the **service-role** key; never put it in a `VITE_` variable:
-   ```bash
-   VITE_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:users
-   ```
-4. In **Authentication → Providers → Email**, turn off "Allow new users to sign up" so only accounts you create can log in.
+**New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-Users sign in with a username. A username without `@` is converted to `<username>@VITE_AUTH_EMAIL_DOMAIN`, for example `son.f8@digiex.group`.
+**Existing project that ran the earlier demo setup:**
+1. Run `supabase/migrations/20260928000000_production.sql`.
+2. Run `supabase/cleanup-demo.sql` once. This deletes the demo players, matches and accounts but keeps F8/F9.
+
+### Google sign-in (@digiex.group only)
+
+1. **Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID**
+   - Application type: *Web application*
+   - Authorized JavaScript origins: `https://digiex-league.vercel.app`, `http://localhost:5173`
+   - Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
+   - If asked to configure the consent screen, choose **Internal**, so only accounts in the Workspace can sign in.
+2. **Supabase → Authentication → Sign In / Providers → Google**: enable it and paste the Client ID and Client Secret.
+3. **Supabase → Authentication → URL Configuration**
+   - Site URL: `https://digiex-league.vercel.app`
+   - Redirect URLs: `https://digiex-league.vercel.app/**`, `http://localhost:5173/**`
+4. **Supabase → Authentication → Sign In / Providers → Email**: turn off "Allow new users to sign up". Only Google is used.
+
+The database refuses to create any account whose email isn't `@digiex.group` (see `handle_new_user`). The `hd` hint on the Google screen only makes this friendlier.
 
 ### Roles
 
-Roles live in `public.profiles.role` / `team_id`. New auth users always start as `member`, and only SQL or the service role can change a role:
-
-```sql
-update public.profiles set role = 'chair', team_id = 'f8' where username = 'son.f8';
-```
+Everyone starts as `member`. Emails listed in `public.bootstrap_admins` (`son.pham@digiex.group`) become admin on first sign-in. After that, an admin assigns roles in the app under **Quản lý → Thành viên**. Each team has one chairman, and choosing a new one demotes the previous chairman. The chairman and BHL names on the team page follow these assignments.
 
 | Role | Can do |
 |---|---|
-| `admin` (Ban tổ chức) | add teams, schedule matches, enter results, transfer any player, see all offers |
-| `chair` (Chủ tịch) | manage own squad and logo, transfer own players, send offers for other teams' players, accept or reject offers for own players |
-| `coach` (BHL) | manage own squad and logo |
+| `admin` (Ban tổ chức) | manage members and roles, add or edit teams, schedule and delete matches, enter or correct results with scorers, transfer any player, see all offers |
+| `chair` (Chủ tịch) | manage own squad, logo, motto and quote; transfer own players; send offers for other teams' players; accept or reject offers for own players |
+| `coach` (BHL) | manage own squad, logo, motto and quote |
 | `member` | view cards, analysis and market; vote once per match |
 | guest | home, teams, fixtures, lineups |
 
-Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER` functions `make_offer`, `respond_offer`, `cancel_offer`, `transfer_player`, `vote_winner`, `vote_score` and `vote_stats`. The UI only hides actions a user can't take. Player value is a generated column (`player_value(ovr)`). Uploads go to the public `media` bucket under `logos/<team>/…` and `players/<team>/…`, and only that team's staff can write there.
+Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER` functions `set_member`, `update_team`, `save_result`, `make_offer`, `respond_offer`, `cancel_offer`, `transfer_player`, `vote_winner`, `vote_score` and `vote_stats`. The UI only hides actions a user can't take. Uploads go to the public `media` bucket under `logos/<team>/…` and `players/<team>/…`, and only that team's staff can write there.
+
+## Deploy (Vercel)
+
+Framework preset *Vite*. Set these environment variables for Production and Preview, then redeploy:
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_AUTH_EMAIL_DOMAIN=digiex.group`.
+Never add the service-role key.
 
 ## Scripts
 
-| | |
-|---|---|
-| `npm run dev` / `build` / `preview` | Vite |
-| `npm run typecheck` | `tsc -b` |
-| `npm run gen:seed` | regenerate `supabase/seed.sql` from `src/data/seed.ts` |
-| `npm run seed:users` | create demo auth users, roles and offers in Supabase |
+`npm run dev` / `build` / `preview` (Vite) · `npm run typecheck` (`tsc -b`)
 
 ## Layout
 
 ```
 src/
-  data/       api.ts (interface) · supabaseApi.ts · localApi.ts · seed.ts · store.tsx (context, routing, toasts)
+  data/       api.ts (interface) · supabaseApi.ts · store.tsx (context, routing, toasts)
   lib/        types.ts · league.ts (tiers, value formula, lineup, records, formatting)
-  components/ Header · bits (PlayerCard, Crest, Lock, …)
+  components/ Header · ErrorBoundary · bits (PlayerCard, Crest, Lock, …)
   views/      Home · Teams · Matches (list + detail) · Market · Manage
-  modals/     CardModal · FormModal (login, team, player, transfer, offer, schedule)
-supabase/     migrations/ (schema, RLS, RPCs, storage, realtime) · seed.sql
+  modals/     CardModal · FormModal (Google login, team, player, transfer, offer, schedule)
+supabase/     migrations/ · seed.sql (F8/F9) · setup.sql (all-in-one, new projects) · cleanup-demo.sql
 ```
 
 ## Differences from the prototype
 
-- Data is shared across the company through Supabase. Votes are one per user and stored server-side; offers and transfers update live over realtime.
-- "Kết thúc trận" records only the score. The prototype invented goal scorers at random; real scorers can be stored in `matches.scorers`.
-- Creating a team no longer creates a chairman account automatically. Assign one via `profiles` as shown above.
-- The lineup formation (`2-3-1`) and the card shine effect were design-tool tweaks. They are now the constants `FORMATION` and `CARD_SHINE` in `src/lib/league.ts`.
+- Real data shared through Supabase, with Google sign-in. There are no demo accounts and no local/demo mode.
+- Votes are one per user and stored server-side; offers, transfers and roles update live over realtime.
+- Results record the real scorers (optional minute) instead of random ones, and admins can correct a result or delete a match.
+- Chairman and BHL are real members assigned by an admin, not free-text names.
+- The lineup formation (`2-3-1`) and the card shine effect are the constants `FORMATION` and `CARD_SHINE` in `src/lib/league.ts`.
 - URLs are shareable: `#/teams/f8`, `#/match/<id>`, `#/market`.

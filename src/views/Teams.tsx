@@ -54,7 +54,12 @@ export function Teams({ teamId }: { teamId?: string }) {
               <div className="team-founded">THÀNH LẬP {ct.founded}</div>
               <h1 className="team-name">{ct.name}</h1>
               <div className="team-motto">“{ct.motto}”</div>
-              {can && <label className="btn-upload">Tải logo đội<input type="file" accept="image/*" onChange={onLogo(ct.id)} /></label>}
+              {can && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button className="btn-upload" onClick={() => openModal({ kind: 'editTeam', teamId: ct.id })}>Sửa thông tin</button>
+                  <label className="btn-upload">Tải logo đội<input type="file" accept="image/*" onChange={onLogo(ct.id)} /></label>
+                </div>
+              )}
             </div>
           </div>
           <div className="chair">

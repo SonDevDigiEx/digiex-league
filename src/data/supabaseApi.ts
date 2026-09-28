@@ -22,22 +22,52 @@ const toOffer = (r: Row): Offer => ({
   id: r.id, pid: r.player_id, from: r.buyer_team, to: r.seller_team, price: Number(r.price), value: Number(r.value),
   note: r.note, byName: r.creator?.name || '—', status: r.status as OfferStatus, date: r.created_on,
 });
-const toProfile = (r: Row): Profile => ({ id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id });
+const toProfile = (r: Row): Profile => ({
+  id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null,
+});
 
 /** Turn Supabase/Postgres errors into messages for the toast/form. RPCs raise Vietnamese messages already. */
 function check<T>(res: { data: T; error: { message: string; code?: string } | null }): NonNullable<T> {
   if (res.error) {
     const { code, message } = res.error;
     if (code === '42501' || /row-level security|permission denied/i.test(message)) throw new Error('Bạn không có quyền thực hiện thao tác này.');
+    if (/Failed to fetch|NetworkError/i.test(message)) throw new Error('Mất kết nối máy chủ. Kiểm tra mạng và thử lại.');
     throw new Error(message);
   }
   return res.data as NonNullable<T>;
 }
 
-export function createSupabaseApi(url: string, key: string, emailDomain: string): Api {
-  const sb: SupabaseClient = createClient(url, key);
+const RETURN_HASH = 'digiex-return-hash';
 
-  const uid = async () => (await sb.auth.getSession()).data.session?.user.id ?? null;
+/**
+ * Read (and strip) OAuth error parameters that Supabase appends on redirect.
+ * A user outside the company domain is rejected by the handle_new_user trigger, which GoTrue reports as a database error.
+ */
+function readAuthError(domain: string): string | null {
+  const q = new URLSearchParams(window.location.search);
+  const h = new URLSearchParams(window.location.hash.replace(/^#\/?/, ''));
+  const raw = q.get('error_description') || h.get('error_description');
+  if (!raw) return null;
+  window.history.replaceState(null, '', window.location.pathname + '#/');
+  return /database error|saving new user/i.test(raw) ? `Chỉ tài khoản Google @${domain} được đăng nhập.` : 'Đăng nhập không thành công: ' + raw;
+}
+
+export function createSupabaseApi(url: string, key: string, domain: string): Api {
+  let authError = readAuthError(domain);
+  const sb: SupabaseClient = createClient(url, key, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
+
+  // After the PKCE exchange, drop ?code=… from the address bar and go back to the page the user signed in from.
+  const ready = sb.auth.getSession().then(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.has('code')) {
+      let back = '#/';
+      try { back = sessionStorage.getItem(RETURN_HASH) || '#/'; sessionStorage.removeItem(RETURN_HASH); } catch { /* ignore */ }
+      window.history.replaceState(null, '', window.location.pathname + back);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    }
+  });
+
+  const uid = async () => { await ready; return (await sb.auth.getSession()).data.session?.user.id ?? null; };
   const upload = async (path: string, image: Blob) => {
     check(await sb.storage.from('media').upload(path, image, { contentType: image.type, upsert: false }));
     return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
@@ -45,7 +75,6 @@ export function createSupabaseApi(url: string, key: string, emailDomain: string)
   const rid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
 
   return {
-    mode: 'supabase',
     async load(): Promise<Snapshot> {
       const me = await uid();
       const [teams, players, matches] = await Promise.all([
@@ -53,16 +82,18 @@ export function createSupabaseApi(url: string, key: string, emailDomain: string)
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
       ]);
-      const snap: Snapshot = { teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {} };
+      const snap: Snapshot = { teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [] };
       if (!me) return snap;
-      const [transfers, offers, stats, votes] = await Promise.all([
+      const [transfers, offers, stats, votes, members] = await Promise.all([
         sb.from('transfers').select('*').order('id').then(check),
         sb.from('offers').select('*, creator:profiles(name)').then(check),
         sb.rpc('vote_stats').then(check),
         sb.from('votes').select('match_id, winner, score').eq('user_id', me).then(check),
+        sb.from('profiles').select('*').order('name').then(check),
       ]);
       snap.transfers = transfers.map(toTransfer);
       snap.offers = offers.map(toOffer);
+      snap.members = members.map(toProfile);
       const byId = new Map(snap.matches.map((m) => [m.id, m]));
       (stats as Row[]).forEach((s) => {
         const m = byId.get(s.match_id);
@@ -89,34 +120,43 @@ export function createSupabaseApi(url: string, key: string, emailDomain: string)
     },
 
     async currentUser() {
-      const { data } = await sb.auth.getSession();
-      const u = data.session?.user;
-      if (!u) return null;
-      const { data: p } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
-      return p ? toProfile(p) : { id: u.id, username: u.email || '', name: u.email || 'Thành viên', role: 'member', team: null };
+      const id = await uid();
+      if (!id) return null;
+      // Network/server errors propagate (the app shows "retry"); only a missing row means the account has no profile.
+      const p = check(await sb.from('profiles').select('*').eq('id', id).limit(1)) as Row[];
+      if (p[0]) return toProfile(p[0]);
+      // No profile means the account was created before the trigger existed or was refused: treat as signed out.
+      await sb.auth.signOut();
+      authError = authError || `Tài khoản chưa được cấp quyền. Hãy đăng nhập bằng email @${domain}.`;
+      return null;
     },
-    async signIn(username, password) {
-      const login = username.trim().toLowerCase();
-      const email = login.includes('@') ? login : `${login}@${emailDomain}`;
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw new Error('Sai tên đăng nhập hoặc mật khẩu.');
-      return (await this.currentUser())!;
+    async signInWithGoogle() {
+      try { sessionStorage.setItem(RETURN_HASH, window.location.hash || '#/'); } catch { /* ignore */ }
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { hd: domain, prompt: 'select_account' } },
+      });
+      if (error) throw new Error('Không mở được đăng nhập Google: ' + error.message);
     },
     async signOut() { await sb.auth.signOut(); },
-    demoAccounts() { return []; },
+    takeAuthError() { const e = authError; authError = null; return e; },
 
     async createTeam(f) {
       const row = check(await sb.from('teams').insert({
-        name: f.name.trim(), short: f.short.trim().toUpperCase().slice(0, 4), chair_name: f.chair || 'Chưa bổ nhiệm',
-        motto: f.motto || 'Chiến đến cùng', color: f.color, color2: f.color2,
+        name: f.name.trim(), short: f.short.trim().toUpperCase().slice(0, 4), motto: f.motto.trim() || 'Chiến đến cùng', color: f.color, color2: f.color2,
       }).select('id').single());
-      return { id: row.id, note: 'Gán tài khoản Chủ tịch cho đội trong bảng profiles' };
+      return { id: row.id };
+    },
+    async updateTeam(teamId, f) {
+      check(await sb.rpc('update_team', { p_team: teamId, p_name: f.name, p_short: f.short, p_motto: f.motto, p_quote: f.chairQuote ?? '', p_color: f.color, p_color2: f.color2 }));
     },
     async setTeamLogo(teamId, image) {
       const logo_url = image ? await upload(`logos/${teamId}/${rid()}.png`, image) : null;
       const rows = check(await sb.from('teams').update({ logo_url }).eq('id', teamId).select('id'));
       if (!rows.length) throw new Error('Bạn không có quyền với đội này.');
     },
+    async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
+
     uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId}/${rid()}.jpg`, image),
     async savePlayer(f) {
       const row = { team_id: f.teamId, name: f.name.trim(), pos: f.pos, ovr: f.ovr, num: f.num, age: f.age, foot: f.foot, stats: f.stats, photo_url: f.photo };
@@ -134,9 +174,10 @@ export function createSupabaseApi(url: string, key: string, emailDomain: string)
     async scheduleMatch(f) {
       check(await sb.from('matches').insert({ kickoff: new Date(f.date).toISOString(), home_team: f.home, away_team: f.away, venue: f.venue }));
     },
-    async finishMatch(id, hs, as) {
-      const rows = check(await sb.from('matches').update({ home_score: hs, away_score: as, status: 'done' }).eq('id', id).select('id'));
-      if (!rows.length) throw new Error('Chỉ Ban tổ chức được nhập kết quả.');
+    async saveResult(id, hs, as, scorers) { check(await sb.rpc('save_result', { p_match: id, p_hs: hs, p_as: as, p_scorers: scorers })); },
+    async deleteMatch(id) {
+      const rows = check(await sb.from('matches').delete().eq('id', id).select('id'));
+      if (!rows.length) throw new Error('Chỉ Ban tổ chức được xóa trận.');
     },
     async voteWinner(matchId, key) { check(await sb.rpc('vote_winner', { p_match: matchId, p_winner: key })); },
     async voteScore(matchId, score) { check(await sb.rpc('vote_score', { p_match: matchId, p_score: score })); },

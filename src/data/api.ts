@@ -1,23 +1,26 @@
-import type { DemoAccount, MatchInput, PlayerInput, Profile, Snapshot, TeamInput, WinnerKey } from '../lib/types';
+import type { Goal, MatchInput, PlayerInput, Profile, Role, Snapshot, TeamInput, WinnerKey } from '../lib/types';
 
 /**
- * Everything the UI reads or writes goes through this interface.
+ * Everything the UI reads or writes goes through this interface (implemented by supabaseApi.ts).
  * Permission checks live on the server (Supabase RLS / RPCs); the UI only hides actions a user can't take.
  * Methods throw an Error with a user-facing (Vietnamese) message on failure.
  */
 export interface Api {
-  mode: 'supabase' | 'local';
   load(): Promise<Snapshot>;
-  /** Called whenever data changes elsewhere (other tabs / other users). Returns an unsubscribe fn. */
+  /** Called whenever data changes elsewhere (other users, auth state). Returns an unsubscribe fn. */
   subscribe(onChange: () => void): () => void;
 
   currentUser(): Promise<Profile | null>;
-  signIn(username: string, password: string): Promise<Profile>;
+  /** Redirects to Google; the session is picked up when the browser comes back. */
+  signInWithGoogle(): Promise<void>;
   signOut(): Promise<void>;
-  demoAccounts(): DemoAccount[];
+  /** Error returned by the OAuth redirect (e.g. non-company account), consumed once. */
+  takeAuthError(): string | null;
 
-  createTeam(input: TeamInput): Promise<{ id: string; note?: string }>;
+  createTeam(input: TeamInput): Promise<{ id: string }>;
+  updateTeam(teamId: string, input: TeamInput): Promise<void>;
   setTeamLogo(teamId: string, image: Blob | null): Promise<void>;
+  setMember(userId: string, role: Role, teamId: string | null): Promise<void>;
 
   /** Upload a player photo and return its URL (stored on the player when the form is saved). */
   uploadPlayerPhoto(teamId: string, image: Blob): Promise<string>;
@@ -25,7 +28,8 @@ export interface Api {
   deletePlayer(id: string): Promise<void>;
 
   scheduleMatch(input: MatchInput): Promise<void>;
-  finishMatch(id: string, hs: number, as: number): Promise<void>;
+  saveResult(id: string, hs: number, as: number, scorers: Goal[]): Promise<void>;
+  deleteMatch(id: string): Promise<void>;
   voteWinner(matchId: string, key: WinnerKey): Promise<void>;
   voteScore(matchId: string, score: string): Promise<void>;
 
@@ -33,7 +37,4 @@ export interface Api {
   makeOffer(playerId: string, price: number, note: string): Promise<void>;
   respondOffer(offerId: string, accept: boolean): Promise<string>;
   cancelOffer(offerId: string): Promise<void>;
-
-  /** Local mode only: restore demo data. */
-  reset?(): Promise<void>;
 }

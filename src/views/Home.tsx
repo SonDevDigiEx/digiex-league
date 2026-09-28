@@ -24,6 +24,7 @@ export function Home() {
   const { done, ups } = sortedMatches(d.matches);
 
   // Head-to-head between the first two teams (F8 vs F9).
+  if (!T.length) return <div className="view"><div className="empty">Giải đấu chưa có đội nào. Ban tổ chức tạo đội trong mục Quản lý.</div></div>;
   const A0 = T[0], B0 = T[1] || T[0];
   let wa = 0, dw = 0, wb = 0, ga = 0, gb = 0;
   done.filter((m) => [m.home, m.away].includes(A0.id) && [m.home, m.away].includes(B0.id)).forEach((m) => {
@@ -88,6 +89,7 @@ export function Home() {
             <a className="more" href={hrefOf({ view: 'matches' })} onClick={(e) => { e.preventDefault(); go({ view: 'matches' }); }}>Xem tất cả →</a>
           </div>
           {done.slice().reverse().slice(0, 5).map((m, i) => <ResultRow key={m.id} m={m} i={i} H={tm(m.home)} A={tm(m.away)} />)}
+          {!done.length && <div className="none">Chưa có trận nào kết thúc.</div>}
         </section>
         <section className="panel">
           <SecTitle>Bảng xếp hạng</SecTitle>
@@ -116,6 +118,7 @@ export function Home() {
         </div>
         <div className="card-strip">
           {stars.map((p, i) => <PlayerCard key={p.id} p={p} team={tm(p.teamId)} delay={i * 0.05} onClick={() => openCard(p.id)} />)}
+          {!stars.length && <div className="none" style={{ flex: 1 }}>Chưa có cầu thủ nào. Chủ tịch / BHL thêm cầu thủ trong mục Quản lý.</div>}
         </div>
       </section>
     </div>
