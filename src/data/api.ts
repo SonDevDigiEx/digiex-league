@@ -50,6 +50,9 @@ export interface Api {
   /** Mark the given notifications (or all) as read. */
   markNotificationsRead(ids?: number[]): Promise<void>;
   /** Chairman / admin, after the match: present · late (−5 XP) · no_show (loses the match's XP, −10). */
+  /** Player: "Bận" for an upcoming match (excused, no absence penalty); cancels a join. */
+  setBusy(matchId: string, reason: string | null): Promise<void>;
+  clearBusy(matchId: string): Promise<void>;
   setAttendance(matchId: string, playerId: string, status: 'present' | 'late' | 'no_show'): Promise<string>;
   /** Chairman / BHL / admin: save the team's starting lineup for S5 or S7. */
   saveLineup(teamId: string, format: 's5' | 's7', formation: string, slots: Slot[]): Promise<void>;

@@ -179,7 +179,11 @@ export interface Snapshot {
   lineups: Lineup[];
   /** The signed-in user's notifications, newest first. */
   notifications: Notice[];
+  /** Players who answered "Bận" (can't make it) for an upcoming match. */
+  busy: Busy[];
 }
+
+export interface Busy { matchId: string; playerId: string; teamId: string | null; reason: string | null; date: string }
 
 export interface Notice {
   id: number;

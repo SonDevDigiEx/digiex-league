@@ -32,11 +32,27 @@ export function RsvpAction({ m }: { m: Match }) {
   if (!canVote) return <div className="note">Tài khoản đang chờ Ban tổ chức duyệt.</div>;
   if (!me) return <div className="note">Bạn chưa có hồ sơ cầu thủ — liên hệ Ban tổ chức để được duyệt làm cầu thủ.</div>;
   const leave = <button className="btn-cancel" disabled={busy} onClick={() => act('leave', () => api.leaveMatch(m.id), 'Đã hủy đăng ký')}>{label('leave', 'Hủy tham gia')}</button>;
+  const isBusy = d.busy.some((b) => b.matchId === m.id && b.playerId === me.id);
+  const busyBtn = <button className="btn-busy" disabled={busy} onClick={() => act('busy', () => api.setBusy(m.id, null), 'Đã báo bận — không bị trừ XP vắng trận')}>{label('busy', '😴 Bận')}</button>;
+  if (me.teamId && me.teamId !== m.home && me.teamId !== m.away) return <div className="note">Đội của bạn ({tm(me.teamId).short}) không thi đấu trận này.</div>;
+  if (isBusy) {
+    return (
+      <div className="rsvp-me busy">
+        <span>😴 Bạn đã báo <b>bận</b> trận này — không bị trừ XP.</span>
+        {me.teamId
+          ? <button className="btn-lime" disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã điểm danh ✅ +20 XP sẽ được cộng khi trận kết thúc')}>{label('join', 'Đổi ý: Tham gia')}</button>
+          : [H, A].map((t) => <button key={t.id} className="btn-lime" style={{ background: t.color, color: '#fff' }} disabled={busy} onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã điểm danh đá cho ${t.short}`)}>{label('join:' + t.id, `Tham gia cho ${t.short}`)}</button>)}
+        <button className="btn-cancel" disabled={busy} onClick={() => act('unbusy', () => api.clearBusy(m.id), 'Đã bỏ báo bận')}>{label('unbusy', 'Bỏ báo bận')}</button>
+      </div>
+    );
+  }
   if (me.teamId) {
-    if (me.teamId !== m.home && me.teamId !== m.away) return <div className="note">Đội của bạn ({tm(me.teamId).short}) không thi đấu trận này.</div>;
     return mine
-      ? <div className="rsvp-me"><span>✓ Bạn đã đăng ký đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></span>{leave}</div>
-      : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã điểm danh ✅ +20 XP sẽ được cộng khi trận kết thúc')}>{label('join', 'Tham gia trận này')}</button>;
+      ? <div className="rsvp-me"><span>✓ Bạn đã đăng ký đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></span>{leave}{busyBtn}</div>
+      : <div className="rsvp-me">
+          <button className="btn-lime lg" disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã điểm danh ✅ +20 XP sẽ được cộng khi trận kết thúc')}>{label('join', 'Tham gia trận này')}</button>
+          {busyBtn}
+        </div>;
   }
   return (
     <div className="rsvp-me">
@@ -46,6 +62,7 @@ export function RsvpAction({ m }: { m: Match }) {
           onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã điểm danh đá cho ${t.short} ✅ +20 XP sẽ được cộng khi trận kết thúc`)}>{label('join:' + t.id, `${mine ? 'Chuyển sang' : 'Tham gia cho'} ${t.short}`)}</button>
       ))}
       {mine && leave}
+      {busyBtn}
     </div>
   );
 }
@@ -76,6 +93,10 @@ export function Rsvp({ m }: { m: Match }) {
         <div className="bench-k">CẦU THỦ TỰ DO · {free.length}</div>
         {free.map(line)}
         {!free.length && <div className="note">—</div>}
+        {(() => {
+          const busy = d.busy.filter((b) => b.matchId === m.id && b.teamId === t.id).map((b) => byId.get(b.playerId)).filter(Boolean) as Player[];
+          return busy.length ? <><div className="bench-k">😴 BÁO BẬN · {busy.length}</div>{busy.map((p) => <button key={p.id} className="li sub" onClick={() => openCard(p.id)}><span>{p.pos}</span><span>{p.name}{p.id === me?.id ? ' (bạn)' : ''}</span><span>{p.ovr}</span></button>)}</> : null;
+        })()}
       </div>
     );
   };

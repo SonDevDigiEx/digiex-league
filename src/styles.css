@@ -1212,3 +1212,14 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .rb-chip.me { border-color: var(--lime); background: rgba(198, 255, 61, .12) }
 .rb-chip.free { border-style: dashed }
 .rb-act .rsvp-me { flex-wrap: wrap }
+.btn-busy { border: 1px solid rgba(255, 255, 255, .18); cursor: pointer; background: rgba(255, 255, 255, .05); color: var(--soft2); font: 600 13px/1 var(--vn); padding: 10px 14px; border-radius: 8px }
+.btn-busy:hover { border-color: rgba(245, 197, 66, .5); color: #fff }
+.btn-busy:disabled { opacity: .6 }
+.rsvp-me { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.rsvp-me.busy span { color: #e8cf86 }
+.rb-total span { font: 600 13px/1 var(--vn); color: var(--muted) }
+.rb-sub { display: flex; flex-direction: column; gap: 5px; padding-top: 6px; border-top: 1px dashed rgba(255, 255, 255, .08) }
+.rb-lbl { font: 700 10px/1 var(--vn); letter-spacing: .12em; color: var(--muted) }
+.rb-chip.busy { opacity: .75; border-color: rgba(245, 197, 66, .35) }
+.rb-chip.silent { opacity: .5; background: transparent }
+.rb-chip.silent.me { opacity: 1; border-color: var(--gold); box-shadow: 0 0 10px rgba(245, 197, 66, .35) }

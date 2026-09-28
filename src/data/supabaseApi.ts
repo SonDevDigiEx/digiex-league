@@ -91,7 +91,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       await Promise.all(['roll_series', 'daily_value_refresh'].map((fn) =>
         sb.rpc(fn).then(({ error }) => { if (error) console.warn('[DigiEx League]', fn, error.message); })));
       const since = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
-      const [teams, players, matches, participants, series, history, tours, tteams, awards, lineups] = await Promise.all([
+      const [teams, players, matches, participants, series, history, tours, tteams, awards, lineups, busy] = await Promise.all([
         sb.from('teams').select('*').order('created_at').then(check),
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
@@ -102,11 +102,13 @@ export function createSupabaseApi(url: string, key: string): Api {
         sb.from('tournament_teams').select('*').order('seed').then(check),
         sb.from('tournament_awards').select('*').order('created_at').then(check),
         sb.from('team_lineups').select('*').then(check),
+        sb.from('match_busy').select('*').then(check),
       ]);
       const valueHistory: Snapshot['valueHistory'] = {};
       (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
       const snap: Snapshot = {
         teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [], applications: [], notifications: [],
+        busy: (busy as Row[]).map((r) => ({ matchId: r.match_id, playerId: r.player_id, teamId: r.team_id, reason: r.reason, date: r.created_at })),
         lineups: (lineups as Row[]).map((r) => ({ teamId: r.team_id, format: r.format, formation: r.formation, slots: (r.slots || []).map((s: Row) => ({ pid: s.pid ?? null, x: Number(s.x), y: Number(s.y) })) })),
         participants: participants.map(toParticipation),
         series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
@@ -288,6 +290,8 @@ export function createSupabaseApi(url: string, key: string): Api {
       const rows = check(await sb.from('player_xp').select('*').eq('player_id', playerId).order('created_at', { ascending: false }).limit(30)) as Row[];
       return rows.map((r) => ({ id: r.id, matchId: r.match_id, kind: r.kind, amount: r.amount, dist: r.dist, note: r.note, date: r.created_at }));
     },
+    async setBusy(matchId, reason) { check(await sb.rpc('set_busy', { p_match: matchId, p_reason: reason })); },
+    async clearBusy(matchId) { check(await sb.rpc('clear_busy', { p_match: matchId })); },
     async setAttendance(matchId, playerId, status) { return check(await sb.rpc('set_attendance', { p_match: matchId, p_player: playerId, p_status: status })) as string; },
     async markNotificationsRead(ids) { check(await sb.rpc('mark_notifications_read', { p_ids: ids ?? null })); },
     async hotBonus(playerId) { return check(await sb.rpc('hot_bonus', { p_player: playerId })) as string; },
