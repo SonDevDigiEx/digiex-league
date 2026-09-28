@@ -52,7 +52,11 @@ export interface Match {
   away: string;
   hs: number;
   as: number;
-  status: 'up' | 'done';
+  status: 'up' | 'done' | 'cancelled';
+  /** Set when status is 'cancelled'. */
+  cancelReason: string | null;
+  /** Weekly fixed fixture this match belongs to. */
+  seriesId: string | null;
   venue: string;
   scorers: Goal[];
   /** Aggregated winner votes */
@@ -142,6 +146,16 @@ export interface Snapshot {
   /** Everyone with an account (signed-in viewers only). */
   members: Profile[];
   participants: Participation[];
+  series: Series[];
+}
+
+/** A weekly fixed fixture; the next match is created automatically when the latest one is over. */
+export interface Series {
+  id: string;
+  home: string;
+  away: string;
+  venue: string;
+  active: boolean;
 }
 
 export interface PlayerInput {
@@ -171,4 +185,6 @@ export interface MatchInput {
   away: string;
   date: string;
   venue: string;
+  /** Repeat every week. */
+  weekly?: boolean;
 }

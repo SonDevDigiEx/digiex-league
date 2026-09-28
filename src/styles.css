@@ -540,3 +540,10 @@ button:disabled { cursor: default }
 .bell { position: relative; flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .07); color: var(--soft); cursor: pointer }
 .bell:hover { color: #fff }
 .bell .nav-badge { position: absolute; top: -5px; right: -6px }
+
+/* cancelled matches */
+.tl-item.off { opacity: .8; border-style: dashed }
+.tl-off { color: #ff6b81 !important; font-size: 24px !important }
+.tl-why { color: #ff6b81 !important; max-width: 180px; overflow: hidden; text-overflow: ellipsis }
+.cancel-why { padding: 8px 14px; border-radius: 10px; background: rgba(229, 72, 77, .12); border: 1px solid rgba(229, 72, 77, .35); font: 500 13px/1.4 var(--vn); color: #ffb3bf }
+.cancel-why b { color: #fff }

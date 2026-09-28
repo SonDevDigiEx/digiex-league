@@ -16,6 +16,7 @@ const toPlayer = (r: Row): Player => ({
 const toMatch = (r: Row): Match => ({
   id: r.id, date: r.kickoff, home: r.home_team, away: r.away_team, hs: r.home_score, as: r.away_score, status: r.status,
   venue: r.venue, scorers: (r.scorers || []) as Goal[], votes: { home: 0, draw: 0, away: 0 }, sv: {},
+  cancelReason: r.cancel_reason ?? null, seriesId: r.series_id ?? null,
 });
 const toTransfer = (r: Row): Transfer => ({ pid: r.player_id, name: r.player_name, from: r.from_team, to: r.to_team, fee: Number(r.fee), date: r.created_on });
 const toOffer = (r: Row): Offer => ({
@@ -83,15 +84,19 @@ export function createSupabaseApi(url: string, key: string): Api {
   return {
     async load(): Promise<Snapshot> {
       const me = await uid();
-      const [teams, players, matches, participants] = await Promise.all([
+      // Create next week's match for fixed fixtures whose latest match is over (idempotent on the server).
+      await sb.rpc('roll_series').then(({ error }) => { if (error) console.warn('[DigiEx League] roll_series', error.message); });
+      const [teams, players, matches, participants, series] = await Promise.all([
         sb.from('teams').select('*').order('created_at').then(check),
         sb.from('players').select('*').then(check),
         sb.from('matches').select('*').then(check),
         sb.from('match_players').select('*').order('joined_at').then(check),
+        sb.from('match_series').select('*').then(check),
       ]);
       const snap: Snapshot = {
         teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [],
         participants: participants.map(toParticipation),
+        series: (series as Row[]).map((r) => ({ id: r.id, home: r.home_team, away: r.away_team, venue: r.venue, active: r.active })),
       };
       if (!me) return snap;
       const [transfers, offers, stats, votes, members] = await Promise.all([
@@ -197,7 +202,14 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
 
     async scheduleMatch(f) {
-      check(await sb.from('matches').insert({ kickoff: new Date(f.date).toISOString(), home_team: f.home, away_team: f.away, venue: f.venue }));
+      const kickoff = new Date(f.date).toISOString();
+      if (f.weekly) check(await sb.rpc('create_series', { p_home: f.home, p_away: f.away, p_first: kickoff, p_venue: f.venue }));
+      else check(await sb.from('matches').insert({ kickoff, home_team: f.home, away_team: f.away, venue: f.venue }));
+    },
+    async cancelMatch(id, reason) { check(await sb.rpc('cancel_match', { p_match: id, p_reason: reason })); },
+    async stopSeries(seriesId) {
+      const rows = check(await sb.from('match_series').update({ active: false }).eq('id', seriesId).select('id'));
+      if (!rows.length) throw new Error('Chỉ Ban tổ chức được dừng lịch cố định.');
     },
     async saveResult(id, hs, as, scorers) { check(await sb.rpc('save_result', { p_match: id, p_hs: hs, p_as: as, p_scorers: scorers })); },
     async deleteMatch(id) {

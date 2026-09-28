@@ -39,6 +39,10 @@ export interface Api {
   scheduleMatch(input: MatchInput): Promise<void>;
   saveResult(id: string, hs: number, as: number, scorers: Goal[]): Promise<void>;
   deleteMatch(id: string): Promise<void>;
+  /** Cancel an upcoming match (admin or either chairman). */
+  cancelMatch(id: string, reason: string): Promise<void>;
+  /** Stop a weekly fixture from creating further matches (admin). */
+  stopSeries(seriesId: string): Promise<void>;
   /** Register the signed-in player for a match; teamId is only used by free agents. */
   joinMatch(matchId: string, teamId: string | null): Promise<void>;
   leaveMatch(matchId: string): Promise<void>;

@@ -92,7 +92,13 @@ export function record(done: Match[], tid: string): Record_ {
 
 export function sortedMatches(ms: Match[]) {
   const all = ms.slice().sort((a, b) => a.date.localeCompare(b.date));
-  return { all, done: all.filter((m) => m.status === 'done'), ups: all.filter((m) => m.status !== 'done') };
+  return {
+    all,
+    done: all.filter((m) => m.status === 'done'),
+    ups: all.filter((m) => m.status === 'up'),
+    /** Finished and cancelled, oldest first. */
+    history: all.filter((m) => m.status !== 'up'),
+  };
 }
 
 /** Auto-pick a lineup: best players per line, filling gaps with anyone left (GK only in goal). */

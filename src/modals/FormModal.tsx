@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Crest, PlayerCard } from '../components/bits';
 import { Spin, useAction } from '../data/useAction';
 import { api, useAccess, useLeague, type Modal } from '../data/store';
-import { dmy, DEFAULT_VENUE, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
+import { dmy, DEFAULT_VENUE, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Pos, Role } from '../lib/types';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
@@ -449,18 +449,45 @@ function OfferForm({ playerId }: { playerId: string }) {
   );
 }
 
+const CANCEL_REASONS = ['Thiếu người', 'Trời mưa', 'Sân không sử dụng được', 'Khác'];
+
+/** Cancel an upcoming match with a reason (admin or either chairman). */
+function CancelMatchForm({ matchId }: { matchId: string }) {
+  const { snap } = useLeague();
+  const { tm } = useAccess();
+  const m = snap!.matches.find((x) => x.id === matchId)!;
+  const [why, setWhy] = useState(CANCEL_REASONS[0]);
+  const [note, setNote] = useState('');
+  const { err, setErr, busy, submit } = useSubmit();
+  const series = m.seriesId ? snap!.series.find((s) => s.id === m.seriesId) : undefined;
+  return (
+    <Shell title="Hủy trận đấu" cta="Xác nhận hủy trận" err={err} busy={busy} onSubmit={() => {
+      const reason = [why === 'Khác' ? '' : why, note.trim()].filter(Boolean).join(' · ');
+      if (!reason) return setErr('Nhập lý do hủy trận.');
+      submit(() => api.cancelMatch(m.id, reason), `Đã hủy trận ${tm(m.home).short} vs ${tm(m.away).short}`);
+    }}>
+      <div className="lead" style={{ fontSize: 13 }}>{tm(m.home).name} vs {tm(m.away).name} · {fDate(m.date)} · {fTime(m.date)}</div>
+      <div className="fld g8">Lý do<div className="opts">{CANCEL_REASONS.map((r) => <button type="button" key={r} className={'opt vn' + (why === r ? ' on' : '')} onClick={() => setWhy(r)}>{r}</button>)}</div></div>
+      <label className="fld">{why === 'Khác' ? 'Lý do cụ thể' : 'Ghi chú thêm (không bắt buộc)'}<input className="inp" maxLength={150} value={note} onChange={(e) => setNote(e.target.value)} placeholder={why === 'Trời mưa' ? 'VD: mưa to, sân ngập' : ''} /></label>
+      <div className="fm-note">Mọi người sẽ thấy trận ở trạng thái <span>ĐÃ HỦY</span> kèm lý do; đăng ký và vote của trận bị đóng.{series?.active ? ' Trận tuần sau của lịch cố định sẽ được tạo tự động.' : ''}</div>
+    </Shell>
+  );
+}
+
 function ScheduleForm() {
   const { snap } = useLeague();
   const T = snap!.teams;
   const t = new Date(Date.now() + 14 * 864e5);
   const [f, setF] = useState({ home: T[0]?.id || '', away: (T[1] || T[0])?.id || '', date: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T19:30`, venue: DEFAULT_VENUE });
+  const [weekly, setWeekly] = useState(false);
+  const when = f.date ? new Date(f.date) : null;
   const { err, setErr, busy, submit } = useSubmit();
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   return (
     <Shell title="Lên lịch thi đấu" cta="Tạo trận đấu" err={err} busy={busy} onSubmit={() => {
       if (!f.home || !f.away || f.home === f.away) return setErr('Chọn hai đội khác nhau.');
       if (!f.date) return setErr('Chọn thời gian.');
-      submit(() => api.scheduleMatch({ ...f, venue: f.venue.trim() || DEFAULT_VENUE }), 'Đã lên lịch trận đấu');
+      submit(() => api.scheduleMatch({ ...f, venue: f.venue.trim() || DEFAULT_VENUE, weekly }), weekly ? 'Đã tạo lịch cố định hằng tuần' : 'Đã lên lịch trận đấu');
     }}>
       <div className="g2">
         <label className="fld">Đội nhà<select className="inp" value={f.home} onChange={set('home')}>{T.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
@@ -468,6 +495,11 @@ function ScheduleForm() {
       </div>
       <label className="fld">Thời gian<input className="inp" type="datetime-local" value={f.date} onChange={set('date')} /></label>
       <label className="fld">Sân thi đấu<input className="inp" value={f.venue} onChange={set('venue')} /></label>
+      <label className="fld" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+        <input type="checkbox" checked={weekly} onChange={(e) => setWeekly(e.target.checked)} style={{ accentColor: '#c6ff3d', width: 18, height: 18 }} />
+        <span style={{ fontSize: 13, color: '#fff' }}>Lặp lại hằng tuần{weekly && when ? ` · ${['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][when.getDay()]} ${pad(when.getHours())}:${pad(when.getMinutes())}` : ''}</span>
+      </label>
+      {weekly && <div className="fm-note">Khi trận gần nhất kết thúc (đã nhập kết quả, bị hủy, hoặc quá giờ đá 2 tiếng), hệ thống tự tạo trận tuần sau cùng thứ, giờ và sân. Dừng lặp lại trong trang trận đấu.</div>}
     </Shell>
   );
 }
@@ -487,5 +519,6 @@ export function FormModal() {
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;
     case 'schedule': return <ScheduleForm />;
+    case 'cancelMatch': return snap?.matches.some((x) => x.id === m.matchId) ? <CancelMatchForm matchId={m.matchId} /> : null;
   }
 }

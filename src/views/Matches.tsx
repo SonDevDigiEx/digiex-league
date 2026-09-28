@@ -23,7 +23,7 @@ export function Countdown({ iso, small }: { iso: string; small?: boolean }) {
 export function Matches() {
   const { snap, go, openModal } = useLeague();
   const { tm, isAdmin } = useAccess();
-  const { done, ups } = sortedMatches(snap!.matches);
+  const { ups, history } = sortedMatches(snap!.matches);
   const T = snap!.teams;
   const link = (m: Match) => ({ href: hrefOf({ view: 'match', matchId: m.id }), onClick: (e: React.MouseEvent) => { e.preventDefault(); go({ view: 'match', matchId: m.id }); } });
 
@@ -49,15 +49,16 @@ export function Matches() {
       <div className="kicker" style={{ marginTop: 8 }}>LỊCH SỬ THI ĐẤU</div>
       <div className="tl">
         <div className="tl-line" />
-        {!done.length && <div className="none">Chưa có trận nào kết thúc.</div>}
-        {done.slice().reverse().map((m, i) => {
+        {!history.length && <div className="none">Chưa có trận nào kết thúc.</div>}
+        {history.slice().reverse().map((m, i) => {
           const H = tm(m.home), A = tm(m.away);
+          const off = m.status === 'cancelled';
           return (
-            <a key={m.id} className="tl-item" {...link(m)} style={{ animationDelay: (i * 0.06).toFixed(2) + 's' }}>
+            <a key={m.id} className={'tl-item' + (off ? ' off' : '')} {...link(m)} style={{ animationDelay: (i * 0.06).toFixed(2) + 's' }}>
               <div className="tl-dot" />
-              <div className="tl-side h" style={{ opacity: m.hs < m.as ? 0.45 : 1 }}><span>{H.name}</span><Crest team={H} text={false} /></div>
-              <div className="tl-mid"><b>{m.hs} - {m.as}</b><span>{fDate(m.date)}</span></div>
-              <div className="tl-side" style={{ opacity: m.as < m.hs ? 0.45 : 1 }}><Crest team={A} text={false} /><span>{A.name}</span></div>
+              <div className="tl-side h" style={{ opacity: !off && m.hs < m.as ? 0.45 : 1 }}><span>{H.name}</span><Crest team={H} text={false} /></div>
+              <div className="tl-mid">{off ? <b className="tl-off">HỦY</b> : <b>{m.hs} - {m.as}</b>}<span>{fDate(m.date)}</span>{off && m.cancelReason && <span className="tl-why">{m.cancelReason}</span>}</div>
+              <div className="tl-side" style={{ opacity: !off && m.as < m.hs ? 0.45 : 1 }}><Crest team={A} text={false} /><span>{A.name}</span></div>
             </a>
           );
         })}
@@ -67,6 +68,8 @@ export function Matches() {
 }
 
 type Tab = 'lineup' | 'stats' | 'vote' | 'record';
+const WDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+
 
 export function MatchDetail({ matchId }: { matchId: string }) {
   const { snap, go, openCard, openModal, user, run } = useLeague();
@@ -79,6 +82,9 @@ export function MatchDetail({ matchId }: { matchId: string }) {
 
   const H = tm(m.home), A = tm(m.away);
   const isDone = m.status === 'done';
+  const isOff = m.status === 'cancelled';
+  const series = m.seriesId ? d.series.find((s) => s.id === m.seriesId) : undefined;
+  const canCancel = m.status === 'up' && !!user && (isAdmin || (user.role === 'chair' && (user.team === m.home || user.team === m.away)));
   const { done } = sortedMatches(d.matches);
   // Once players have registered, the lineup is built from the registered list (incl. free agents); otherwise the whole squad.
   const reg = participantsOf(d.participants, m.id);
@@ -112,7 +118,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   // Votes
   const my = d.my[m.id] || {};
   const v = m.votes, vt = v.home + v.draw + v.away || 1;
-  const voted = !!my.winner || isDone || !canVote;
+  const voted = !!my.winner || isDone || isOff || !canVote;
   const actual: WinnerKey | null = isDone ? (m.hs > m.as ? 'home' : m.hs < m.as ? 'away' : 'draw') : null;
   const ak = `${m.hs}-${m.as}`;
   const sv = Object.entries(m.sv || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -133,18 +139,26 @@ export function MatchDetail({ matchId }: { matchId: string }) {
         <div className="hero-glow" style={{ background: `radial-gradient(50% 120% at 0% 50%,${hexA(H.color, 0.3)},transparent 70%),radial-gradient(50% 120% at 100% 50%,${hexA(A.color, 0.3)},transparent 70%)` }} />
         <div className="mhero-in">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-            <span className="mstatus" style={isDone ? { background: 'rgba(255,255,255,.1)', color: '#c9d0de' } : { background: '#c6ff3d', color: '#06080d' }}>{isDone ? 'KẾT THÚC' : 'SẮP DIỄN RA'}</span>
+            <span className="mstatus" style={isOff ? { background: 'rgba(229,72,77,.18)', color: '#ff6b81' } : isDone ? { background: 'rgba(255,255,255,.1)', color: '#c9d0de' } : { background: '#c6ff3d', color: '#06080d' }}>{isOff ? 'ĐÃ HỦY' : isDone ? 'KẾT THÚC' : 'SẮP DIỄN RA'}</span>
             <span className="minfo">{fDate(m.date)} · {fTime(m.date)} · {m.venue}</span>
+            {series && <span className="mstatus" style={{ background: 'rgba(255,255,255,.06)', color: series.active ? '#c6ff3d' : '#8b93a7' }}>{series.active ? `LỊCH CỐ ĐỊNH · ${WDAY[new Date(m.date).getDay()].toUpperCase()} HẰNG TUẦN` : 'LỊCH CỐ ĐỊNH ĐÃ DỪNG'}</span>}
           </div>
           <div className="vs3" style={{ width: '100%', gap: 'clamp(8px,3vw,30px)' }}>
             <div className="mteam"><Crest team={H} /><div>{H.name}</div></div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <div className="mscore">{isDone ? `${m.hs} - ${m.as}` : 'VS'}</div>
-              {!isDone && <div className="cd-wide"><Countdown iso={m.date} small /></div>}
+              <div className="mscore" style={isOff ? { color: '#ff6b81', fontSize: 'clamp(36px,8vw,72px)' } : undefined}>{isDone ? `${m.hs} - ${m.as}` : isOff ? 'HỦY' : 'VS'}</div>
+              {m.status === 'up' && <div className="cd-wide"><Countdown iso={m.date} small /></div>}
             </div>
             <div className="mteam"><Crest team={A} style={{ animationDelay: '.1s' }} /><div>{A.name}</div></div>
           </div>
-          {!isDone && <div className="cd-narrow"><Countdown iso={m.date} small /></div>}
+          {m.status === 'up' && <div className="cd-narrow"><Countdown iso={m.date} small /></div>}
+          {isOff && <div className="cancel-why">Lý do hủy: <b>{m.cancelReason || '—'}</b></div>}
+          {(canCancel || (isAdmin && series?.active)) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {canCancel && <button className="btn-danger" onClick={() => openModal({ kind: 'cancelMatch', matchId: m.id })}>Hủy trận</button>}
+              {isAdmin && series?.active && <button className="btn-cancel" onClick={() => run(() => api.stopSeries(series.id), 'Đã dừng lịch cố định — sẽ không tạo trận tuần sau nữa')}>Dừng lặp lại hằng tuần</button>}
+            </div>
+          )}
           {isDone && (m.scorers || []).length > 0 && <div className="goals"><div>{goals('home')}</div><div>{goals('away')}</div></div>}
         </div>
       </section>
@@ -155,7 +169,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
         ))}
       </div>
 
-      {tab === 'lineup' && !isDone && <Rsvp m={m} />}
+      {tab === 'lineup' && m.status === 'up' && <Rsvp m={m} />}
       {tab === 'record' && <MatchStats m={m} />}
       {tab === 'lineup' && (
         <div className="lineup">
@@ -237,13 +251,14 @@ export function MatchDetail({ matchId }: { matchId: string }) {
             })}
             <div className="note" style={{ color: '#aab2c5' }}>
               {actual ? `Kết quả thực tế: ${actual === 'draw' ? 'Hòa' : tm(actual === 'home' ? m.home : m.away).short + ' thắng'} · ${acc}% người vote đoán đúng.`
+                : isOff ? 'Trận đã bị hủy — vote đã đóng.'
                 : !canVote ? 'Tài khoản đang chờ Ban tổ chức duyệt — bạn xem được kết quả vote nhưng chưa thể vote.'
                 : my.winner ? 'Cảm ơn bạn đã vote! Kết quả sẽ chốt khi trận đấu kết thúc.' : 'Chọn đội bạn tin sẽ thắng. Mỗi người 1 lượt vote.'}
             </div>
           </div>
           <div className="panel g16">
             <div className="box-title">Dự đoán tỉ số</div>
-            {!isDone && !my.score && canVote && (
+            {m.status === 'up' && !my.score && canVote && (
               <>
                 <div className="pred">
                   <div className="pred-side"><span style={{ color: H.color }}>{H.short}</span><div className="stepper"><button onClick={step(setVs, 'h', -1, 15)}>−</button><b>{vs.h}</b><button onClick={step(setVs, 'h', 1, 15)}>+</button></div></div>
@@ -264,7 +279,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
             })}
             {!sv.length && <div className="note">Chưa có dự đoán nào.</div>}
           </div>
-          {isAdmin && <ResultPanel key={m.id + m.status} m={m} />}
+          {isAdmin && !isOff && <ResultPanel key={m.id + m.status} m={m} />}
         </div>
       )}
     </div>
