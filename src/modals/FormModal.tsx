@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { api, AUTH_DOMAIN, useAccess, useLeague, type Modal } from '../data/store';
-import { DEFAULT_VENUE, genStats, ini, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
-import type { Foot, Pos } from '../lib/types';
+import { DEFAULT_VENUE, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
+import type { Foot, Pos, Role } from '../lib/types';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
   const { closeModal } = useLeague();
@@ -103,16 +103,27 @@ function TeamForm({ teamId }: { teamId?: string }) {
   );
 }
 
-function PlayerForm({ playerId, teamId }: { playerId?: string; teamId: string }) {
+/**
+ * Add / edit a player, or — with approveUserId — approve a pending account and create its player profile.
+ * teamId null = free agent (Tự do).
+ */
+function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; teamId: string | null; approveUserId?: string }) {
   const { snap, flash } = useLeague();
   const { tm } = useAccess();
   const p = playerId ? snap!.players.find((x) => x.id === playerId) : undefined;
+  const acct = approveUserId ? snap!.members.find((m) => m.id === approveUserId) : undefined;
   const [f, setF] = useState(() => p
     ? { name: p.name, pos: p.pos, num: String(p.num), age: String(p.age), foot: p.foot, ovr: p.ovr, stats: p.stats.slice(), photo: p.photo || '' }
-    : { name: '', pos: 'CM' as Pos, num: '', age: '25', foot: 'Phải' as Foot, ovr: 72, stats: genStats('CM', 72, Date.now() % 997), photo: '' });
+    : { name: acct?.name || '', pos: 'CM' as Pos, num: '', age: '25', foot: 'Phải' as Foot, ovr: 65, stats: genStats('CM', 65, Date.now() % 997), photo: acct?.avatar || '' });
+  const [joinTeam, setJoinTeam] = useState<string>(teamId || '');
+  // Approval: staff role (independent of being a player) and whether to create a player profile.
+  const hasPlayer = !!acct && snap!.players.some((x) => x.userId === acct.id);
+  const [role, setRole] = useState<Role>(acct && acct.role !== 'pending' ? acct.role : 'member');
+  const [roleTeam, setRoleTeam] = useState<string>(acct?.team || snap!.teams[0]?.id || '');
+  const [makePlayer, setMakePlayer] = useState(!hasPlayer);
   const [uploading, setUploading] = useState(false);
   const { err, setErr, busy, submit } = useSubmit();
-  const team = tm(p?.teamId || teamId);
+  const team = tm(p ? p.teamId : approveUserId ? joinTeam || null : teamId);
   const L = f.pos === 'GK' ? LBL_GK : LBL;
   const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -124,17 +135,58 @@ function PlayerForm({ playerId, teamId }: { playerId?: string; teamId: string })
     finally { setUploading(false); }
   };
   return (
-    <Shell title={p ? 'Chỉnh sửa cầu thủ' : 'Thêm cầu thủ'} cta={p ? 'Lưu thay đổi' : 'Đăng ký'} err={err} busy={busy || uploading} onSubmit={() => {
+    <Shell title={acct ? (acct.role === 'pending' ? 'Duyệt thành viên' : 'Tạo hồ sơ cầu thủ') : p ? 'Chỉnh sửa cầu thủ' : 'Thêm cầu thủ'} cta={acct ? (acct.role === 'pending' ? 'Duyệt' : 'Lưu') + (makePlayer ? ' & tạo cầu thủ' : '') : p ? 'Lưu thay đổi' : 'Đăng ký'} err={err} busy={busy || uploading} onSubmit={() => {
       if (!f.name.trim()) return setErr('Nhập tên cầu thủ.');
-      submit(() => api.savePlayer({
-        id: p?.id, teamId: team.id, name: f.name, pos: f.pos, ovr: f.ovr, foot: f.foot, stats: f.stats, photo: f.photo || null,
+      const input = {
+        teamId: team.id || null, name: f.name, pos: f.pos, ovr: f.ovr, foot: f.foot, stats: f.stats, photo: f.photo || null,
         num: +f.num || p?.num || 99, age: +f.age || p?.age || 25,
-      }), (p ? 'Đã cập nhật ' : 'Đã đăng ký ') + f.name.trim());
+      };
+      if (acct) {
+        const staffTeam = role === 'chair' || role === 'coach' ? roleTeam || null : null;
+        if ((role === 'chair' || role === 'coach') && !staffTeam) return setErr('Chọn đội cho Chủ tịch / BHL.');
+        const what = [role !== 'member' ? ROLE_LABEL[role] + (staffTeam ? ' ' + tm(staffTeam).short : '') : '', makePlayer ? 'cầu thủ ' + (team.id ? team.short : 'tự do') : ''].filter(Boolean).join(' · ') || 'Thành viên';
+        return submit(() => api.approveMember(acct.id, role, staffTeam, makePlayer ? input : null), `Đã duyệt ${f.name.trim()} · ${what}`);
+      }
+      submit(() => api.savePlayer({ id: p?.id, ...input }), (p ? 'Đã cập nhật ' : 'Đã đăng ký ') + f.name.trim());
     }}>
+      {acct && <div className="info">Tài khoản <b>{acct.email}</b>. Một người có thể vừa giữ vai trò quản lý (Chủ tịch / BHL / Ban tổ chức) vừa là cầu thủ.</div>}
+      {acct && (
+        <div className="g2">
+          <label className="fld">Vai trò quản lý
+            <select className="inp" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+              {(['member', 'coach', 'chair', 'admin'] as Role[]).map((r) => <option key={r} value={r}>{r === 'member' ? 'Không (Thành viên)' : ROLE_LABEL[r]}</option>)}
+            </select>
+          </label>
+          <label className="fld">Đội quản lý
+            <select className="inp" value={role === 'chair' || role === 'coach' ? roleTeam : ''} disabled={!(role === 'chair' || role === 'coach')} onChange={(e) => setRoleTeam(e.target.value)}>
+              {!(role === 'chair' || role === 'coach') && <option value="">—</option>}
+              {snap!.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+      {acct && role === 'chair' && <div className="fm-note">Mỗi đội có một Chủ tịch — Chủ tịch hiện tại của đội (nếu có) sẽ về Thành viên. Chủ tịch có toàn bộ quyền của BHL.</div>}
+      {acct && (
+        hasPlayer
+          ? <div className="fm-note">Tài khoản này đã có hồ sơ cầu thủ.</div>
+          : <label className="fld" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={makePlayer} onChange={(e) => setMakePlayer(e.target.checked)} style={{ accentColor: '#c6ff3d', width: 18, height: 18 }} />
+              <span style={{ fontSize: 13, color: '#fff' }}>Tạo hồ sơ cầu thủ</span>
+            </label>
+      )}
+      {acct && makePlayer && (
+        <label className="fld">Đội thi đấu
+          <select className="inp" value={joinTeam} onChange={(e) => setJoinTeam(e.target.value)}>
+            <option value="">Tự do (các đội tự tuyển trên thị trường)</option>
+            {snap!.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </label>
+      )}
+      {(!acct || makePlayer) && (<>
       <div className="ph-row">
         <div className="ph" style={{ background: f.photo ? `center/cover url("${f.photo}")` : 'rgba(255,255,255,.05)' }}>{f.photo ? '' : f.name ? ini(f.name) : '+'}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="lead" style={{ font: "500 12px/1.4 'Be Vietnam Pro',sans-serif" }}>{(p ? 'Chỉnh sửa hồ sơ · ' : 'Đăng ký vào ') + team.name}</div>
+          <div className="lead" style={{ font: "500 12px/1.4 'Be Vietnam Pro',sans-serif" }}>{(p ? 'Chỉnh sửa hồ sơ · ' : acct ? 'Hồ sơ cầu thủ · ' : 'Đăng ký vào ') + team.name}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <label className="ph-btn">{uploading ? 'Đang tải…' : 'Tải ảnh cầu thủ'}<input type="file" accept="image/*" onChange={onPhoto} /></label>
             {f.photo && <button type="button" className="ph-btn grey" onClick={() => setF({ ...f, photo: '' })}>Gỡ ảnh</button>}
@@ -159,6 +211,7 @@ function PlayerForm({ playerId, teamId }: { playerId?: string; teamId: string })
         <label className="fld">Số áo<input className="inp" type="number" min={0} max={99} value={f.num} onChange={(e) => setF({ ...f, num: e.target.value })} /></label>
         <label className="fld">Tuổi<input className="inp" type="number" min={10} max={80} value={f.age} onChange={(e) => setF({ ...f, age: e.target.value })} /></label>
       </div>
+      </>)}
     </Shell>
   );
 }
@@ -258,6 +311,7 @@ export function FormModal() {
     case 'login': return <LoginForm reason={m.reason} />;
     case 'addTeam': return <TeamForm />;
     case 'editTeam': return <TeamForm key={m.teamId} teamId={m.teamId} />;
+    case 'approve': return snap?.members.some((x) => x.id === m.userId && !snap.players.some((p) => p.userId === x.id)) ? <PlayerForm key={m.userId} teamId={null} approveUserId={m.userId} /> : null;
     case 'player': return !m.playerId || snap?.players.some((p) => p.id === m.playerId) ? <PlayerForm key={m.playerId || 'new'} playerId={m.playerId} teamId={m.teamId} /> : null;
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;

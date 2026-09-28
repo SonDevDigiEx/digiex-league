@@ -11,7 +11,7 @@ const toTeam = (r: Row): Team => ({
 });
 const toPlayer = (r: Row): Player => ({
   id: r.id, teamId: r.team_id, name: r.name, pos: r.pos as Pos, ovr: r.ovr, num: r.num, age: r.age, foot: r.foot as Foot,
-  stats: r.stats, value: Number(r.value), photo: r.photo_url,
+  stats: r.stats, value: Number(r.value), photo: r.photo_url, userId: r.user_id ?? null,
 });
 const toMatch = (r: Row): Match => ({
   id: r.id, date: r.kickoff, home: r.home_team, away: r.away_team, hs: r.home_score, as: r.away_score, status: r.status,
@@ -160,8 +160,16 @@ export function createSupabaseApi(url: string, key: string, domain: string): Api
     },
     async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
     async rejectMember(userId) { check(await sb.rpc('reject_member', { p_user: userId })); },
+    async approveMember(userId, role, roleTeam, f) {
+      check(await sb.rpc('approve_member', {
+        p_user: userId, p_role: role, p_role_team: roleTeam, p_make_player: !!f,
+        p_name: f?.name.trim() ?? null, p_pos: f?.pos ?? null, p_ovr: f?.ovr ?? null, p_num: f?.num ?? null, p_age: f?.age ?? null,
+        p_foot: f?.foot ?? null, p_stats: f?.stats ?? null, p_photo: f?.photo ?? null, p_team: f?.teamId ?? null,
+      }));
+    },
 
-    uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId}/${rid()}.jpg`, image),
+    // Free agents' photos live under players/free/ (admin-only folder).
+    uploadPlayerPhoto: (teamId, image) => upload(`players/${teamId || 'free'}/${rid()}.jpg`, image),
     async savePlayer(f) {
       const row = { team_id: f.teamId, name: f.name.trim(), pos: f.pos, ovr: f.ovr, num: f.num, age: f.age, foot: f.foot, stats: f.stats, photo_url: f.photo };
       if (f.id) {
@@ -186,6 +194,8 @@ export function createSupabaseApi(url: string, key: string, domain: string): Api
     async voteWinner(matchId, key) { check(await sb.rpc('vote_winner', { p_match: matchId, p_winner: key })); },
     async voteScore(matchId, score) { check(await sb.rpc('vote_score', { p_match: matchId, p_score: score })); },
 
+    async signPlayer(pid, teamId) { check(await sb.rpc('sign_player', { p_player: pid, p_team: teamId })); },
+    async releasePlayer(pid) { check(await sb.rpc('release_player', { p_player: pid })); },
     async transferPlayer(pid, to, fee) { check(await sb.rpc('transfer_player', { p_player: pid, p_to: to, p_fee: fee })); },
     async makeOffer(pid, price, note) { check(await sb.rpc('make_offer', { p_player: pid, p_price: price, p_note: note })); },
     async respondOffer(id, accept) { return check(await sb.rpc('respond_offer', { p_offer: id, p_accept: accept })) as string; },

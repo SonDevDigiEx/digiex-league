@@ -21,7 +21,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
 2. Run `supabase/cleanup-demo.sql` once. This deletes the demo players, matches and accounts but keeps F8/F9.
-3. Run `supabase/migrations/20260928010000_approval.sql`, which adds approval of new accounts.
+3. Run `supabase/migrations/20260928010000_approval.sql`, then `supabase/migrations/20260928020000_players.sql`. These add account approval, player profiles linked to accounts, and free agents.
 
 ### Google sign-in (@digiex.group only)
 
@@ -40,17 +40,25 @@ The database refuses to create any account whose email isn't `@digiex.group` (se
 
 ### Roles
 
-New accounts start as `pending` (**Chờ duyệt**). They can sign in but see only what guests see until an admin approves them under **Quản lý → Thành viên**. Approving makes them `member`; rejecting deletes the account. Emails listed in `public.bootstrap_admins` (`son.pham@digiex.group`) skip approval and become admin on first sign-in. Admins assign roles on the same page. Each team has one chairman, and choosing a new one demotes the previous chairman. The chairman and BHL names on the team page follow these assignments.
+New accounts start as `pending` (**Chờ duyệt**): they can sign in and **view** everything members see, but can't vote and aren't players. An admin handles them under **Quản lý → Thành viên**:
+
+- **Duyệt** opens one form that sets a **staff role** (none / BHL / Chủ tịch / Ban tổ chức, plus a team for BHL or Chủ tịch) and, optionally, creates a **player profile** linked to the account, either on a team or as a **free agent (Tự do)**. Staff role and player profile are independent, so one person can be, for example, chairman of F8 and a player.
+- **Từ chối** deletes the account.
+
+Emails in `public.bootstrap_admins` (`son.pham@digiex.group`) skip approval and become admin.
+
+**Free agents** show in the market under the "Tự do" filter. A chairman clicks **Tuyển** to sign one to their team at no fee, and can **Giải phóng** (release) a player back to free agency. Both moves are logged in the transfer history. Offers apply only to players who already have a team.
 
 | Role | Can do |
 |---|---|
 | `admin` (Ban tổ chức) | manage members and roles, add or edit teams, schedule and delete matches, enter or correct results with scorers, transfer any player, see all offers |
-| `chair` (Chủ tịch) | manage own squad, logo, motto and quote; transfer own players; send offers for other teams' players; accept or reject offers for own players |
+| `chair` (Chủ tịch) | manage own squad, logo, motto and quote; sign free agents and release players; transfer own players; send offers for other teams' players; accept or reject offers for own players |
 | `coach` (BHL) | manage own squad, logo, motto and quote |
 | `member` | view cards, analysis and market; vote once per match |
-| `pending` / guest | home, teams, fixtures, lineups |
+| `pending` | view everything members see; no voting |
+| guest | home, teams, fixtures, lineups |
 
-Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER` functions `set_member`, `reject_member`, `update_team`, `save_result`, `make_offer`, `respond_offer`, `cancel_offer`, `transfer_player`, `vote_winner`, `vote_score` and `vote_stats`. The UI only hides actions a user can't take. Uploads go to the public `media` bucket under `logos/<team>/…` and `players/<team>/…`, and only that team's staff can write there.
+Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER` functions `set_member`, `approve_member`, `reject_member`, `sign_player`, `release_player`, `update_team`, `save_result`, `make_offer`, `respond_offer`, `cancel_offer`, `transfer_player`, `vote_winner`, `vote_score` and `vote_stats`. The UI only hides actions a user can't take. Uploads go to the public `media` bucket under `logos/<team>/…` and `players/<team>/…`, and only that team's staff can write there.
 
 ## Deploy (Vercel)
 

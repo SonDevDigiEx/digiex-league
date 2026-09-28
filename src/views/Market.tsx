@@ -4,6 +4,8 @@ import { api, useAccess, useLeague } from '../data/store';
 import { dmy, GROUP, money } from '../lib/league';
 import type { Group, OfferStatus } from '../lib/types';
 
+const FREE = 'free';
+
 const STS: Record<OfferStatus, [string, string, string]> = {
   pending: ['CHỜ DUYỆT', 'rgba(245,197,66,.15)', '#f5c542'],
   accepted: ['ĐÃ ĐỒNG Ý', 'rgba(31,166,92,.18)', '#4ade80'],
@@ -22,7 +24,7 @@ export function Market() {
   const d = snap!;
   const T = d.teams;
   const offers = d.offers;
-  const fl = d.players.filter((p) => (mTeam === 'all' || p.teamId === mTeam) && (mPos === 'all' || GROUP[p.pos] === mPos)).sort((a, b) => b.value - a.value);
+  const fl = d.players.filter((p) => (mTeam === 'all' || (mTeam === FREE ? p.teamId === null : p.teamId === mTeam)) && (mPos === 'all' || GROUP[p.pos] === mPos)).sort((a, b) => b.value - a.value);
   const inCount = myT ? offers.filter((o) => o.to === myT && o.status === 'pending').length : 0;
   const rqTab = isAdmin ? 'all' : rqTabSel;
   const rqList = (isAdmin ? offers : myT ? offers.filter((o) => (rqTab === 'in' ? o.to === myT : o.from === myT)) : [])
@@ -37,7 +39,7 @@ export function Market() {
         <div className="lead">Tổng giá trị thị trường <span style={{ color: '#f5c542', fontWeight: 700 }}>{money(d.players.reduce((a, p) => a + p.value, 0))}</span> · {d.players.length} cầu thủ · {d.transfers.length} thương vụ</div>
       </div>
       <div className="filters">
-        <div>{[chip('Tất cả đội', mTeam === 'all', () => setMTeam('all')), ...T.map((t) => chip(t.short, mTeam === t.id, () => setMTeam(t.id)))]}</div>
+        <div>{[chip('Tất cả đội', mTeam === 'all', () => setMTeam('all')), ...T.map((t) => chip(t.short, mTeam === t.id, () => setMTeam(t.id))), chip(`Tự do (${d.players.filter((p) => !p.teamId).length})`, mTeam === FREE, () => setMTeam(FREE))]}</div>
         <div>{([['all', 'Mọi vị trí'], ['GK', 'GK'], ['DEF', 'Hậu vệ'], ['MID', 'Tiền vệ'], ['FWD', 'Tiền đạo']] as ['all' | Group, string][]).map(([k, l]) => chip(l, mPos === k, () => setMPos(k)))}</div>
       </div>
       <div className="mk">
@@ -46,7 +48,8 @@ export function Market() {
           {fl.map((p, i) => {
             const team = tm(p.teamId);
             const canBuy = canTransfer(p.teamId);
-            const canOffer = !!myT && p.teamId !== myT;
+            const canOffer = !!myT && !!p.teamId && p.teamId !== myT;
+            const canSign = !!myT && !p.teamId;
             const sent = !!myT && offers.some((o) => o.pid === p.id && o.from === myT && o.status === 'pending');
             return (
               <div key={p.id} className={'mk-row' + (canBuy && canOffer ? ' b2' : '')} style={{ animationDelay: Math.min(i * 0.03, 0.6).toFixed(2) + 's' }}>
@@ -57,6 +60,7 @@ export function Market() {
                 </button>
                 <span className="mk-val">{money(p.value)}</span>
                 {canBuy && <button className="btn-ghost" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển</button>}
+                {canSign && <button className="btn-buy" onClick={() => run(() => api.signPlayer(p.id, myT!), `Đã tuyển ${p.name} về ${tm(myT).short}`)}>Tuyển</button>}
                 {canOffer && <button className={'btn-buy' + (sent ? ' sent' : '')} onClick={() => (sent ? setRqTab('out') : openModal({ kind: 'offer', playerId: p.id }))}>{sent ? 'Đã gửi' : 'Mua'}</button>}
               </div>
             );

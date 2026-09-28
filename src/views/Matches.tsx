@@ -69,7 +69,7 @@ type Tab = 'lineup' | 'stats' | 'vote';
 
 export function MatchDetail({ matchId }: { matchId: string }) {
   const { snap, go, openCard, openModal, user, run } = useLeague();
-  const { tm, isAdmin } = useAccess();
+  const { tm, isAdmin, canVote } = useAccess();
   const [tab, setTab] = useState<Tab>('lineup');
   const [vs, setVs] = useState({ h: 1, a: 1 });
   const d = snap!;
@@ -104,7 +104,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   // Votes
   const my = d.my[m.id] || {};
   const v = m.votes, vt = v.home + v.draw + v.away || 1;
-  const voted = !!my.winner || isDone;
+  const voted = !!my.winner || isDone || !canVote;
   const actual: WinnerKey | null = isDone ? (m.hs > m.as ? 'home' : m.hs < m.as ? 'away' : 'draw') : null;
   const ak = `${m.hs}-${m.as}`;
   const sv = Object.entries(m.sv || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -227,12 +227,13 @@ export function MatchDetail({ matchId }: { matchId: string }) {
             })}
             <div className="note" style={{ color: '#aab2c5' }}>
               {actual ? `Kết quả thực tế: ${actual === 'draw' ? 'Hòa' : tm(actual === 'home' ? m.home : m.away).short + ' thắng'} · ${acc}% người vote đoán đúng.`
+                : !canVote ? 'Tài khoản đang chờ Ban tổ chức duyệt — bạn xem được kết quả vote nhưng chưa thể vote.'
                 : my.winner ? 'Cảm ơn bạn đã vote! Kết quả sẽ chốt khi trận đấu kết thúc.' : 'Chọn đội bạn tin sẽ thắng. Mỗi người 1 lượt vote.'}
             </div>
           </div>
           <div className="panel g16">
             <div className="box-title">Dự đoán tỉ số</div>
-            {!isDone && !my.score && (
+            {!isDone && !my.score && canVote && (
               <>
                 <div className="pred">
                   <div className="pred-side"><span style={{ color: H.color }}>{H.short}</span><div className="stepper"><button onClick={step(setVs, 'h', -1, 15)}>−</button><b>{vs.h}</b><button onClick={step(setVs, 'h', 1, 15)}>+</button></div></div>

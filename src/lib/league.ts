@@ -8,6 +8,11 @@ export const LBL_GK = ['DIV', 'HAN', 'KIC', 'REF', 'SPD', 'POS'];
 export const POSS: Pos[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
 export const SWATCHES: [string, string][] = [['#ff3b5c', '#7a0f24'], ['#2f8cff', '#0b2a66'], ['#a855f7', '#3b0f6b'], ['#14d3b8', '#05524a'], ['#ff8a1f', '#6b3100'], ['#f5c542', '#7a5a06']];
 export const ROLE_LABEL: Record<Role, string> = { admin: 'Ban tổ chức', chair: 'Chủ tịch', coach: 'Ban huấn luyện', member: 'Thành viên', pending: 'Chờ duyệt' };
+/** Pseudo-team shown for players without a club. */
+export const FREE_AGENT: Team = {
+  id: '', name: 'Tự do', short: 'TD', color: '#6b7280', color2: '#2b303b', motto: '', founded: 0,
+  chair: { name: '—', since: '', quote: '' }, coach: { name: '—' }, logo: null,
+};
 export const DEFAULT_VENUE = 'Sân bóng Hoàng Mai · Sân số 3';
 
 /** 7-a-side formation used for auto-picked lineups (DEF-MID-FWD). */

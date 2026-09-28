@@ -23,9 +23,14 @@ export interface Api {
   setMember(userId: string, role: Role, teamId: string | null): Promise<void>;
   /** Reject a pending sign-up (deletes the account). */
   rejectMember(userId: string): Promise<void>;
+  /**
+   * Approve a pending account (or complete an existing one): set its staff role and optionally
+   * create a linked player profile (player.teamId null = free agent).
+   */
+  approveMember(userId: string, role: Role, roleTeam: string | null, player: Omit<PlayerInput, 'id'> | null): Promise<void>;
 
   /** Upload a player photo and return its URL (stored on the player when the form is saved). */
-  uploadPlayerPhoto(teamId: string, image: Blob): Promise<string>;
+  uploadPlayerPhoto(teamId: string | null, image: Blob): Promise<string>;
   savePlayer(input: PlayerInput): Promise<void>;
   deletePlayer(id: string): Promise<void>;
 
@@ -36,6 +41,10 @@ export interface Api {
   voteScore(matchId: string, score: string): Promise<void>;
 
   transferPlayer(playerId: string, toTeam: string, fee: number): Promise<void>;
+  /** Sign a free agent. */
+  signPlayer(playerId: string, teamId: string): Promise<void>;
+  /** Release a player to free agency. */
+  releasePlayer(playerId: string): Promise<void>;
   makeOffer(playerId: string, price: number, note: string): Promise<void>;
   respondOffer(offerId: string, accept: boolean): Promise<string>;
   cancelOffer(offerId: string): Promise<void>;

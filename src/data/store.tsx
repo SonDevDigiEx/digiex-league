@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Match, Player, Profile, Snapshot, Team } from '../lib/types';
 import type { Api } from './api';
+import { FREE_AGENT } from '../lib/league';
 import { createSupabaseApi } from './supabaseApi';
 
 const env = import.meta.env;
@@ -46,7 +47,8 @@ export type Modal =
   | { kind: 'login'; reason?: string }
   | { kind: 'addTeam' }
   | { kind: 'editTeam'; teamId: string }
-  | { kind: 'player'; playerId?: string; teamId: string }
+  | { kind: 'player'; playerId?: string; teamId: string | null }
+  | { kind: 'approve'; userId: string }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
   | { kind: 'schedule' };
@@ -56,9 +58,9 @@ export interface Toast { msg: string; err?: boolean; key: number }
 interface Ctx {
   snap: Snapshot | null;
   loadError: string | null;
-  /** Signed-in and approved. Everything gated on "logged in" uses this. */
+  /** Signed-in account (including one still waiting for approval, which is view-only). */
   user: Profile | null;
-  /** Signed-in account, including one still waiting for approval (header / login dialog). */
+  /** Same as user; kept for readability where the pending state matters. */
   me: Profile | null;
   route: Route;
   go(r: Route): void;
@@ -83,7 +85,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [me, setMe] = useState<Profile | null>(null);
-  const user = me && me.role !== 'pending' ? me : null;
+  const user = me;
   const [route, setRoute] = useState<Route>(parseHash);
   const [cardId, setCardId] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal | null>(null);
@@ -142,7 +144,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => ({
     snap, loadError, user, me, route, go, cardId, modal, toast, flash, run, reload,
-    openCard: (id) => { if (!user) setModal({ kind: 'login', reason: me ? undefined : 'Đăng nhập để xem chi tiết chỉ số cầu thủ.' }); else setCardId(id); },
+    openCard: (id) => { if (!user) setModal({ kind: 'login', reason: 'Đăng nhập để xem chi tiết chỉ số cầu thủ.' }); else setCardId(id); },
     closeCard: () => setCardId(null),
     openModal: setModal,
     closeModal: () => setModal(null),
@@ -174,11 +176,14 @@ export function useAccess() {
     const teams = snap?.teams || [];
     return {
       u, isAdmin,
-      canTeam: (tid: string) => !!u && (isAdmin || ((u.role === 'chair' || u.role === 'coach') && u.team === tid)),
-      canTransfer: (tid: string) => !!u && (isAdmin || (u.role === 'chair' && u.team === tid)),
+      /** Pending accounts are view-only. */
+      canVote: !!u && u.role !== 'pending',
+      /** Edit squad/team. Free agents (tid null) are managed by admins only. */
+      canTeam: (tid: string | null) => !!u && (isAdmin || (!!tid && (u.role === 'chair' || u.role === 'coach') && u.team === tid)),
+      canTransfer: (tid: string | null) => !!u && (isAdmin || (!!tid && u.role === 'chair' && u.team === tid)),
       canAny: !!u && (isAdmin || u.role === 'chair' || u.role === 'coach'),
       myT: u && u.role === 'chair' ? u.team : null,
-      tm: (id: string): Team => teams.find((t) => t.id === id) || teams[0],
+      tm: (id: string | null): Team => (id && teams.find((t) => t.id === id)) || FREE_AGENT,
     };
   }, [user, snap]);
 }

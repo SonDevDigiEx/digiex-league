@@ -9,7 +9,7 @@ const MEMBERS = 'members';
 
 export function Manage({ teamId }: { teamId?: string }) {
   const { snap, user, go, openModal, run } = useLeague();
-  const { canTeam, canAny, isAdmin } = useAccess();
+  const { canTeam, canAny, isAdmin, canTransfer } = useAccess();
   const onLogo = useLogoUpload();
   const [pendingDel, setPendingDel] = useState<string | null>(null);
   if (!user || !canAny) return <div className="view"><div className="empty">Bạn không có quyền quản lý đội.</div></div>;
@@ -74,6 +74,13 @@ export function Manage({ teamId }: { teamId?: string }) {
               </div>
               <div className="mg-btns">
                 <button className="btn-ghost" onClick={() => openModal({ kind: 'player', playerId: p.id, teamId: p.teamId })}>Sửa</button>
+                {canTransfer(p.teamId) && (
+                  <button className={'btn-danger' + (pendingDel === 'rel:' + p.id ? ' on' : '')} style={{ borderColor: 'rgba(255,255,255,.2)' }} onClick={() => {
+                    if (pendingDel !== 'rel:' + p.id) return setPendingDel('rel:' + p.id);
+                    setPendingDel(null);
+                    run(() => api.releasePlayer(p.id), `${p.name} đã thành cầu thủ tự do`);
+                  }}>{pendingDel === 'rel:' + p.id ? 'Xác nhận giải phóng' : 'Giải phóng'}</button>
+                )}
                 <button className={'btn-danger' + (confirm ? ' on' : '')} onClick={() => {
                   if (!confirm) return setPendingDel(p.id);
                   setPendingDel(null);
@@ -90,7 +97,7 @@ export function Manage({ teamId }: { teamId?: string }) {
 
 /** Admin: everyone who has signed in, with role + team assignment. */
 function Members() {
-  const { snap, user, run } = useLeague();
+  const { snap, user, run, openModal, openCard } = useLeague();
   const [q, setQ] = useState('');
   const [rejecting, setRejecting] = useState<string | null>(null);
   const d = snap!;
@@ -107,7 +114,7 @@ function Members() {
   return (
     <>
       <div className="note" style={{ fontSize: 13 }}>
-        Người đăng nhập lần đầu bằng Google công ty sẽ vào mục Chờ duyệt. Duyệt để họ thành Thành viên; từ chối sẽ xóa tài khoản (họ có thể đăng nhập lại để gửi yêu cầu mới). Mỗi đội có một Chủ tịch — chỉ định Chủ tịch mới sẽ đưa Chủ tịch cũ về Thành viên.
+        Người đăng nhập lần đầu bằng Google công ty sẽ vào mục Chờ duyệt (chỉ được xem). Duyệt = nhập vị trí, chỉ số để họ trở thành cầu thủ (tự do hoặc vào đội); từ chối sẽ xóa tài khoản. Mỗi đội có một Chủ tịch — chỉ định Chủ tịch mới sẽ đưa Chủ tịch cũ về Thành viên.
       </div>
       {pending.length > 0 && (
         <div className="rq" style={{ animation: 'none' }}>
@@ -120,7 +127,7 @@ function Members() {
               <div className="mg-ph" style={{ background: m.avatar ? `center/cover url("${m.avatar}")` : 'rgba(255,255,255,.05)', borderRadius: '50%' }}>{m.avatar ? '' : ini(m.name)}</div>
               <div className="mg-info"><div><span>{m.name}</span></div><div>{m.email}</div></div>
               <div className="mb-acts">
-                <button className="btn-ok" style={{ flex: 'none', padding: '10px 16px' }} onClick={() => run(() => api.setMember(m.id, 'member', null), `Đã duyệt ${m.name}`)}>Duyệt</button>
+                <button className="btn-ok" style={{ flex: 'none', padding: '10px 16px' }} onClick={() => openModal({ kind: 'approve', userId: m.id })}>Duyệt</button>
                 <button className={'btn-no' + (rejecting === m.id ? ' on' : '')} style={{ flex: 'none', padding: '10px 16px', ...(rejecting === m.id ? { background: '#e5484d', color: '#fff' } : {}) }}
                   onClick={() => {
                     if (rejecting !== m.id) return setRejecting(m.id);
@@ -142,7 +149,12 @@ function Members() {
               <div className="mg-ph" style={{ background: m.avatar ? `center/cover url("${m.avatar}")` : 'rgba(255,255,255,.05)', borderRadius: '50%' }}>{m.avatar ? '' : ini(m.name)}</div>
               <div className="mg-info">
                 <div><span>{m.name}{self ? ' (bạn)' : ''}</span></div>
-                <div>{m.email}</div>
+                <div>{m.email}{(() => {
+                  const pl = d.players.find((x) => x.userId === m.id);
+                  return pl
+                    ? <> · <a onClick={() => openCard(pl.id)}>⚽ Cầu thủ · {d.teams.find((t) => t.id === pl.teamId)?.short || 'Tự do'}</a></>
+                    : <> · <a onClick={() => openModal({ kind: 'approve', userId: m.id })}>+ Tạo hồ sơ cầu thủ</a></>;
+                })()}</div>
               </div>
               <div className="mb-acts">
                 <select className="inp" value={m.role} disabled={self} aria-label="Vai trò" onChange={(e) => save(m.id, e.target.value as Role, m.team, m.name)}>

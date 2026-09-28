@@ -21,7 +21,10 @@ export interface Team {
 
 export interface Player {
   id: string;
-  teamId: string;
+  /** null = free agent (Tự do) */
+  teamId: string | null;
+  /** Linked account when the player was created by approving a sign-up. */
+  userId: string | null;
   name: string;
   pos: Pos;
   ovr: number;
@@ -61,8 +64,10 @@ export interface Match {
 export interface Transfer {
   pid: string | null;
   name: string;
-  from: string;
-  to: string;
+  /** null = signed as a free agent */
+  from: string | null;
+  /** null = released to free agency */
+  to: string | null;
   fee: number;
   /** YYYY-MM-DD */
   date: string;
@@ -112,7 +117,7 @@ export interface Snapshot {
 
 export interface PlayerInput {
   id?: string;
-  teamId: string;
+  teamId: string | null;
   name: string;
   pos: Pos;
   ovr: number;
