@@ -32,7 +32,10 @@ function check<T>(res: { data: T; error: { message: string; code?: string } | nu
     const { code, message } = res.error;
     if (code === '42501' || /row-level security|permission denied/i.test(message)) throw new Error('Bạn không có quyền thực hiện thao tác này.');
     if (/Failed to fetch|NetworkError/i.test(message)) throw new Error('Mất kết nối máy chủ. Kiểm tra mạng và thử lại.');
-    throw new Error(message);
+    // P0001 = our own RAISE EXCEPTION messages (already user-facing Vietnamese). Anything else stays in the console.
+    if (code === 'P0001') throw new Error(message);
+    console.error('[DigiEx League]', res.error);
+    throw new Error('Có lỗi xảy ra, vui lòng thử lại.');
   }
   return res.data as NonNullable<T>;
 }
