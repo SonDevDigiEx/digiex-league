@@ -39,14 +39,14 @@ export function Rsvp({ m }: { m: Match }) {
       if (me.teamId !== m.home && me.teamId !== m.away) return <div className="note">Đội của bạn ({tm(me.teamId).short}) không thi đấu trận này.</div>;
       return mine
         ? <div className="rsvp-me"><span>✓ Bạn đã đăng ký đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></span>{leave}</div>
-        : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã đăng ký tham gia')}>{label('join', 'Tham gia trận này')}</button>;
+        : <button className="btn-lime lg" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => act('join', () => api.joinMatch(m.id, null), 'Đã điểm danh ✅ +20 XP sẽ được cộng khi trận kết thúc')}>{label('join', 'Tham gia trận này')}</button>;
     }
     return (
       <div className="rsvp-me">
         <span>{mine ? <>✓ Cầu thủ tự do · đá cho <b style={{ color: tm(mine.teamId).color }}>{tm(mine.teamId).short}</b></> : 'Cầu thủ tự do · chọn đội muốn đá cùng:'}</span>
         {[H, A].filter((t) => t.id !== mine?.teamId).map((t) => (
           <button key={t.id} className="btn-lime" style={{ background: t.color, color: '#fff' }} disabled={busy}
-            onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã đăng ký đá cho ${t.short}`)}>{label('join:' + t.id, `${mine ? 'Chuyển sang' : 'Tham gia cho'} ${t.short}`)}</button>
+            onClick={() => act('join:' + t.id, () => api.joinMatch(m.id, t.id), `Đã điểm danh đá cho ${t.short} ✅ +20 XP sẽ được cộng khi trận kết thúc`)}>{label('join:' + t.id, `${mine ? 'Chuyển sang' : 'Tham gia cho'} ${t.short}`)}</button>
         ))}
         {mine && leave}
       </div>

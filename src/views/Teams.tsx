@@ -46,7 +46,7 @@ export function Teams({ teamId }: { teamId?: string }) {
   const val = sq.reduce((a, p) => a + p.value, 0);
   const avg = sq.length ? Math.round(sq.reduce((a, p) => a + p.ovr, 0) / sq.length) : 0;
   const can = canTeam(ct.id);
-  const kpis = [{ l: 'GIÁ TRỊ ĐỘI HÌNH', v: val.toFixed(1) + ' tỷ', c: '#f5c542' }, { l: 'OVR TRUNG BÌNH', v: avg, c: '#c6ff3d' }, { l: 'THẮNG · HÒA · BẠI', v: `${tr.w}-${tr.d}-${tr.l}`, c: '#fff' }, { l: 'BÀN THẮNG', v: tr.gf, c: '#fff' }, { l: 'ĐIỂM', v: tr.pts, c: '#fff' }];
+  const kpis = [{ l: 'THÀNH VIÊN', v: sq.length + ' người', c: '#fff' }, { l: 'GIÁ TRỊ ĐỘI HÌNH', v: val.toFixed(1) + ' tỷ', c: '#f5c542' }, { l: 'OVR TRUNG BÌNH', v: avg, c: '#c6ff3d' }, { l: 'THẮNG · HÒA · BẠI', v: `${tr.w}-${tr.d}-${tr.l}`, c: '#fff' }, { l: 'BÀN THẮNG', v: tr.gf, c: '#fff' }, { l: 'ĐIỂM', v: tr.pts, c: '#fff' }];
   const tourName = (id: string) => d.tournaments.find((x) => x.id === id)?.name || 'Giải đấu';
   const teamAwards = d.awards.filter((a) => a.teamId === ct.id);
   // Team trophies first, then individual awards won by its players.
@@ -62,7 +62,7 @@ export function Teams({ teamId }: { teamId?: string }) {
           const on = t.id === ct.id;
           return (
             <button key={t.id} className="pill" style={on ? { background: hexA(t.color, 0.22), color: '#fff' } : undefined} onClick={() => go({ view: 'teams', teamId: t.id })}>
-              <span className="dot" style={{ background: t.color }} />{t.name}
+              <span className="dot" style={{ background: t.color }} />{t.name}<span className="pill-n" title="Số thành viên">{squadOf(d.players, t.id).length}</span>
             </button>
           );
         })}

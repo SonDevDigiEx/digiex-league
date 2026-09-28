@@ -93,3 +93,10 @@ export function nextQuests(p: Player, matches: Match[], parts: Participation[], 
   return out;
 }
 const fmtDay = (iso: string) => { const d = new Date(iso); return `${['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+
+/** Matches the player already checked into that haven't finished yet: XP arrives when they end. */
+export function pendingXp(p: Player, matches: Match[], parts: Participation[]) {
+  const joined = new Set(parts.filter((x) => x.playerId === p.id).map((x) => x.matchId));
+  return matches.filter((m) => m.status === 'up' && joined.has(m.id)).sort((a, b) => a.date.localeCompare(b.date))
+    .map((m) => ({ matchId: m.id, text: `Đã điểm danh trận ${fmtDay(m.date)} — +20 XP khi trận kết thúc (BTC nhập tỉ số)` }));
+}

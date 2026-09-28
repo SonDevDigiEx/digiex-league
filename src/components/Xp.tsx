@@ -4,7 +4,7 @@ import { api, useAccess, useLeague } from '../data/store';
 import { Spin, useAction } from '../data/useAction';
 import { LBL, LBL_GK, fDate } from '../lib/league';
 import type { Player, XpEvent } from '../lib/types';
-import { level, nextQuests, RULE_ICON, RULES, statProgress, tips, xpCost } from '../lib/xp';
+import { level, nextQuests, pendingXp, RULE_ICON, RULES, statProgress, tips, xpCost } from '../lib/xp';
 
 /** Compact level + XP bar (also used on its own). */
 export function XpBar({ p }: { p: Player }) {
@@ -39,6 +39,9 @@ export function XpPanel({ p, own }: { p: Player; own?: boolean }) {
         <a className="more" onClick={() => openModal({ kind: 'xpRules' })}>📜 Bảng nhiệm vụ</a>
       </div>
       <XpBar p={p} />
+      {pendingXp(p, snap!.matches, snap!.participants).map((x) => (
+        <div key={x.matchId} className="xp-pending">⏳ {x.text}</div>
+      ))}
       <div className="xp-stats">
         {prog.map((s, i) => (
           <div key={i} className="xp-stat" title={s.v >= 99 ? 'Tối đa' : `${s.have}/${s.need} XP để lên ${s.v + 1}`}>
@@ -145,6 +148,11 @@ export function MyJourney() {
       </div>
       <div className="jr-quests">
         <div className="row-sb"><span className="jr-k">NHIỆM VỤ TIẾP THEO</span><a className="more" onClick={() => openModal({ kind: 'xpRules' })}>📜 Tất cả</a></div>
+        {pendingXp(p, snap.matches, snap.participants).slice(0, 1).map((x) => (
+          <button key={x.matchId} className="jr-q pend" onClick={() => go({ view: 'match', matchId: x.matchId })}>
+            <span>⏳</span><span className="jr-q-t">{x.text.replace(' (BTC nhập tỉ số)', '')}</span><b>+20</b>
+          </button>
+        ))}
         {quests.map((q, i) => (
           <button key={i} className="jr-q" onClick={() => (q.matchId ? go({ view: 'match', matchId: q.matchId }) : openModal({ kind: 'xpRules' }))}>
             <span>{q.icon}</span><span className="jr-q-t">{q.text}</span><b>{q.xp}</b>

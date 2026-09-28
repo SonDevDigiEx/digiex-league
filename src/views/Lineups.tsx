@@ -23,7 +23,7 @@ export function TeamLineupCard({ team, lineups }: { team: Team; lineups: Lineup[
     <div className="tl-card" style={{ ['--tc' as string]: team.color }}>
       <div className="tl-head">
         <Crest team={team} text={false} />
-        <div><b>{team.name}</b><span>{l ? `${FORMAT_LABEL[fmt]} · ${l.formation}` : 'Chưa xếp đội hình'}</span></div>
+        <div><b>{team.name}</b><span>👥 {squad.length} thành viên · {l ? `${FORMAT_LABEL[fmt]} · ${l.formation}` : 'Chưa xếp đội hình'}</span></div>
         {l && starters.length > 0 && (
           <div className="tl-val" title="Tổng giá trị các cầu thủ trong đội hình chính">
             <b>{money(value)}</b><span>GIÁ TRỊ · OVR TB {avg}</span>

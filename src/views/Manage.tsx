@@ -22,7 +22,7 @@ export function Manage({ teamId }: { teamId?: string }) {
       {mTeams.map((t) => (
         <button key={t.id} className="pill" style={!showMembers && t.id === mt?.id ? { background: hexA(t.color, 0.22), color: '#fff' } : undefined}
           onClick={() => { setPendingDel(null); go({ view: 'manage', teamId: t.id }); }}>
-          <span className="dot" style={{ background: t.color, border: 0 }} />{t.name}
+          <span className="dot" style={{ background: t.color, border: 0 }} />{t.name}<span className="pill-n" title="Số thành viên">{squadOf(d.players, t.id).length}</span>
         </button>
       ))}
       {isAdmin && <button className="pill" style={showMembers ? { background: 'rgba(198,255,61,.18)', color: '#fff' } : undefined} onClick={() => go({ view: 'manage', teamId: MEMBERS })}>

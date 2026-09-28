@@ -1164,3 +1164,7 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
   .rk-row { grid-template-columns: 18px minmax(0, 1fr) repeat(6, 26px); font-size: 12px }
   .rk-head button { font-size: 9px; letter-spacing: 0 }
 }
+.pill-n { margin-left: 2px; min-width: 22px; padding: 3px 6px; border-radius: 10px; background: rgba(255, 255, 255, .1); color: #fff; font: 700 11px/1 var(--vn); text-align: center }
+.xp-pending { padding: 8px 10px; border-radius: 8px; border: 1px dashed rgba(245, 197, 66, .45); background: rgba(245, 197, 66, .07); font: 600 12px/1.4 var(--vn); color: #e8cf86 }
+.jr-q.pend { border-style: dashed; border-color: rgba(245, 197, 66, .45); background: rgba(245, 197, 66, .06) }
+.jr-q.pend b { color: var(--gold) }
