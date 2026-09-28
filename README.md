@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`. It bundles the four later migrations and is safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql`. Both are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -56,6 +56,10 @@ Everyone can change their own photo by clicking their name in the header (**Hồ
 **Fixed weekly fixtures and cancellations.**
 - *Lên lịch thi đấu* has a **Lặp lại hằng tuần** option (`match_series`). When the latest match of a series is over (result entered, cancelled, or 2 hours past kickoff), the next one is created 7 days later with the same day, time and venue. This runs from a trigger and from `roll_series()`, which the app calls on load; it is idempotent. Admins can stop a series from the match page.
 - Admins and either team's chairman can **cancel** an upcoming match with a reason (Thiếu người / Trời mưa / …). Cancelled matches show as **ĐÃ HỦY** with the reason, don't count in the standings, and close registration and voting.
+
+**Chairman handover and jersey numbers.**
+- A chairman can hand the role to a player (with an account) or the BHL of their team, from *Quản lý* or *Hồ sơ của tôi*. They then become a regular member and stay a player.
+- Players change their own jersey number in *Hồ sơ của tôi*. Numbers are 0–999 and unique across the league; this is checked by a trigger whenever a number is set.
 
 **Transfers.**
 - Only chairmen and BHL (for their own team) and admins see transfer actions.

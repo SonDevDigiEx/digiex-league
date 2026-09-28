@@ -177,6 +177,8 @@ export function createSupabaseApi(url: string, key: string): Api {
       if (!rows.length) throw new Error('Bạn không có quyền với đội này.');
     },
     async setMember(userId, role, teamId) { check(await sb.rpc('set_member', { p_user: userId, p_role: role, p_team: teamId })); },
+    async handoverChair(userId) { check(await sb.rpc('handover_chair', { p_user: userId })); },
+    async setMyNumber(num) { check(await sb.rpc('set_my_number', { p_num: num })); },
     async rejectMember(userId) { check(await sb.rpc('reject_member', { p_user: userId })); },
     async approveMember(userId, role, roleTeam, f) {
       check(await sb.rpc('approve_member', {

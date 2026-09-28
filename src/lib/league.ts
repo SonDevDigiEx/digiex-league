@@ -35,6 +35,12 @@ export const ini = (n: string) => {
   const w = n.trim().split(/\s+/);
   return ((w.length > 1 ? w[w.length - 2][0] : '') + w[w.length - 1][0]).toUpperCase();
 };
+/** Lowest jersey number (1–999) nobody uses; 0 if all are taken. */
+export const nextFreeNum = (players: { num: number }[]) => {
+  const used = new Set(players.map((p) => p.num));
+  for (let n = 1; n <= 999; n++) if (!used.has(n)) return n;
+  return 0;
+};
 export const money = (v: number) => (+v).toFixed(1) + ' tỷ';
 export const todayStr = () => {
   const t = new Date();

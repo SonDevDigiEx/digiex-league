@@ -53,6 +53,7 @@ export function Manage({ teamId }: { teamId?: string }) {
         </div>
         <div className="mg-acts">
           <button className="up" onClick={() => openModal({ kind: 'editTeam', teamId: mt.id })}>Sửa thông tin</button>
+          {user.role === 'chair' && user.team === mt.id && <button className="up grey" onClick={() => openModal({ kind: 'handover', teamId: mt.id })}>Bàn giao Chủ tịch</button>}
           <label className="up">Tải logo<input type="file" accept="image/*" onChange={onLogo(mt.id)} /></label>
           {mt.logo && <button className="up grey" onClick={() => run(() => api.setTeamLogo(mt.id, null), 'Đã gỡ logo')}>Gỡ logo</button>}
         </div>

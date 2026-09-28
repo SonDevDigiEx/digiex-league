@@ -23,6 +23,10 @@ export interface Api {
   updateTeam(teamId: string, input: TeamInput): Promise<void>;
   setTeamLogo(teamId: string, image: Blob | null): Promise<void>;
   setMember(userId: string, role: Role, teamId: string | null): Promise<void>;
+  /** The chairman hands the role to a player (with an account) or the BHL of the same team. */
+  handoverChair(userId: string): Promise<void>;
+  /** A player changes their own jersey number (0–999, unique in the league). */
+  setMyNumber(num: number): Promise<void>;
   /** Reject a pending sign-up (deletes the account). */
   rejectMember(userId: string): Promise<void>;
   /**

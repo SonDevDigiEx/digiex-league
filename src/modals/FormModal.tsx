@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Crest, PlayerCard } from '../components/bits';
 import { Spin, useAction } from '../data/useAction';
 import { api, useAccess, useLeague, type Modal } from '../data/store';
-import { dmy, DEFAULT_VENUE, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
+import { dmy, DEFAULT_VENUE, nextFreeNum, fDate, fTime, genStats, ini, ROLE_LABEL, LBL, LBL_GK, money, pad, POSS, readImg, SWATCHES, tier } from '../lib/league';
 import type { Foot, Pos, Role } from '../lib/types';
 
 function Shell({ title, cta, err, busy, onSubmit, children }: { title: string; cta?: string; err: string; busy: boolean; onSubmit: () => void; children: ReactNode }) {
@@ -73,7 +73,7 @@ function LoginForm({ reason }: { reason?: string }) {
  * that previews on the card before saving. Only the photo is user-editable; stats belong to staff.
  */
 function MeForm() {
-  const { me, snap, run, closeModal } = useLeague();
+  const { me, snap, run, closeModal, openModal } = useLeague();
   const { tm } = useAccess();
   const [preview, setPreview] = useState<{ blob: Blob; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -113,6 +113,7 @@ function MeForm() {
           <div className="lead" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{me.email}</div>
           <div className="lead" style={{ fontSize: 12, color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).name : ''}</div>
           {player && <div className="lead" style={{ fontSize: 12 }}>⚽ {team.id ? team.name : 'Cầu thủ tự do'} · #{player.num} · {player.pos}</div>}
+          {player && <NumberEdit current={player.num} playerId={player.id} />}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
             {!preview && <label className="ph-btn">Đổi ảnh<input type="file" accept="image/*" onChange={pick} disabled={busy} /></label>}
             {preview && <button type="button" className="ph-btn" style={{ background: '#c6ff3d', color: '#06080d' }} disabled={busy} onClick={() => save(preview.blob)}>{busy ? 'Đang lưu…' : 'Lưu ảnh'}</button>}
@@ -144,7 +145,69 @@ function MeForm() {
         <div className="fm-note">{me.role === 'pending' ? 'Tài khoản đang chờ Ban tổ chức duyệt. ' : ''}Bạn chưa có hồ sơ cầu thủ — khi được duyệt làm cầu thủ, thẻ cầu thủ sẽ dùng ảnh này.</div>
       )}
       {(me.role === 'chair' || me.role === 'coach') && me.team && <TeamLogoBox teamId={me.team} />}
+      {me.role === 'chair' && me.team && <button type="button" className="ph-btn grey" style={{ alignSelf: 'flex-start' }} onClick={() => openModal({ kind: 'handover', teamId: me.team! })}>Bàn giao Chủ tịch…</button>}
       <button type="button" className="cm-btn close" style={{ alignSelf: 'flex-end' }} onClick={closeModal}>Đóng</button>
+    </Shell>
+  );
+}
+
+/** A player changes their own jersey number (unique across the league, 0–999). */
+function NumberEdit({ current, playerId }: { current: number; playerId: string }) {
+  const { snap } = useLeague();
+  const [v, setV] = useState(String(current));
+  const { act, pending, busy } = useAction(1500);
+  const n = v === '' ? null : +v;
+  const taken = n != null ? snap!.players.find((x) => x.num === n && x.id !== playerId) : undefined;
+  const changed = n != null && n !== current;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      <span className="lead" style={{ fontSize: 12 }}>Số áo</span>
+      <input className="inp" style={{ width: 76, padding: '7px 10px', fontSize: 14 }} inputMode="numeric" value={v} aria-label="Số áo"
+        onChange={(e) => setV(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+      {changed && !taken && <button type="button" className="ph-btn" disabled={busy} onClick={() => act('num', () => api.setMyNumber(n!), `Đã đổi số áo thành #${n}`)}>{pending ? <><Spin />Đang lưu…</> : 'Đổi số'}</button>}
+      {taken && <span className="err" style={{ fontSize: 11 }}>#{n} đã có: {taken.name}</span>}
+    </div>
+  );
+}
+
+/** Chairman hands the role to a player (with an account) or the BHL of their team. */
+function HandoverForm({ teamId }: { teamId: string }) {
+  const { snap, user } = useLeague();
+  const { tm } = useAccess();
+  const d = snap!;
+  const team = tm(teamId);
+  const inTeam = new Set(d.players.filter((p) => p.teamId === teamId && p.userId).map((p) => p.userId!));
+  const candidates = d.members.filter((m) => m.id !== user?.id && m.role !== 'pending' && m.role !== 'admin'
+    && ((m.role === 'coach' && m.team === teamId) || (inTeam.has(m.id) && m.role !== 'coach')));
+  const [pick, setPick] = useState('');
+  const [sure, setSure] = useState(false);
+  const { err, setErr, busy, submit } = useSubmit();
+  const target = candidates.find((m) => m.id === pick);
+  return (
+    <Shell title="Bàn giao Chủ tịch" cta="Bàn giao" err={err} busy={busy} onSubmit={() => {
+      if (!target) return setErr('Chọn người nhận.');
+      if (!sure) return setErr('Tick xác nhận trước khi bàn giao.');
+      submit(() => api.handoverChair(target.id), `${target.name} là Chủ tịch mới của ${team.short}`);
+    }}>
+      <div className="lead" style={{ fontSize: 13 }}>Chọn một cầu thủ hoặc BHL của <b style={{ color: '#fff' }}>{team.name}</b>. Sau khi bàn giao bạn trở thành Thành viên (vẫn là cầu thủ của đội) và mất quyền Chủ tịch.</div>
+      {!candidates.length && <div className="note">Đội chưa có cầu thủ nào có tài khoản để nhận bàn giao.</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {candidates.map((m) => {
+          const pl = d.players.find((p) => p.userId === m.id);
+          return (
+            <button type="button" key={m.id} className="dest" style={{ justifyContent: 'space-between', borderColor: pick === m.id ? '#c6ff3d' : undefined }} onClick={() => setPick(m.id)}>
+              <span>{m.name}</span>
+              <span className="note">{m.role === 'coach' ? 'BHL' : 'Cầu thủ'}{pl ? ` · #${pl.num} ${pl.pos}` : ''}</span>
+            </button>
+          );
+        })}
+      </div>
+      {target && (
+        <label className="fld" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+          <input type="checkbox" checked={sure} onChange={(e) => { setSure(e.target.checked); setErr(''); }} style={{ accentColor: '#c6ff3d', width: 18, height: 18 }} />
+          <span style={{ fontSize: 13, color: '#fff' }}>Tôi xác nhận bàn giao Chủ tịch {team.short} cho {target.name}</span>
+        </label>
+      )}
     </Shell>
   );
 }
@@ -275,7 +338,7 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   const acct = approveUserId ? snap!.members.find((m) => m.id === approveUserId) : undefined;
   const [f, setF] = useState(() => p
     ? { name: p.name, pos: p.pos, num: String(p.num), age: String(p.age), foot: p.foot, ovr: p.ovr, stats: p.stats.slice(), photo: p.photo || '' }
-    : { name: acct?.name || '', pos: 'CM' as Pos, num: '', age: '25', foot: 'Phải' as Foot, ovr: 65, stats: genStats('CM', 65, Date.now() % 997), photo: acct?.avatar || '' });
+    : { name: acct?.name || '', pos: 'CM' as Pos, num: String(nextFreeNum(snap!.players)), age: '25', foot: 'Phải' as Foot, ovr: 65, stats: genStats('CM', 65, Date.now() % 997), photo: acct?.avatar || '' });
   const [joinTeam, setJoinTeam] = useState<string>(teamId || '');
   // Approval: staff role (independent of being a player) and whether to create a player profile.
   const hasPlayer = !!acct && snap!.players.some((x) => x.userId === acct.id);
@@ -287,6 +350,7 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   const { err, setErr, busy, submit } = useSubmit();
   const team = tm(p ? p.teamId : approveUserId ? (staffRole ? roleTeam : joinTeam) || null : teamId);
   const L = f.pos === 'GK' ? LBL_GK : LBL;
+  const numTaken = f.num !== '' ? snap!.players.find((x) => x.num === +f.num && x.id !== p?.id) : undefined;
   const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -299,9 +363,11 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
   return (
     <Shell title={acct ? (acct.role === 'pending' ? 'Duyệt thành viên' : 'Tạo hồ sơ cầu thủ') : p ? 'Chỉnh sửa cầu thủ' : 'Thêm cầu thủ'} cta={acct ? (acct.role === 'pending' ? 'Duyệt' : 'Lưu') + (makePlayer ? ' & tạo cầu thủ' : '') : p ? 'Lưu thay đổi' : 'Đăng ký'} err={err} busy={busy || uploading} onSubmit={() => {
       if (!f.name.trim()) return setErr('Nhập tên cầu thủ.');
+      if (f.num === '') return setErr('Nhập số áo (0–999).');
+      if (numTaken && (!p || +f.num !== p.num)) return setErr(`Số áo ${f.num} đã có người dùng (${numTaken.name}).`);
       const input = {
         teamId: team.id || null, name: f.name, pos: f.pos, ovr: f.ovr, foot: f.foot, stats: f.stats, photo: f.photo || null,
-        num: +f.num || p?.num || 99, age: +f.age || p?.age || 25,
+        num: +f.num, age: +f.age || p?.age || 25,
       };
       if (acct) {
         const staffTeam = role === 'chair' || role === 'coach' ? roleTeam || null : null;
@@ -370,7 +436,8 @@ function PlayerForm({ playerId, teamId, approveUserId }: { playerId?: string; te
         ))}
       </div>
       <div className="g2">
-        <label className="fld">Số áo<input className="inp" type="number" min={0} max={99} value={f.num} onChange={(e) => setF({ ...f, num: e.target.value })} /></label>
+        <label className="fld">Số áo{numTaken && <span className="err" style={{ fontSize: 11 }}>#{f.num} đã có: {numTaken.name}</span>}
+          <input className="inp" type="number" min={0} max={999} value={f.num} onChange={(e) => setF({ ...f, num: e.target.value.replace(/\D/g, '').slice(0, 3) })} /></label>
         <label className="fld">Tuổi<input className="inp" type="number" min={10} max={80} value={f.age} onChange={(e) => setF({ ...f, age: e.target.value })} /></label>
       </div>
       </>)}
@@ -519,6 +586,7 @@ export function FormModal() {
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;
     case 'offer': return snap?.players.some((p) => p.id === m.playerId) ? <OfferForm playerId={m.playerId} /> : null;
     case 'schedule': return <ScheduleForm />;
+    case 'handover': return <HandoverForm teamId={m.teamId} />;
     case 'cancelMatch': return snap?.matches.some((x) => x.id === m.matchId) ? <CancelMatchForm matchId={m.matchId} /> : null;
   }
 }

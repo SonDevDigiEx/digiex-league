@@ -51,6 +51,7 @@ export type Modal =
   | { kind: 'me' }
   | { kind: 'inbox' }
   | { kind: 'cancelMatch'; matchId: string }
+  | { kind: 'handover'; teamId: string }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
   | { kind: 'schedule' };
