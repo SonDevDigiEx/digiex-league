@@ -50,6 +50,8 @@ export function valueTrend(history: { day: string; value: number }[] | undefined
   if (!old || !old.value) return null;
   return Math.round((current / old.value - 1) * 1000) / 10;
 }
+/** Lowercase, accent-free text for search ("Vĩnh" matches "vinh"). */
+export const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
 export const money = (v: number) => (+v).toFixed(1) + ' tỷ';
 export const todayStr = () => {
   const t = new Date();

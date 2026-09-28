@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Lock, OvrBadge, SecTitle, Trend } from '../components/bits';
 import { api, useAccess, useLeague } from '../data/store';
-import { dmy, GROUP, money, valueTrend } from '../lib/league';
-import type { Group, OfferStatus } from '../lib/types';
+import { dmy, fold, GROUP, ini, money, valueTrend } from '../lib/league';
+import type { Group, OfferStatus, Player } from '../lib/types';
 
 const FREE = 'free';
 
@@ -19,12 +19,15 @@ export function Market() {
   const [mTeam, setMTeam] = useState('all');
   const [mPos, setMPos] = useState<'all' | Group>('all');
   const [rqTabSel, setRqTab] = useState<'in' | 'out'>('in');
+  const [q, setQ] = useState('');
   if (!user) return <Lock big title="Thị trường chuyển nhượng" desc="Chỉ thành viên DigiEx mới xem được định giá và nhật ký chuyển nhượng. Đăng nhập để tiếp tục." onLogin={() => openModal({ kind: 'login' })} />;
 
   const d = snap!;
   const T = d.teams;
   const offers = d.offers;
-  const fl = d.players.filter((p) => (mTeam === 'all' || (mTeam === FREE ? p.teamId === null : p.teamId === mTeam)) && (mPos === 'all' || GROUP[p.pos] === mPos)).sort((a, b) => b.value - a.value);
+  const needle = fold(q);
+  const avatarOf = (p: Player) => p.photo || (p.userId ? d.members.find((m) => m.id === p.userId)?.avatar : null) || null;
+  const fl = d.players.filter((p) => (!needle || fold(p.name).includes(needle)) && (mTeam === 'all' || (mTeam === FREE ? p.teamId === null : p.teamId === mTeam)) && (mPos === 'all' || GROUP[p.pos] === mPos)).sort((a, b) => b.value - a.value);
   const inCount = staffT ? offers.filter((o) => o.to === staffT && o.status === 'pending').length : 0;
   const rqTab = isAdmin ? 'all' : rqTabSel;
   const rqList = (isAdmin ? offers : staffT ? offers.filter((o) => (rqTab === 'in' ? o.to === staffT : o.from === staffT)) : [])
@@ -38,13 +41,18 @@ export function Market() {
         <h1 className="h1">Thị trường chuyển nhượng</h1>
         <div className="lead">Tổng giá trị thị trường <span style={{ color: '#f5c542', fontWeight: 700 }}>{money(d.players.reduce((a, p) => a + p.value, 0))}</span> · {d.players.length} cầu thủ · {d.transfers.length} thương vụ</div>
       </div>
+      <div className="mk-search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input className="inp" type="search" placeholder="Tìm cầu thủ theo tên…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Tìm cầu thủ" />
+        {q && <button type="button" className="mk-clear" onClick={() => setQ('')} aria-label="Xóa tìm kiếm">×</button>}
+      </div>
       <div className="filters">
         <div>{[chip('Tất cả đội', mTeam === 'all', () => setMTeam('all')), ...T.map((t) => chip(t.short, mTeam === t.id, () => setMTeam(t.id))), chip(`Tự do (${d.players.filter((p) => !p.teamId).length})`, mTeam === FREE, () => setMTeam(FREE))]}</div>
         <div>{([['all', 'Mọi vị trí'], ['GK', 'GK'], ['DEF', 'Hậu vệ'], ['MID', 'Tiền vệ'], ['FWD', 'Tiền đạo']] as ['all' | Group, string][]).map(([k, l]) => chip(l, mPos === k, () => setMPos(k)))}</div>
       </div>
       <div className="mk">
         <div className="mk-list">
-          {!fl.length && <div className="empty">{d.players.length ? 'Không có cầu thủ phù hợp bộ lọc.' : 'Chưa có cầu thủ nào trên thị trường.'}</div>}
+          {!fl.length && <div className="empty">{!d.players.length ? 'Chưa có cầu thủ nào trên thị trường.' : needle ? `Không tìm thấy cầu thủ "${q.trim()}".` : 'Không có cầu thủ phù hợp bộ lọc.'}</div>}
           {fl.map((p, i) => {
             const team = tm(p.teamId);
             const staffP = isStaffPlayer(p);
@@ -55,6 +63,8 @@ export function Market() {
             return (
               <div key={p.id} className={'mk-row' + (canBuy && (canOffer || canInvite) ? ' b2' : '')} style={{ animationDelay: Math.min(i * 0.03, 0.6).toFixed(2) + 's' }}>
                 <OvrBadge p={p} className="mk-badge" onClick={() => openCard(p.id)} />
+                <button className="mk-ava" onClick={() => openCard(p.id)} aria-hidden="true" tabIndex={-1}
+                  style={avatarOf(p) ? { backgroundImage: `url("${avatarOf(p)}")` } : undefined}>{avatarOf(p) ? '' : ini(p.name)}</button>
                 <button className="mk-who" onClick={() => openCard(p.id)}>
                   <span>{p.name}{staffLabel(p) && <em className="role-tag">{staffLabel(p)}</em>}</span>
                   <div><i style={{ background: team.color }} />{team.name} · {p.age} tuổi</div>
