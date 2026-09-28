@@ -1,4 +1,4 @@
-import { hrefOf, useAccess, useLeague, type Route } from '../data/store';
+import { CONFIG_ERROR, hrefOf, useAccess, useLeague, type Route } from '../data/store';
 import { ini, ROLE_LABEL } from '../lib/league';
 
 export function Header() {
@@ -29,7 +29,7 @@ export function Header() {
           })}
         </nav>
         <div className="auth">
-          {!user && <button className="btn-login" onClick={() => openModal({ kind: 'login' })}>Đăng nhập</button>}
+          {!user && !CONFIG_ERROR && <button className="btn-login" onClick={() => openModal({ kind: 'login' })}>Đăng nhập</button>}
           {user && (
             <div className="me">
               <div className="me-ava" style={user.avatar ? { background: `center/cover url("${user.avatar}")` } : undefined}>{user.avatar ? '' : ini(user.name)}</div>

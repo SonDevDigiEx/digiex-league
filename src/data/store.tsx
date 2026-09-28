@@ -8,7 +8,9 @@ const sbUrl = env.VITE_SUPABASE_URL;
 const sbKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
 export const AUTH_DOMAIN = env.VITE_AUTH_EMAIL_DOMAIN || 'digiex.group';
 /** Set when the build is missing its Supabase env vars; the app shows a setup screen instead of failing requests. */
-export const CONFIG_ERROR = sbUrl && sbKey ? null : 'Thiếu VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY trong biến môi trường của bản build.';
+export const CONFIG_ERROR = sbUrl && sbKey ? null : 'Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY at build time.';
+// Technical detail goes to the console for whoever deploys; users only see a friendly screen.
+if (CONFIG_ERROR) console.error('[DigiEx League]', CONFIG_ERROR);
 export const api: Api = createSupabaseApi(sbUrl || 'https://not-configured.invalid', sbKey || 'missing', AUTH_DOMAIN);
 
 // ───────── routing (hash based so links to a team / match can be shared) ─────────
@@ -89,7 +91,8 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       const [s, u] = await Promise.all([api.load(), api.currentUser()]);
       setSnap(s); setUser(u); setLoadError(null);
     } catch (e) {
-      setLoadError((e as Error).message || 'Không tải được dữ liệu.');
+      console.error('[DigiEx League] load failed', e);
+      setLoadError('Không tải được dữ liệu. Kiểm tra kết nối mạng và thử lại.');
     }
   }, []);
 

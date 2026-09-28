@@ -10,12 +10,12 @@ import { Teams } from './views/Teams';
 
 function Body() {
   const { snap, loadError, route, reload } = useLeague();
-  if (CONFIG_ERROR) return <div className="boot">Chưa cấu hình máy chủ.<br />{CONFIG_ERROR}</div>;
+  if (CONFIG_ERROR) return <div className="boot">Hệ thống đang bảo trì.<br />Vui lòng quay lại sau ít phút.</div>;
   if (!snap) {
     return (
       <div className="boot">
         {loadError
-          ? <div>Không tải được dữ liệu: {loadError}<br /><a onClick={() => reload()}>Thử lại</a></div>
+          ? <div>{loadError}<br /><a onClick={() => reload()}>Thử lại</a></div>
           : 'Đang tải…'}
       </div>
     );
