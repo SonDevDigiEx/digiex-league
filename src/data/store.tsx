@@ -48,6 +48,7 @@ export type Modal =
   | { kind: 'editTeam'; teamId: string }
   | { kind: 'player'; playerId?: string; teamId: string | null }
   | { kind: 'approve'; userId: string }
+  | { kind: 'me' }
   | { kind: 'transfer'; playerId: string }
   | { kind: 'offer'; playerId: string }
   | { kind: 'schedule' };

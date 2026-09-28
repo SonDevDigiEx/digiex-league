@@ -66,6 +66,43 @@ function LoginForm({ reason }: { reason?: string }) {
   );
 }
 
+/** The signed-in user's own profile: change photo (used for the avatar and their player card). */
+function MeForm() {
+  const { me, snap, flash, run, closeModal, openCard } = useLeague();
+  const { tm } = useAccess();
+  const [busy, setBusy] = useState(false);
+  if (!me) return null;
+  const player = snap?.players.find((p) => p.userId === me.id);
+  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try { await run(async () => api.setMyPhoto(await readImg(file, 360, 'image/jpeg')), 'Đã cập nhật ảnh của bạn', true); }
+    catch (x) { flash((x as Error).message || 'Không đọc được ảnh', true); }
+    finally { setBusy(false); }
+  };
+  const photo = player?.photo || me.avatar;
+  return (
+    <Shell title="Hồ sơ của tôi" err="" busy={busy} onSubmit={() => {}}>
+      <div className="ph-row">
+        <div className="ph" style={{ width: 96, height: 96, borderRadius: '50%', background: photo ? `center/cover url("${photo}")` : 'rgba(255,255,255,.05)' }}>{photo ? '' : ini(me.name)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          <div style={{ font: "italic 800 22px/1 'Barlow Condensed',sans-serif", color: '#fff' }}>{me.name}</div>
+          <div className="lead" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{me.email}</div>
+          <div className="lead" style={{ fontSize: 12 }}><span style={{ color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).short : ''}</span>
+            {player && <> · <a onClick={() => { closeModal(); openCard(player.id); }}>⚽ Cầu thủ · {tm(player.teamId).short}</a></>}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <label className="ph-btn">{busy ? 'Đang tải…' : 'Đổi ảnh'}<input type="file" accept="image/*" onChange={onPhoto} disabled={busy} /></label>
+        <button type="button" className="ph-btn grey" disabled={busy} onClick={() => run(() => api.setMyPhoto(null), 'Đã dùng lại ảnh Google')}>Dùng ảnh Google</button>
+      </div>
+      <div className="fm-note">{player ? 'Ảnh này dùng cho ảnh đại diện và thẻ cầu thủ của bạn.' : 'Ảnh này dùng cho ảnh đại diện của bạn. Khi được duyệt làm cầu thủ, thẻ cầu thủ cũng dùng ảnh này.'}</div>
+    </Shell>
+  );
+}
+
 /** Create a team (admin) or edit one (staff: motto + chairman quote; admin: also name, code, colours). */
 function TeamForm({ teamId }: { teamId?: string }) {
   const { go, snap } = useLeague();
@@ -311,6 +348,7 @@ export function FormModal() {
     case 'login': return <LoginForm reason={m.reason} />;
     case 'addTeam': return <TeamForm />;
     case 'editTeam': return <TeamForm key={m.teamId} teamId={m.teamId} />;
+    case 'me': return <MeForm />;
     case 'approve': return snap?.members.some((x) => x.id === m.userId && !snap.players.some((p) => p.userId === x.id)) ? <PlayerForm key={m.userId} teamId={null} approveUserId={m.userId} /> : null;
     case 'player': return !m.playerId || snap?.players.some((p) => p.id === m.playerId) ? <PlayerForm key={m.playerId || 'new'} playerId={m.playerId} teamId={m.teamId} /> : null;
     case 'transfer': return snap?.players.some((p) => p.id === m.playerId) ? <TransferForm playerId={m.playerId} /> : null;

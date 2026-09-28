@@ -8,6 +8,9 @@ drop policy if exists "media: public read"  on storage.objects;
 drop policy if exists "media: staff upload" on storage.objects;
 drop policy if exists "media: staff update" on storage.objects;
 drop policy if exists "media: staff delete" on storage.objects;
+drop policy if exists "media: own avatar upload" on storage.objects;
+drop policy if exists "media: own avatar update" on storage.objects;
+drop policy if exists "media: own avatar delete" on storage.objects;
 drop table if exists public.offers, public.transfers, public.votes, public.matches, public.players, public.profiles, public.teams cascade;
 drop function if exists public.handle_new_user(), public.my_role(), public.my_team(), public.is_admin(),
   public.can_manage_team(text), public.is_chair_of(text), public.player_value(int),
@@ -17,7 +20,8 @@ drop function if exists public.handle_new_user(), public.my_role(), public.my_te
   public.allowed_email(text), public.handle_user_updated(), public.set_member(uuid, text, text),
   public.update_team(text, text, text, text, text, text, text), public.save_result(text, int, int, jsonb),
   public.is_approved(), public.reject_member(uuid),
-  public.approve_member(uuid, text, text, boolean, text, text, int, int, int, text, int[], text, text), public.sign_player(text, text), public.release_player(text) cascade;
+  public.approve_member(uuid, text, text, boolean, text, text, int, int, int, text, int[], text, text), public.sign_player(text, text), public.release_player(text),
+  public.set_my_photo(text) cascade;
 drop trigger if exists on_auth_user_updated on auth.users;
 drop table if exists public.bootstrap_admins;
 
@@ -801,6 +805,50 @@ begin
 end $$;
 
 drop function if exists public.allowed_email(text);
+
+-- ═══ supabase/migrations/20260928040000_self_photo.sql ═══
+-- Users set their own photo: profile avatar + their linked player card.
+-- Files live at media/avatars/<user id>/…; only that user can write there.
+
+create policy "media: own avatar upload" on storage.objects for insert to authenticated
+  with check (bucket_id = 'media' and (storage.foldername(name))[1] = 'avatars' and (storage.foldername(name))[2] = auth.uid()::text);
+create policy "media: own avatar update" on storage.objects for update to authenticated
+  using (bucket_id = 'media' and (storage.foldername(name))[1] = 'avatars' and (storage.foldername(name))[2] = auth.uid()::text);
+create policy "media: own avatar delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'media' and (storage.foldername(name))[1] = 'avatars' and (storage.foldername(name))[2] = auth.uid()::text);
+
+-- p_url must be a file in the caller's own avatars/ folder; null resets to the Google photo.
+create or replace function public.set_my_photo(p_url text) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  google text;
+begin
+  if auth.uid() is null then raise exception 'Bạn cần đăng nhập.'; end if;
+  if p_url is not null and p_url not like '%/storage/v1/object/public/media/avatars/' || auth.uid()::text || '/%' then
+    raise exception 'Ảnh không hợp lệ.';
+  end if;
+  select raw_user_meta_data ->> 'avatar_url' into google from auth.users where id = auth.uid();
+  update public.profiles set avatar_url = coalesce(p_url, google) where id = auth.uid();
+  update public.players set photo_url = p_url where user_id = auth.uid();
+end $$;
+
+revoke execute on function public.set_my_photo(text) from public, anon;
+grant execute on function public.set_my_photo(text) to authenticated;
+
+-- Google profile sync must not overwrite a photo the user chose: only follow Google while the avatar is still Google's.
+create or replace function public.handle_user_updated() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.profiles set
+    email = lower(new.email),
+    avatar_url = case
+      when avatar_url is null or avatar_url is not distinct from (old.raw_user_meta_data ->> 'avatar_url')
+        then coalesce(new.raw_user_meta_data ->> 'avatar_url', avatar_url)
+      else avatar_url
+    end
+  where id = new.id;
+  return new;
+end $$;
 
 -- ═══ supabase/seed.sql ═══
 -- Starting teams. Players, fixtures and people are entered through the app.

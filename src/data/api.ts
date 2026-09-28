@@ -14,6 +14,8 @@ export interface Api {
   /** Redirects to Google; the session is picked up when the browser comes back. */
   signInWithGoogle(): Promise<void>;
   signOut(): Promise<void>;
+  /** Set the signed-in user's photo (profile + their player card); null = back to the Google photo. */
+  setMyPhoto(image: Blob | null): Promise<void>;
   /** Error returned by the OAuth redirect (e.g. non-company account), consumed once. */
   takeAuthError(): string | null;
 

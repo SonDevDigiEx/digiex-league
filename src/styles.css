@@ -514,3 +514,5 @@ input[type=range] { accent-color: var(--lime); width: 100% }
 .mb-acts .inp { width: auto; padding: 9px 10px; font-size: 13px; background: #151b2a }
 .mb-acts .inp:disabled { opacity: .5 }
 @media (max-width: 560px) { .mb-row { grid-template-columns: 44px minmax(0, 1fr) } .mb-row .mg-ph { width: 44px; height: 44px } .mb-acts { grid-column: 1 / -1; justify-content: flex-start } }
+.me-open { display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; color: inherit; font: inherit }
+.me-open:hover .me-name { color: var(--lime) }

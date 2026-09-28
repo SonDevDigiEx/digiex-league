@@ -140,6 +140,12 @@ export function createSupabaseApi(url: string, key: string): Api {
       if (error) throw new Error('Không mở được đăng nhập Google: ' + error.message);
     },
     async signOut() { await sb.auth.signOut(); },
+    async setMyPhoto(image) {
+      const me = await uid();
+      if (!me) throw new Error('Bạn cần đăng nhập.');
+      const url = image ? await upload(`avatars/${me}/${rid()}.jpg`, image) : null;
+      check(await sb.rpc('set_my_photo', { p_url: url }));
+    },
     takeAuthError() { const e = authError; authError = null; return e; },
 
     async createTeam(f) {
