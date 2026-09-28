@@ -8,6 +8,7 @@ import { Market } from './views/Market';
 import { MatchDetail, Matches } from './views/Matches';
 import { Teams } from './views/Teams';
 import { Tournament } from './views/Tournament';
+import { XpWatcher } from './components/Xp';
 import { Fame } from './views/Fame';
 
 function Body() {
@@ -47,6 +48,7 @@ export function App() {
       </main>
       <CardModal />
       <FormModal />
+      <XpWatcher />
       {toast && <div key={toast.key} className={'toast' + (toast.err ? ' err' : '')} role="status">{toast.msg}</div>}
     </div>
   );

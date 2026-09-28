@@ -4,7 +4,7 @@ import { api, useAccess, useLeague } from '../data/store';
 import { Spin, useAction } from '../data/useAction';
 import { LBL, LBL_GK, fDate } from '../lib/league';
 import type { Player, XpEvent } from '../lib/types';
-import { level, RULE_ICON, RULES, statProgress, tips, xpCost } from '../lib/xp';
+import { level, nextQuests, RULE_ICON, RULES, statProgress, tips, xpCost } from '../lib/xp';
 
 /** Compact level + XP bar (also used on its own). */
 export function XpBar({ p }: { p: Player }) {
@@ -107,6 +107,81 @@ export function XpRules() {
           <div className="note">Mỗi điểm đắt hơn điểm trước ~10%. Trừ điểm chỉ ăn vào tiến độ, chỉ số không bao giờ tụt.</div>
         </div>
         <div className="xpr-fun">🤫 <b>Mẹo không chính thức:</b> đi đêm với Chủ tịch CLB. Mỗi tuần Chủ tịch có đúng 1 phong bì “thưởng nóng” +30 XP cho 1 cầu thủ trong đội. Cà phê sáng, xách nước, nhặt bóng… tùy tâm. BTC không chịu trách nhiệm 😏</div>
+      </div>
+    </div>
+  );
+}
+
+/** Home: the signed-in player's progress, always at the top. */
+export function MyJourney() {
+  const { snap, go, openModal } = useLeague();
+  const { myPlayer, tm } = useAccess();
+  if (!myPlayer || !snap) return null;
+  const p = myPlayer;
+  const team = tm(p.teamId);
+  const L = p.pos === 'GK' ? LBL_GK : LBL;
+  const lv = level(p.xp ?? 0);
+  const prog = statProgress(p).map((s, i) => ({ ...s, i, left: s.need - s.have }));
+  const closest = prog.filter((s) => s.v < 99).sort((a, b) => a.left - b.left)[0];
+  const quests = nextQuests(p, snap.matches, snap.participants).slice(0, 3);
+  return (
+    <section className="journey" style={{ ['--tc' as string]: team.color }}>
+      <div className="jr-me" role="button" tabIndex={0} onClick={() => openModal({ kind: 'me' })} onKeyDown={(e) => { if (e.key === 'Enter') openModal({ kind: 'me' }); }}>
+        <div className="jr-ovr"><b>{p.ovr}</b><span>{p.pos}</span></div>
+        <div className="jr-main">
+          <div className="jr-k">HÀNH TRÌNH CỦA BẠN</div>
+          <div className="jr-name">{p.name}</div>
+          <div className="jr-lv"><span>LV {lv.level}</span>{lv.title}</div>
+          <div className="xp-track"><div style={{ width: lv.pct + '%' }} /><span>{p.xp ?? 0}/{lv.to} XP</span></div>
+        </div>
+      </div>
+      <div className="jr-stats">
+        {prog.map((s) => (
+          <div key={s.i} className={'jr-stat' + (closest && s.i === closest.i ? ' hot' : '')} title={`${s.have}/${s.need} XP để lên ${s.v + 1}`}>
+            <span>{L[s.i]}</span><b>{s.v}</b><div><div style={{ width: s.pct + '%' }} /></div>
+          </div>
+        ))}
+        {closest && <div className="jr-close">📈 <b>{L[closest.i]}</b> còn <b>{closest.left} XP</b> nữa lên {closest.v + 1}</div>}
+      </div>
+      <div className="jr-quests">
+        <div className="row-sb"><span className="jr-k">NHIỆM VỤ TIẾP THEO</span><a className="more" onClick={() => openModal({ kind: 'xpRules' })}>📜 Tất cả</a></div>
+        {quests.map((q, i) => (
+          <button key={i} className="jr-q" onClick={() => (q.matchId ? go({ view: 'match', matchId: q.matchId }) : openModal({ kind: 'xpRules' }))}>
+            <span>{q.icon}</span><span className="jr-q-t">{q.text}</span><b>{q.xp}</b>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Celebrates XP gained since the last visit (per browser), incl. stats that went up. */
+export function XpWatcher() {
+  const { myPlayer } = useAccess();
+  const [pop, setPop] = useState<{ gain: number; ups: string[]; lvUp: number | null } | null>(null);
+  useEffect(() => {
+    if (!myPlayer) return;
+    const key = 'dx-xp-seen:' + myPlayer.id;
+    const now = { xp: myPlayer.xp ?? 0, stats: myPlayer.stats };
+    let prev: typeof now | null = null;
+    try { prev = JSON.parse(localStorage.getItem(key) || 'null'); } catch { /* storage unavailable */ }
+    try { localStorage.setItem(key, JSON.stringify(now)); } catch { /* ignore */ }
+    if (!prev || prev.xp === now.xp) return;
+    const L = myPlayer.pos === 'GK' ? LBL_GK : LBL;
+    const ups = now.stats.map((v, i) => (prev!.stats?.[i] != null && v > prev!.stats[i] ? `${L[i]} ${prev!.stats[i]} → ${v}` : '')).filter(Boolean);
+    const a = level(prev.xp).level, b = level(now.xp).level;
+    setPop({ gain: now.xp - prev.xp, ups, lvUp: b > a ? b : null });
+  }, [myPlayer?.id, myPlayer?.xp]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!pop) return null;
+  const good = pop.gain > 0;
+  return (
+    <div className={'xp-pop' + (good ? '' : ' neg')} role="status" onClick={() => setPop(null)}>
+      <div className="xp-pop-in">
+        <div className="xp-pop-big">{good ? '+' : ''}{pop.gain} XP</div>
+        {pop.lvUp && <div className="xp-pop-lv">🎉 Lên cấp {pop.lvUp}!</div>}
+        {pop.ups.map((u) => <div key={u} className="xp-pop-up">⬆ {u}</div>)}
+        {!good && <div className="xp-pop-note">Vắng trận bị trừ tiến độ — chỉ số không tụt. Trận sau nhớ bấm “Tham gia” nhé!</div>}
+        <small>Bấm để đóng</small>
       </div>
     </div>
   );

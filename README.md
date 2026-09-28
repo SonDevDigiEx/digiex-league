@@ -123,6 +123,7 @@ Every rule is enforced in the database: RLS policies plus the `SECURITY DEFINER`
 - Every stat has its own progress. +1 costs `xp_cost(v) = 12·1.1^(v−60)` (75 → 50 XP, 85 → 130 XP, 95 → 337 XP), so high stats are hard to raise. Penalties only reduce progress; stats never drop. OVR and market value update on their own.
 - New players start at the same floor: the `players_0_starter` trigger generates random starter stats (`starter_stats`, OVR 72–78, shaped by the primary position) and ignores any stats typed into the add or approve forms.
 - Chairmen get one *thưởng nóng* envelope per week (`hot_bonus`, +30 XP) for a player in their team, not themselves.
+- Always visible: the header shows your OVR and level bar. The top of the home page has *Hành trình của bạn* (OVR, level, stat progress, the stat closest to +1, next quests linking to the match). A celebration popup shows XP and stat gains since your last visit (per browser, localStorage).
 - The player card and *Hồ sơ của tôi* show the level bar, per-stat progress, personal tips and the XP history.
 
 | Quest | XP |

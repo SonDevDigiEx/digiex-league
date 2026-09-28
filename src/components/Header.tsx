@@ -1,5 +1,6 @@
 import { CONFIG_ERROR, hrefOf, useAccess, useLeague, type Route } from '../data/store';
 import { ini, ROLE_LABEL } from '../lib/league';
+import { level } from '../lib/xp';
 
 export function Header() {
   const { route, go, snap, me: user, openModal, signOut } = useLeague();
@@ -37,10 +38,16 @@ export function Header() {
           {user && (
             <div className="me">
               <button className="me-open" onClick={() => openModal({ kind: 'me' })} aria-label="Hồ sơ của tôi" title="Hồ sơ của tôi">
-              <div className="me-ava" style={user.avatar ? { background: `center/cover url("${user.avatar}")` } : undefined}>{user.avatar ? '' : ini(user.name)}</div>
+              <div className="me-ava" style={user.avatar ? { background: `center/cover url("${user.avatar}")` } : undefined}>
+                {user.avatar ? '' : ini(user.name)}
+                {myPlayer && <span className="me-ovr" title="OVR của bạn">{myPlayer.ovr}</span>}
+              </div>
               <div>
                 <div className="me-name">{user.name}</div>
-                <div className="me-role">{ROLE_LABEL[user.role] + (user.team && snap ? ' · ' + tm(user.team)?.short : '')}</div>
+                {myPlayer ? (() => {
+                  const lv = level(myPlayer.xp ?? 0);
+                  return <div className="me-xp" title={`LV ${lv.level} · ${myPlayer.xp ?? 0}/${lv.to} XP`}><b>LV {lv.level}</b><i><i style={{ width: lv.pct + '%' }} /></i></div>;
+                })() : <div className="me-role">{ROLE_LABEL[user.role] + (user.team && snap ? ' · ' + tm(user.team)?.short : '')}</div>}
               </div>
               </button>
               {myPlayer && (

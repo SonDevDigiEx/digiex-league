@@ -63,3 +63,33 @@ export function tips(p: Player, matches: Match[], parts: Participation[]): strin
   out.push('🤫 Mẹo không chính thức: đi đêm với Chủ tịch CLB — mỗi tuần Chủ tịch có đúng 1 phong bì “thưởng nóng” +30 XP. Cà phê sáng, xách nước, nhặt bóng… tùy tâm 😏');
   return out;
 }
+
+export interface Quest { icon: string; text: string; xp: string; matchId?: string }
+
+/** The next concrete things the player can do to earn XP (most valuable first). */
+export function nextQuests(p: Player, matches: Match[], parts: Participation[], now = Date.now()): Quest[] {
+  const out: Quest[] = [];
+  const mine = parts.filter((x) => x.playerId === p.id);
+  const joined = new Set(mine.map((x) => x.matchId));
+  const involves = (m: Match) => !p.teamId || m.home === p.teamId || m.away === p.teamId;
+  const up = matches.filter((m) => m.status === 'up' && involves(m) && new Date(m.date).getTime() > now - 2 * 3600e3)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const nextUp = up.find((m) => !joined.has(m.id));
+  if (nextUp) out.push({ icon: '✅', text: `Bấm “Tham gia” trận ${fmtDay(nextUp.date)}`, xp: '+20', matchId: nextUp.id });
+  const done = new Map(matches.filter((m) => m.status === 'done').map((m) => [m.id, m]));
+  mine.filter((x) => done.has(x.matchId) && (x.status === 'none' || x.status === 'rejected'))
+    .sort((a, b) => done.get(b.matchId)!.date.localeCompare(done.get(a.matchId)!.date)).slice(0, 2)
+    .forEach((x) => out.push({ icon: '📝', text: `Điền thông số trận ${fmtDay(done.get(x.matchId)!.date)}`, xp: '+10', matchId: x.matchId }));
+  // Streak: played the team's last 2 finished matches → the next one completes 3 in a row.
+  if (p.teamId) {
+    const last2 = [...done.values()].filter((m) => m.home === p.teamId || m.away === p.teamId).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 2);
+    if (last2.length === 2 && last2.every((m) => joined.has(m.id)) && up[0]) out.push({ icon: '🔥', text: 'Đá tiếp trận tới để hoàn thành chuỗi 3 trận', xp: '+15', matchId: up[0].id });
+  }
+  const g = GROUP[p.pos];
+  out.push(g === 'GK' ? { icon: '🧤', text: 'Giữ sạch lưới trận tới', xp: '+20' }
+    : g === 'DEF' ? { icon: '🧱', text: 'Cùng hàng thủ giữ sạch lưới', xp: '+20' }
+    : g === 'MID' ? { icon: '🎯', text: 'Có 1 kiến tạo trận tới', xp: '+16' }
+    : { icon: '⚽', text: 'Ghi 1 bàn trận tới', xp: '+16' });
+  return out;
+}
+const fmtDay = (iso: string) => { const d = new Date(iso); return `${['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };

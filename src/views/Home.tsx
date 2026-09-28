@@ -7,6 +7,7 @@ import { TournamentBanner } from './Tournament';
 import { FameAvatar } from './Fame';
 import { PlayerRanking } from './Ranking';
 import { TeamLineups } from './Lineups';
+import { MyJourney } from '../components/Xp';
 import { currentPeriod, periodLabel, topMom, topScorers } from '../lib/fame';
 
 export function ResultRow({ m, i, H, A }: { m: Match; i: number; H: Team; A: Team }) {
@@ -55,6 +56,7 @@ export function Home() {
 
   return (
     <div className="view">
+      <MyJourney />
       {featured && <TournamentBanner t={featured} onOpen={() => go({ view: 'tournament', id: featured.id })} />}
       {(isAdmin || others.length > 0) && (
         <div className="row-sb wrap" style={{ marginTop: featured ? -8 : 0 }}>
