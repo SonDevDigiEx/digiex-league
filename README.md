@@ -18,7 +18,7 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 
 **New project:** paste `supabase/setup.sql` into the SQL Editor and click Run. It creates the schema, RLS, RPCs and storage, plus the F8/F9 teams.
 
-**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` `supabase/migrations/20260928170000_xp.sql` `supabase/migrations/20260928180000_starter_stats.sql` `supabase/migrations/20260928190000_notifications.sql` `supabase/migrations/20260928200000_base_stats.sql` `supabase/migrations/20260928210000_attendance.sql` `supabase/migrations/20260928220000_busy.sql` `supabase/migrations/20260928230000_value_sync.sql` and `supabase/migrations/20260928240000_rsvp_follow_team.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
+**Existing project that already ran up to `20260928030000_open_signup.sql`:** run `supabase/update-2026-09-28.sql`, then `supabase/migrations/20260928080000_handover_numbers.sql` `supabase/migrations/20260928090000_ovr_positions.sql` `supabase/migrations/20260928100000_market_value.sql`, `supabase/migrations/20260928110000_tournaments.sql`, `supabase/migrations/20260928120000_tournament_signup.sql` `supabase/migrations/20260928130000_mom.sql` `supabase/migrations/20260928140000_rename_delete_user.sql` `supabase/migrations/20260928150000_team_applications.sql` `supabase/migrations/20260928160000_lineups.sql` `supabase/migrations/20260928170000_xp.sql` `supabase/migrations/20260928180000_starter_stats.sql` `supabase/migrations/20260928190000_notifications.sql` `supabase/migrations/20260928200000_base_stats.sql` `supabase/migrations/20260928210000_attendance.sql` `supabase/migrations/20260928220000_busy.sql` `supabase/migrations/20260928230000_value_sync.sql` `supabase/migrations/20260928240000_rsvp_follow_team.sql` and `supabase/migrations/20260928250000_admin_flag.sql`. To give everyone a fresh start at around 75 OVR, run `supabase/reset-stats-75.sql` once afterwards; it also clears all XP. All are safe to re-run.
 
 **Existing project that ran the earlier demo setup:**
 1. Run `supabase/migrations/20260928000000_production.sql`.
@@ -41,6 +41,8 @@ Local dev talks to the same Supabase project (there is no offline/demo mode).
 Any Google account can sign in, but new accounts are view-only until an admin approves them (see Roles).
 
 ### Roles
+
+- **System admin is a flag** (`profiles.admin`), separate from the team role. A person can be *Chủ tịch F8* and admin at the same time, and still play in a team. Admins toggle it with *🛡 Admin* in *Quản lý → Thành viên* (`set_admin`); nobody can remove their own flag. Admins get chairman rights in every team (`is_chair_of` is true for them). Role `admin` still works for old accounts.
 
 New accounts start as `pending` (**Chờ duyệt**): they can sign in and **view** everything members see, but can't vote and aren't players. An admin handles them under **Quản lý → Thành viên**:
 

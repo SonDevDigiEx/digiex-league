@@ -115,8 +115,8 @@ export function Market() {
                     {o.note && <div className="quote">“{o.note}”</div>}
                     <div className="meta">{o.byName} · {dmy(o.date)}</div>
                     {pend && !o.to && <div className="note">Chờ cầu thủ trả lời lời mời.</div>}
-                    {pend && !!o.to && o.to === staffT && myT !== o.to && <div className="note">Chờ Chủ tịch {tm(o.to).short} quyết định.</div>}
-                    {pend && !!o.to && myT === o.to && (
+                    {pend && !!o.to && o.to === staffT && myT !== o.to && !isAdmin && <div className="note">Chờ Chủ tịch {tm(o.to).short} quyết định.</div>}
+                    {pend && !!o.to && (myT === o.to || isAdmin) && (
                       <div className="acts">
                         <button className="btn-ok" onClick={() => run(() => api.respondOffer(o.id, true), (m) => m as string)}>Đồng ý</button>
                         <button className="btn-no" onClick={() => run(() => api.respondOffer(o.id, false), (m) => m as string)}>Từ chối</button>

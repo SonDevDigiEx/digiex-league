@@ -32,7 +32,7 @@ const toParticipation = (r: Row): Participation => ({
   attendance: r.attendance ?? 'present',
 });
 const toProfile = (r: Row): Profile => ({
-  id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null, nameChangedAt: r.name_changed_at ?? null,
+  id: r.id, username: r.username, name: r.name, role: r.role as Role, team: r.team_id, email: r.email || '', avatar: r.avatar_url || null, nameChangedAt: r.name_changed_at ?? null, admin: !!r.admin || r.role === 'admin',
 });
 
 /** Turn Supabase/Postgres errors into messages for the toast/form. RPCs raise Vietnamese messages already. */
@@ -296,6 +296,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async setAttendance(matchId, playerId, status) { return check(await sb.rpc('set_attendance', { p_match: matchId, p_player: playerId, p_status: status })) as string; },
     async markNotificationsRead(ids) { check(await sb.rpc('mark_notifications_read', { p_ids: ids ?? null })); },
     async hotBonus(playerId) { return check(await sb.rpc('hot_bonus', { p_player: playerId })) as string; },
+    async setAdmin(userId, on) { check(await sb.rpc('set_admin', { p_user: userId, p_on: on })); },
     async setMyName(name) { check(await sb.rpc('set_my_name', { p_name: name })); },
     async deleteUser(userId, deletePlayer) { check(await sb.rpc('delete_user', { p_user: userId, p_delete_player: deletePlayer })); },
     async setMom(matchId, playerId) { check(await sb.rpc('set_mom', { p_match: matchId, p_player: playerId })); },

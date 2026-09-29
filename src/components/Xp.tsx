@@ -19,7 +19,7 @@ export function XpBar({ p }: { p: Player }) {
 
 export function XpPanel({ p, own }: { p: Player; own?: boolean }) {
   const { snap, user, openModal } = useLeague();
-  const { myT } = useAccess();
+  const { myT, isAdmin } = useAccess();
   const [hist, setHist] = useState<XpEvent[] | null>(null);
   const [showHist, setShowHist] = useState(false);
   const { act, pending, busy } = useAction(1500);
@@ -27,7 +27,7 @@ export function XpPanel({ p, own }: { p: Player; own?: boolean }) {
   const L = p.pos === 'GK' ? LBL_GK : LBL;
   const prog = statProgress(p);
   const hints = tips(p, snap!.matches, snap!.participants);
-  const canBonus = !!user && !!myT && p.teamId === myT && p.userId !== user.id;
+  const canBonus = !!user && p.userId !== user.id && ((!!myT && p.teamId === myT) || (isAdmin && !!p.teamId));
   const loadHist = async () => {
     setShowHist((s) => !s);
     if (!hist) { try { setHist(await api.xpHistory(p.id)); } catch { setHist([]); } }

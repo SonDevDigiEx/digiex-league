@@ -48,7 +48,7 @@ export function Header() {
                 {myPlayer ? (() => {
                   const lv = level(myPlayer.xp ?? 0);
                   return <div className="me-xp" title={`LV ${lv.level} · ${myPlayer.xp ?? 0}/${lv.to} XP`}><b>LV {lv.level}</b><i><i style={{ width: lv.pct + '%' }} /></i></div>;
-                })() : <div className="me-role">{ROLE_LABEL[user.role] + (user.team && snap ? ' · ' + tm(user.team)?.short : '')}</div>}
+                })() : <div className="me-role">{ROLE_LABEL[user.role] + (user.team && snap ? ' · ' + tm(user.team)?.short : '') + (user.admin && user.role !== 'admin' ? ' · Admin' : '')}</div>}
               </div>
               </button>
               <button className={'bell' + (mine > 0 ? ' ring' : '')} onClick={() => openModal({ kind: 'inbox' })} aria-label={mine ? `Thông báo (${mine} mới)` : 'Thông báo'} title="Thông báo">

@@ -117,7 +117,7 @@ function MeForm() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
           <NameEdit name={me.name} changedAt={me.nameChangedAt} />
           <div className="lead" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{me.email}</div>
-          <div className="lead" style={{ fontSize: 12, color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).name : ''}</div>
+          <div className="lead" style={{ fontSize: 12, color: '#c6ff3d' }}>{ROLE_LABEL[me.role]}{me.team ? ' · ' + tm(me.team).name : ''}{me.admin && me.role !== 'admin' ? ' · 🛡 Admin hệ thống' : ''}</div>
           {player && <div className="lead" style={{ fontSize: 12 }}>⚽ {team.id ? team.name : 'Cầu thủ tự do'} · #{player.num} · {player.pos}</div>}
           {player && <NumberEdit current={player.num} playerId={player.id} />}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>

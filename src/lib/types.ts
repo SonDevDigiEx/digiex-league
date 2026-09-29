@@ -121,6 +121,8 @@ export interface Profile {
   avatar: string | null;
   /** Last self rename (limit: once every 24 h). */
   nameChangedAt: string | null;
+  /** System admin flag — independent of the team role (an admin can also be a chairman). */
+  admin?: boolean;
 }
 
 export type StatsStatus = 'none' | 'submitted' | 'approved' | 'rejected';

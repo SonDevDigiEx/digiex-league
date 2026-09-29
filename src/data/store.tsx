@@ -183,7 +183,7 @@ export function useAccess() {
   const { user, snap } = useLeague();
   return useMemo(() => {
     const u = user;
-    const isAdmin = !!u && u.role === 'admin';
+    const isAdmin = !!u && (u.role === 'admin' || !!u.admin);
     const teams = snap?.teams || [];
     const members = snap?.members || [];
     const players = snap?.players || [];

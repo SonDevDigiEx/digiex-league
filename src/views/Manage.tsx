@@ -34,7 +34,7 @@ export function Manage({ teamId }: { teamId?: string }) {
   const header = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <h1 className="h1">Quản lý {showMembers ? 'thành viên' : 'đội'}</h1>
-      <div className="lead">Quyền của bạn: <span style={{ color: '#c6ff3d', fontWeight: 600 }}>{ROLE_LABEL[user.role] + (user.team ? ' · ' + (d.teams.find((t) => t.id === user.team)?.short || '') : '')}</span> · {showMembers ? 'phân quyền Chủ tịch, BHL và Ban tổ chức.' : 'thêm, chỉnh sửa, xóa cầu thủ và cập nhật thông tin đội.'}</div>
+      <div className="lead">Quyền của bạn: <span style={{ color: '#c6ff3d', fontWeight: 600 }}>{ROLE_LABEL[user.role] + (user.team ? ' · ' + (d.teams.find((t) => t.id === user.team)?.short || '') : '') + (user.admin && user.role !== 'admin' ? ' · Admin' : '')}</span> · {showMembers ? 'phân quyền Chủ tịch, BHL và Ban tổ chức.' : 'thêm, chỉnh sửa, xóa cầu thủ và cập nhật thông tin đội.'}</div>
     </div>
   );
   if (showMembers) return <div className="view g20">{header}{tabs}<Members /></div>;
@@ -160,7 +160,9 @@ function Members() {
                 })()}</div>
               </div>
               <div className="mb-acts">
-                <select className="inp" value={m.role} disabled={self} aria-label="Vai trò" onChange={(e) => save(m.id, e.target.value as Role, m.team, m.name)}>
+                <button className={'adm-t' + (m.admin ? ' on' : '')} disabled={self && !!m.admin} title={m.admin ? 'Admin hệ thống — bấm để bỏ quyền' : 'Cấp quyền admin hệ thống (toàn quyền mọi đội)'}
+                  onClick={() => run(() => api.setAdmin(m.id, !m.admin), m.admin ? `Đã bỏ quyền admin của ${m.name}` : `${m.name} giờ là admin hệ thống`)}>🛡 Admin</button>
+                <select className="inp" value={m.role} aria-label="Vai trò" onChange={(e) => save(m.id, e.target.value as Role, m.team, m.name)}>
                   {(['member', 'coach', 'chair', 'admin'] as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                 </select>
                 <select className="inp" value={needsTeam ? m.team || '' : ''} disabled={!needsTeam} aria-label="Đội" onChange={(e) => save(m.id, m.role, e.target.value, m.name)}>

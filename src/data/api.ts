@@ -43,6 +43,8 @@ export interface Api {
   setMom(matchId: string, playerId: string | null): Promise<void>;
   /** Own display name (also on the player / team card); once every 24 h. */
   setMyName(name: string): Promise<void>;
+  /** Admin: grant / remove the system-admin flag (independent of the team role). */
+  setAdmin(userId: string, on: boolean): Promise<void>;
   /** Latest XP events of a player (members only). */
   xpHistory(playerId: string): Promise<XpEvent[]>;
   /** Chairman: weekly "thưởng nóng" +30 XP to a player of their team. */
