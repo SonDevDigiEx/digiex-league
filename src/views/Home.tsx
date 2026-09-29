@@ -74,6 +74,7 @@ export function Home() {
             <div className="hero-team" style={{ animation: 'slideIn .7s ease both' }}>
               <Crest team={A0} />
               <div className="hero-team-name">{A0.name}</div>
+              {A0.motto && <div className="hero-motto" style={{ ['--tc' as string]: A0.color }}>“{A0.motto}”</div>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <div className="h2h-nums">
@@ -86,6 +87,7 @@ export function Home() {
             <div className="hero-team" style={{ animation: 'viewIn .7s ease both' }}>
               <Crest team={B0} style={{ animationDelay: '2s' }} />
               <div className="hero-team-name">{B0.name}</div>
+              {B0.motto && <div className="hero-motto" style={{ ['--tc' as string]: B0.color, animationDelay: '.5s' }}>“{B0.motto}”</div>}
             </div>
           </div>
           <div className="h2h-bar">

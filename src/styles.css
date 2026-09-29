@@ -1231,3 +1231,8 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .cm-btn.del { border: 1px solid rgba(229, 72, 77, .55); background: transparent; color: var(--red) }
 .cm-btn.del.on { background: #e5484d; color: #fff; border-color: #e5484d }
 .cm-btn.del:disabled { opacity: .6 }
+/* team slogan under the name (home hero + match hero) */
+@keyframes mottoIn { from { opacity: 0; transform: translateY(6px); letter-spacing: .3em } to { opacity: 1; transform: none } }
+.hero-motto { max-width: 340px; text-align: center; font: italic 800 clamp(12px, 1.8vw, 17px)/1.25 var(--bc); font-style: italic; letter-spacing: .06em; text-transform: uppercase;
+  color: #fff; text-shadow: 0 0 14px var(--tc), 0 0 2px var(--tc); animation: mottoIn .9s .3s ease both; overflow-wrap: anywhere }
+.mteam .hero-motto { margin-top: -2px }

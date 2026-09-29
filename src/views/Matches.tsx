@@ -166,12 +166,12 @@ export function MatchDetail({ matchId }: { matchId: string }) {
             {series && <span className="mstatus" style={{ background: 'rgba(255,255,255,.06)', color: series.active ? '#c6ff3d' : '#8b93a7' }}>{series.active ? `LỊCH CỐ ĐỊNH · ${WDAY[new Date(m.date).getDay()].toUpperCase()} HẰNG TUẦN` : 'LỊCH CỐ ĐỊNH ĐÃ DỪNG'}</span>}
           </div>
           <div className="vs3" style={{ width: '100%', gap: 'clamp(8px,3vw,30px)' }}>
-            <div className="mteam"><Crest team={H} /><div>{H.name}</div></div>
+            <div className="mteam"><Crest team={H} /><div>{H.name}</div>{H.motto && <em className="hero-motto" style={{ ['--tc' as string]: H.color }}>“{H.motto}”</em>}</div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <div className="mscore" style={isOff ? { color: '#ff6b81', fontSize: 'clamp(36px,8vw,72px)' } : undefined}>{isDone ? `${m.hs} - ${m.as}` : isOff ? 'HỦY' : 'VS'}</div>
               {m.status === 'up' && <div className="cd-wide"><Countdown iso={m.date} small /></div>}
             </div>
-            <div className="mteam"><Crest team={A} style={{ animationDelay: '.1s' }} /><div>{A.name}</div></div>
+            <div className="mteam"><Crest team={A} style={{ animationDelay: '.1s' }} /><div>{A.name}</div>{A.motto && <em className="hero-motto" style={{ ['--tc' as string]: A.color, animationDelay: '.5s' }}>“{A.motto}”</em>}</div>
           </div>
           {m.status === 'up' && <div className="cd-narrow"><Countdown iso={m.date} small /></div>}
           {isOff && <div className="cancel-why">Lý do hủy: <b>{m.cancelReason || '—'}</b></div>}
