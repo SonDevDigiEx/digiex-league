@@ -1,6 +1,6 @@
 import { Crest, OvrBadge, PlayerCard, SecTitle, Trend } from '../components/bits';
 import { hrefOf, useAccess, useLeague } from '../data/store';
-import { crestBg, fDate, fTime, hexA, money, record, sortedMatches, valueTrend } from '../lib/league';
+import { fDate, fTime, hexA, money, record, sortedMatches, valueTrend } from '../lib/league';
 import type { Match, Team } from '../lib/types';
 import { Countdown } from './Matches';
 import { TournamentBanner } from './Tournament';
@@ -126,7 +126,7 @@ export function Home() {
                 <a key={t.id} href={hrefOf({ view: 'teams', teamId: t.id })} className="tbl-row tbl-body" style={{ animationDelay: i * 0.08 + 's' }}
                   onClick={(e) => { e.preventDefault(); go({ view: 'teams', teamId: t.id }); }}>
                   <span className="tbl-rank">{i + 1}</span>
-                  <div className="tbl-team"><div className="crest" style={{ background: crestBg(t) }} /><span>{t.name}</span></div>
+                  <div className="tbl-team"><Crest team={t} text={false} /><span>{t.name}</span></div>
                   <span>{r.p}</span><span>{r.w}</span><span>{r.d}</span><span>{r.l}</span><span>{(r.gd > 0 ? '+' : '') + r.gd}</span>
                   <span className="tbl-pts">{r.pts}</span>
                   <div style={{ display: 'flex', gap: 3 }}>{r.form.map((f, j) => <span key={j} className="form-chip" style={{ background: f.bg }}>{f.l}</span>)}</div>

@@ -298,7 +298,7 @@ function TeamLogoBox({ teamId }: { teamId: string }) {
   };
   return (
     <div className="stat-box" style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-      {crop && <ImageCropper file={crop} aspect={CREST_ASPECT} outH={320} shield title="Căn chỉnh logo đội" onCancel={() => setCrop(null)}
+      {crop && <ImageCropper file={crop} aspect={CREST_ASPECT} outH={320} title="Căn chỉnh logo đội" onCancel={() => setCrop(null)}
         onDone={(blob) => { setCrop(null); setPreview({ blob, url: URL.createObjectURL(blob) }); }} />}
       <Crest team={shown} style={{ width: 64, height: 72, fontSize: 26 }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 180 }}>

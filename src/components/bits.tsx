@@ -3,7 +3,7 @@ import { CARD_SHINE, crestBg, crestTxt, ini, LBL, LBL_GK, money, tier } from '..
 import type { Player, Team } from '../lib/types';
 
 export function Crest({ team, className, style, text = true }: { team: Team; className?: string; style?: CSSProperties; text?: boolean }) {
-  return <div className={'crest ' + (className || '')} style={{ background: crestBg(team), ...style }}>{text ? crestTxt(team) : null}</div>;
+  return <div className={'crest ' + (team.logo ? 'has-logo ' : '') + (className || '')} style={{ background: crestBg(team), ...style }}>{text ? crestTxt(team) : null}</div>;
 }
 
 export function SecTitle({ children, color, sm }: { children: ReactNode; color?: string; sm?: boolean }) {

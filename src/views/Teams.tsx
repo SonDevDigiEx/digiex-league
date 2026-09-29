@@ -15,7 +15,7 @@ export function LogoUpload({ teamId, className = 'btn-upload', label = 'Tải lo
   return (
     <>
       <label className={className}>{label}<input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setCrop(f); }} /></label>
-      {crop && <ImageCropper file={crop} aspect={CREST_ASPECT} outH={320} shield title="Căn chỉnh logo đội" onCancel={() => setCrop(null)}
+      {crop && <ImageCropper file={crop} aspect={CREST_ASPECT} outH={320} title="Căn chỉnh logo đội" onCancel={() => setCrop(null)}
         onDone={(blob) => { setCrop(null); run(() => api.setTeamLogo(teamId, blob), 'Đã cập nhật logo đội'); }} />}
     </>
   );

@@ -58,7 +58,7 @@ export function PlayerRanking() {
   const { snap, openCard } = useLeague();
   const { tm } = useAccess();
   const d = snap!;
-  const [k, setK] = useState<RankKey>('goals');
+  const [k, setK] = useState<RankKey>('growth');
   const [team, setTeam] = useState<string>('all');
   const rows = playerRanking(d.players, d.matches, d.participants).filter((r) => team === 'all' || r.player.teamId === team);
   if (!d.players.some((p) => p.teamId)) return null;

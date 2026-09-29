@@ -1226,3 +1226,5 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .adm-t { flex: none; cursor: pointer; padding: 9px 10px; border-radius: 8px; border: 1px dashed rgba(255, 255, 255, .2); background: transparent; color: var(--muted); font: 700 12px/1 var(--vn) }
 .adm-t.on { border-style: solid; border-color: rgba(245, 197, 66, .6); background: rgba(245, 197, 66, .14); color: var(--gold) }
 .adm-t:disabled { cursor: default; opacity: .8 }
+/* custom team logo: show the uploaded image as-is */
+.crest.has-logo { clip-path: none; background-color: transparent; box-shadow: none !important; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45)) }

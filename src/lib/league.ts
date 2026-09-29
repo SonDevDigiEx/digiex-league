@@ -95,7 +95,8 @@ export function tier(o: number): Tier {
 }
 
 export const crestBg = (t: Team) =>
-  t.logo ? `center/80% no-repeat url("${t.logo}"), linear-gradient(160deg,${t.color},${t.color2})` : `linear-gradient(160deg,${t.color},${t.color2})`;
+  // A custom logo is shown as-is (its own shape, no shield / gradient); otherwise the default coloured shield.
+  t.logo ? `center/contain no-repeat url("${t.logo}")` : `linear-gradient(160deg,${t.color},${t.color2})`;
 export const crestTxt = (t: Team) => (t.logo ? '' : t.short);
 
 export interface FormChip { l: string; bg: string }

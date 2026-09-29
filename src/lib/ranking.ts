@@ -5,11 +5,11 @@ import type { Match, Participation, Player } from './types';
 export type RankKey = 'goals' | 'assists' | 'saves' | 'stability' | 'growth';
 
 export const RANK_COLS: { key: RankKey; label: string; short: string; icon: string; unit: string; hint: string }[] = [
+  { key: 'growth', label: 'Tiến bộ', short: 'TB', icon: '🚀', unit: 'điểm chỉ số', hint: 'Tổng điểm chỉ số đã tăng nhờ kinh nghiệm so với chỉ số khởi điểm (bằng điểm thì ai nhiều XP hơn xếp trên)' },
   { key: 'goals', label: 'Bàn thắng', short: 'BÀN', icon: '⚽', unit: 'bàn', hint: 'Mỗi trận lấy số lớn hơn giữa danh sách ghi bàn của BTC và thống kê đã duyệt' },
   { key: 'assists', label: 'Kiến tạo', short: 'KT', icon: '🎯', unit: 'kiến tạo', hint: 'Theo thống kê cá nhân đã được BHL duyệt' },
   { key: 'saves', label: 'Cản phá', short: 'CP', icon: '🧤', unit: 'pha cản phá', hint: 'Theo thống kê cá nhân đã được BHL duyệt' },
   { key: 'stability', label: 'Độ ổn định', short: 'ỔĐ', icon: '📈', unit: 'điểm', hint: 'Điểm TB trừ độ dao động, cần ít nhất 3 trận có điểm' },
-  { key: 'growth', label: 'Tiến bộ', short: 'TB', icon: '🚀', unit: 'điểm chỉ số', hint: 'Tổng điểm chỉ số đã tăng nhờ kinh nghiệm so với chỉ số khởi điểm (bằng điểm thì ai nhiều XP hơn xếp trên)' },
 ];
 
 export interface RankRow {
