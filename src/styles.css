@@ -1228,3 +1228,6 @@ button.rk-row:hover { background: rgba(255, 255, 255, .06) }
 .adm-t:disabled { cursor: default; opacity: .8 }
 /* custom team logo: show the uploaded image as-is */
 .crest.has-logo { clip-path: none; background-color: transparent; box-shadow: none !important; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45)) }
+.cm-btn.del { border: 1px solid rgba(229, 72, 77, .55); background: transparent; color: var(--red) }
+.cm-btn.del.on { background: #e5484d; color: #fff; border-color: #e5484d }
+.cm-btn.del:disabled { opacity: .6 }

@@ -82,11 +82,11 @@ export function Manage({ teamId }: { teamId?: string }) {
                     run(() => api.releasePlayer(p.id), `${p.name} đã thành cầu thủ tự do`);
                   }}>{pendingDel === 'rel:' + p.id ? 'Xác nhận giải phóng' : 'Giải phóng'}</button>
                 )}
-                <button className={'btn-danger' + (confirm ? ' on' : '')} onClick={() => {
+                {(!p.userId || isAdmin) && <button className={'btn-danger' + (confirm ? ' on' : '')} title={p.userId ? 'Thẻ gắn tài khoản thành viên' : undefined} onClick={() => {
                   if (!confirm) return setPendingDel(p.id);
                   setPendingDel(null);
                   run(() => api.deletePlayer(p.id), 'Đã xóa ' + p.name);
-                }}>{confirm ? 'Xác nhận xóa' : 'Xóa'}</button>
+                }}>{confirm ? 'Xác nhận xóa' : 'Xóa'}</button>}
               </div>
             </div>
           );

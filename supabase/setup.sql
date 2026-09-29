@@ -34,7 +34,7 @@ drop function if exists public.handle_new_user(), public.my_role(), public.my_te
   public.xp_cost(int), public.pos_weights(text), public.xp_split(text, int), public.pos_group(text), public.apply_xp(text, int[]),
   public.grant_xp(text, text, text, int[], text, uuid), public.refresh_match_xp(text), public.tg_match_xp(), public.hot_bonus(text), public.starter_stats(text), public.players_starter(),
   public.vn_when(timestamptz), public.mark_notifications_read(bigint[]), public.notify_new_match(), public.notify_new_tournament(), public.notify_application(), public.set_attendance(text, text, text),
-  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text), public.rsvp_follow_team(), public.set_admin(uuid, boolean) cascade;
+  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text), public.rsvp_follow_team(), public.set_admin(uuid, boolean), public.guard_player_delete() cascade;
 drop table if exists public.match_busy, public.notifications, public.player_xp, public.team_lineups, public.team_applications, public.player_value_history, public.app_state, public.tournament_awards, public.tournament_teams, public.tournaments cascade;
 drop table if exists public.match_series cascade;
 drop trigger if exists on_auth_user_updated on auth.users;
@@ -3024,6 +3024,20 @@ create or replace function public.is_chair_of(t text) returns boolean
 language sql stable security definer set search_path = public as $$
   select public.is_admin() or coalesce(public.my_role() = 'chair' and public.my_team() = t, false)
 $$;
+-- Deleting players: team staff may delete cards they created (no linked account);
+-- a card linked to a real member's account can only be deleted by an admin (or through delete_user).
+create or replace function public.guard_player_delete() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if old.user_id is not null and auth.uid() is not null and not public.is_admin() then
+    raise exception 'Cầu thủ này gắn với tài khoản thành viên — chỉ Ban tổ chức được xóa.';
+  end if;
+  return old;
+end $$;
+
+drop trigger if exists players_guard_delete on public.players;
+create trigger players_guard_delete before delete on public.players
+  for each row execute function public.guard_player_delete();
 -- Starting teams. Players, fixtures and people are entered through the app.
 insert into public.teams (id, name, short, color, color2, motto, founded, chair_quote) values
   ('f8', 'F8 Warriors', 'F8', '#ff3b5c', '#7a0f24', 'Không lùi bước, máu lửa từ phút đầu tiên', 2024, 'Chơi hết mình, thắng bằng tinh thần.'),

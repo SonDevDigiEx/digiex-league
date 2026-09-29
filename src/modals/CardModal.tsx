@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PlayerCard, Sparkline, Trend } from '../components/bits';
 import { api, useAccess, useLeague } from '../data/store';
+import { Spin, useAction } from '../data/useAction';
 import { seasonStats } from '../views/MatchPlayers';
 import { hexA, LBL, LBL_GK, money, tier, valueTrend } from '../lib/league';
 import { awardIcon } from '../lib/tournament';
@@ -13,7 +14,9 @@ const col = (v: number) => (v >= 85 ? '#c6ff3d' : v >= 75 ? '#f5c542' : v >= 65 
 
 export function CardModal() {
   const { snap, cardId, closeCard, openModal, go, user } = useLeague();
-  const { tm, canTransfer, canTeam, staffT, isStaffPlayer, staffLabel } = useAccess();
+  const { tm, canTransfer, canTeam, staffT, isStaffPlayer, staffLabel, isAdmin } = useAccess();
+  const [delAsk, setDelAsk] = useState<string | null>(null);
+  const del = useAction();
   const p = cardId ? snap?.players.find((x) => x.id === cardId) : null;
   useEffect(() => {
     if (!p) return;
@@ -92,8 +95,17 @@ export function CardModal() {
             {canTransfer(p.teamId) && !staffP && <button className="cm-btn lime" onClick={() => openModal({ kind: 'transfer', playerId: p.id })}>Chuyển nhượng</button>}
             {canTeam(p.teamId) && <button className="cm-btn line" onClick={() => openModal({ kind: 'player', playerId: p.id, teamId: p.teamId })}>Chỉnh sửa</button>}
             {!!staffT && !staffP && p.teamId !== staffT && <button className="cm-btn gold" onClick={() => openModal({ kind: 'offer', playerId: p.id })}>{p.teamId ? 'Đề nghị mua' : `Mời về ${tm(staffT).short}`}</button>}
+            {canTeam(p.teamId) && (!p.userId || isAdmin) && (
+              <button className={'cm-btn del' + (delAsk === p.id ? ' on' : '')} disabled={del.busy}
+                title={p.userId ? 'Thẻ gắn với tài khoản thành viên — chỉ xóa thẻ, tài khoản vẫn còn' : 'Xóa thẻ cầu thủ này'}
+                onClick={() => {
+                  if (delAsk !== p.id) return setDelAsk(p.id);
+                  del.act('del', async () => { await api.deletePlayer(p.id); closeCard(); }, 'Đã xóa ' + p.name);
+                }}>{del.pending ? <Spin /> : delAsk === p.id ? 'Xác nhận xóa' : 'Xóa cầu thủ'}</button>
+            )}
             <button className="cm-btn close" onClick={closeCard}>Đóng</button>
           </div>
+          {delAsk === p.id && <div className="note" style={{ color: '#ff6b81' }}>Xóa sẽ mất luôn thống kê trận, lịch sử XP của {p.name}. Bấm “Xác nhận xóa” để tiếp tục.</div>}
         </div>
       </div>
     </div>
