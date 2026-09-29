@@ -34,7 +34,7 @@ drop function if exists public.handle_new_user(), public.my_role(), public.my_te
   public.xp_cost(int), public.pos_weights(text), public.xp_split(text, int), public.pos_group(text), public.apply_xp(text, int[]),
   public.grant_xp(text, text, text, int[], text, uuid), public.refresh_match_xp(text), public.tg_match_xp(), public.hot_bonus(text), public.starter_stats(text), public.players_starter(),
   public.vn_when(timestamptz), public.mark_notifications_read(bigint[]), public.notify_new_match(), public.notify_new_tournament(), public.notify_application(), public.set_attendance(text, text, text),
-  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text), public.rsvp_follow_team(), public.set_admin(uuid, boolean), public.guard_player_delete() cascade;
+  public.set_busy(text, text), public.clear_busy(text), public.clear_busy_on_join(), public.sync_player_value(text), public.rsvp_follow_team(), public.set_admin(uuid, boolean), public.guard_player_delete(), public.sync_staff_names() cascade;
 drop table if exists public.match_busy, public.notifications, public.player_xp, public.team_lineups, public.team_applications, public.player_value_history, public.app_state, public.tournament_awards, public.tournament_teams, public.tournaments cascade;
 drop table if exists public.match_series cascade;
 drop trigger if exists on_auth_user_updated on auth.users;
@@ -3038,6 +3038,29 @@ end $$;
 drop trigger if exists players_guard_delete on public.players;
 create trigger players_guard_delete before delete on public.players
   for each row execute function public.guard_player_delete();
+-- The chairman / BHL names stored on the team card follow the profile name (renames, Google name changes),
+-- and are re-synced once now.
+create or replace function public.sync_staff_names() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.name is distinct from old.name and new.team_id is not null then
+    if new.role = 'chair' then update public.teams set chair_name = new.name where id = new.team_id; end if;
+    if new.role = 'coach' then
+      update public.teams set coach_name = (select string_agg(name, ', ' order by name) from public.profiles where role = 'coach' and team_id = new.team_id)
+      where id = new.team_id;
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists on_profile_name_sync on public.profiles;
+create trigger on_profile_name_sync after update of name on public.profiles
+  for each row execute function public.sync_staff_names();
+
+update public.teams t set chair_name = p.name
+from public.profiles p where p.role = 'chair' and p.team_id = t.id and t.chair_name is distinct from p.name;
+update public.teams t set coach_name = c.names
+from (select team_id, string_agg(name, ', ' order by name) names from public.profiles where role = 'coach' and team_id is not null group by team_id) c
+where c.team_id = t.id and t.coach_name is distinct from c.names;
 -- Starting teams. Players, fixtures and people are entered through the app.
 insert into public.teams (id, name, short, color, color2, motto, founded, chair_quote) values
   ('f8', 'F8 Warriors', 'F8', '#ff3b5c', '#7a0f24', 'Không lùi bước, máu lửa từ phút đầu tiên', 2024, 'Chơi hết mình, thắng bằng tinh thần.'),

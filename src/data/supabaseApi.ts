@@ -137,6 +137,13 @@ export function createSupabaseApi(url: string, key: string): Api {
       snap.transfers = transfers.map(toTransfer);
       snap.offers = offers.map(toOffer);
       snap.members = members.map(toProfile);
+      // Chairman / BHL names always follow the accounts that hold the role.
+      snap.teams.forEach((t) => {
+        const chair = snap.members.find((m) => m.role === 'chair' && m.team === t.id);
+        const coaches = snap.members.filter((m) => m.role === 'coach' && m.team === t.id).map((m) => m.name);
+        if (chair) t.chair = { ...t.chair, name: chair.name };
+        t.coach = { ...t.coach, name: coaches.join(', ') || (chair || coaches.length ? '' : t.coach.name) };
+      });
       const byId = new Map(snap.matches.map((m) => [m.id, m]));
       (stats as Row[]).forEach((s) => {
         const m = byId.get(s.match_id);

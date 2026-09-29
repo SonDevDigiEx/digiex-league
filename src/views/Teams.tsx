@@ -52,6 +52,13 @@ export function Teams({ teamId }: { teamId?: string }) {
   // Team trophies first, then individual awards won by its players.
   const trophies = teamAwards.filter((a) => !a.playerId && !a.playerName);
   const personal = teamAwards.filter((a) => a.playerId || a.playerName);
+  // Chairman / BHL come live from the accounts holding the role (name + photo follow the profile);
+  // the stored text on the team is only a fallback (e.g. for guests, who can't read member profiles).
+  const chairAcc = d.members.find((m) => m.role === 'chair' && m.team === ct.id);
+  const chairCard = chairAcc ? d.players.find((p) => p.userId === chairAcc.id) : undefined;
+  const chairName = chairAcc?.name || ct.chair.name;
+  const chairAva = chairCard?.photo || chairAcc?.avatar || null;
+  const coachNames = d.members.filter((m) => m.role === 'coach' && m.team === ct.id).map((m) => m.name).join(', ') || (d.members.length ? '' : ct.coach.name);
   let ci = 0;
   const groups = (['GK', 'DEF', 'MID', 'FWD'] as Group[]).map((g) => ({ g, cards: sq.filter((p) => GROUP[p.pos] === g).sort((a, b) => b.ovr - a.ovr) })).filter((x) => x.cards.length);
 
@@ -92,12 +99,12 @@ export function Teams({ teamId }: { teamId?: string }) {
             </div>
           </div>
           <div className="chair">
-            <div className="chair-ava">{ini(ct.chair.name)}</div>
+            <div className="chair-ava" style={chairAva ? { background: `center/cover no-repeat url("${chairAva}")` } : undefined}>{chairAva ? '' : ini(chairName)}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div className="chair-k">CHỦ TỊCH · TỪ {ct.chair.since}</div>
-              <div className="chair-n">{ct.chair.name}</div>
+              <div className="chair-n">{chairName}</div>
               <div className="chair-q">{ct.chair.quote}</div>
-              <div className="chair-q">BHL: <span style={{ color: '#fff', fontWeight: 600 }}>{ct.coach.name || 'Chưa bổ nhiệm'}</span></div>
+              <div className="chair-q">BHL: <span style={{ color: '#fff', fontWeight: 600 }}>{coachNames || 'Chưa bổ nhiệm'}</span></div>
             </div>
           </div>
         </div>
