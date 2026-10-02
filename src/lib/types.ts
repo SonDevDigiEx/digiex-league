@@ -165,6 +165,8 @@ export interface Snapshot {
   players: Player[];
   matches: Match[];
   transfers: Transfer[];
+  /** Total transfer count (for the lead line; `transfers` is limited to 5 newest). */
+  transferCount: number;
   offers: Offer[];
   my: Record<string, MyVote>;
   /** Everyone with an account (signed-in viewers only). */

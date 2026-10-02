@@ -32,7 +32,8 @@ export function Market() {
   const inCount = staffT ? offers.filter((o) => o.to === staffT && o.status === 'pending').length : 0;
   const rqTab = isAdmin ? 'all' : rqTabSel;
   const rqList = (isAdmin ? offers : staffT ? offers.filter((o) => (rqTab === 'in' ? o.to === staffT : o.from === staffT)) : [])
-    .slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    .filter((o) => o.status === 'pending')
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   const pending = isAdmin ? offers.filter((o) => o.status === 'pending').length : inCount;
   const chip = (label: string, on: boolean, onClick: () => void) => <button key={label} className={'chip' + (on ? ' on' : '')} onClick={onClick}>{label}</button>;
 
@@ -40,7 +41,7 @@ export function Market() {
     <div className="view g20">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <h1 className="h1">Thị trường chuyển nhượng</h1>
-        <div className="lead">Tổng giá trị thị trường <span style={{ color: '#f5c542', fontWeight: 700 }}>{money(d.players.reduce((a, p) => a + p.value, 0))}</span> · {d.players.length} cầu thủ · {d.transfers.length} thương vụ</div>
+        <div className="lead">Tổng giá trị thị trường <span style={{ color: '#f5c542', fontWeight: 700 }}>{money(d.players.reduce((a, p) => a + p.value, 0))}</span> · {d.players.length} cầu thủ · {d.transferCount} thương vụ</div>
       </div>
       <div className="mk-search">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
@@ -89,7 +90,7 @@ export function Market() {
               <div className="seg">
                 {isAdmin
                   ? <button className="on">Tất cả yêu cầu</button>
-                  : ([['in', 'Nhận được (' + offers.filter((o) => o.to === staffT).length + ')'], ['out', 'Đã gửi (' + offers.filter((o) => o.from === staffT).length + ')']] as ['in' | 'out', string][])
+                  : ([['in', 'Nhận được (' + offers.filter((o) => o.to === staffT && o.status === 'pending').length + ')'], ['out', 'Đã gửi (' + offers.filter((o) => o.from === staffT && o.status === 'pending').length + ')']] as ['in' | 'out', string][])
                     .map(([k, l]) => <button key={k} className={rqTab === k ? 'on' : ''} onClick={() => setRqTab(k)}>{l}</button>)}
               </div>
               {rqList.map((o, i) => {
@@ -131,7 +132,7 @@ export function Market() {
           )}
           <div className="rq" style={{ borderColor: 'rgba(255,255,255,.07)', animation: 'none' }}>
             <SecTitle sm color="#f5c542">Nhật ký chuyển nhượng</SecTitle>
-            {d.transfers.slice().reverse().map((x, i) => {
+            {d.transfers.map((x, i) => {
               const f = tm(x.from), t = tm(x.to);
               return (
                 <div key={i} className="log">
@@ -140,7 +141,7 @@ export function Market() {
                 </div>
               );
             })}
-            {!d.transfers.length && <div className="note" style={{ fontSize: 13 }}>Chưa có thương vụ nào.</div>}
+            {!d.transferCount && <div className="note" style={{ fontSize: 13 }}>Chưa có thương vụ nào.</div>}
           </div>
         </div>
       </div>
