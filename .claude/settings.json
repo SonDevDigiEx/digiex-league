@@ -1,0 +1,11 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-6C4zh9_QZ7br_qWxQ07fDCPAFMy0Wbo37uRBj2ckHJY",
+    "ANTHROPIC_BASE_URL": "https://api.vcodex.ai",
+    "ANTHROPIC_MODEL": "vcodex/auto",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "vcodex/auto",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "vcodex/auto",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "vcodex/auto",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "vcodex/auto"
+  }
+}

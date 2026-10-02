@@ -123,20 +123,20 @@ export function createSupabaseApi(url: string, key: string): Api {
         })),
       };
       if (!me) return snap;
-      const [transfers, transferCount, offers, stats, votes, members, apps, notes] = await Promise.all([
+      const [transfers, offers, stats, votes, members, apps, notes, transferCountRes] = await Promise.all([
         sb.from('transfers').select('*').order('id', { ascending: false }).limit(5).then(check),
-        sb.from('transfers').select('id', { count: 'exact', head: true }).then(check),
         sb.from('offers').select('*, creator:profiles(name)').then(check),
         sb.rpc('vote_stats').then(check),
         sb.from('votes').select('match_id, winner, score').eq('user_id', me).then(check),
         sb.from('profiles').select('*').order('name').then(check),
         sb.from('team_applications').select('*').order('created_at', { ascending: false }).then(check),
         sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(60).then(check),
+        sb.from('transfers').select('id', { count: 'exact', head: true }),
       ]);
       snap.notifications = (notes as Row[]).map((r) => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, link: r.link, meta: r.meta || {}, date: r.created_at, read: !!r.read_at }));
       snap.applications = (apps as Row[]).map((r) => ({ id: r.id, playerId: r.player_id, teamId: r.team_id, message: r.message, status: r.status, date: r.created_at }));
       snap.transfers = transfers.map(toTransfer);
-      snap.transferCount = (transferCount as { count: number } | null)?.count ?? 0;
+      snap.transferCount = transferCountRes.count ?? 0;
       snap.offers = offers.map(toOffer);
       snap.members = members.map(toProfile);
       // Chairman / BHL names always follow the accounts that hold the role.
