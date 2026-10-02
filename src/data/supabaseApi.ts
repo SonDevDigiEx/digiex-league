@@ -107,7 +107,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       const valueHistory: Snapshot['valueHistory'] = {};
       (history as Row[]).forEach((h) => { (valueHistory[h.player_id] ||= []).push({ day: h.day, value: Number(h.value) }); });
       const snap: Snapshot = {
-        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], offers: [], my: {}, members: [], applications: [], notifications: [],
+        teams: teams.map(toTeam), players: players.map(toPlayer), matches: matches.map(toMatch), transfers: [], transferCount: 0, offers: [], my: {}, members: [], applications: [], notifications: [],
         busy: (busy as Row[]).map((r) => ({ matchId: r.match_id, playerId: r.player_id, teamId: r.team_id, reason: r.reason, date: r.created_at })),
         lineups: (lineups as Row[]).map((r) => ({ teamId: r.team_id, format: r.format, formation: r.formation, slots: (r.slots || []).map((s: Row) => ({ pid: s.pid ?? null, x: Number(s.x), y: Number(s.y) })) })),
         participants: participants.map(toParticipation),
@@ -123,8 +123,9 @@ export function createSupabaseApi(url: string, key: string): Api {
         })),
       };
       if (!me) return snap;
-      const [transfers, offers, stats, votes, members, apps, notes] = await Promise.all([
-        sb.from('transfers').select('*').order('id').then(check),
+      const [transfers, transferCount, offers, stats, votes, members, apps, notes] = await Promise.all([
+        sb.from('transfers').select('*').order('id', { ascending: false }).limit(5).then(check),
+        sb.from('transfers').select('id', { count: 'exact', head: true }).then(check),
         sb.from('offers').select('*, creator:profiles(name)').then(check),
         sb.rpc('vote_stats').then(check),
         sb.from('votes').select('match_id, winner, score').eq('user_id', me).then(check),
@@ -135,6 +136,7 @@ export function createSupabaseApi(url: string, key: string): Api {
       snap.notifications = (notes as Row[]).map((r) => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, link: r.link, meta: r.meta || {}, date: r.created_at, read: !!r.read_at }));
       snap.applications = (apps as Row[]).map((r) => ({ id: r.id, playerId: r.player_id, teamId: r.team_id, message: r.message, status: r.status, date: r.created_at }));
       snap.transfers = transfers.map(toTransfer);
+      snap.transferCount = (transferCount as { count: number } | null)?.count ?? 0;
       snap.offers = offers.map(toOffer);
       snap.members = members.map(toProfile);
       // Chairman / BHL names always follow the accounts that hold the role.
